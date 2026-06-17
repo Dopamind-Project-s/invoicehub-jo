@@ -11,6 +11,7 @@ use App\Services\Jofotara\ICVService;
 use App\Services\Jofotara\TaxCalculationService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class CreateRealJofotaraSample extends Command
@@ -22,27 +23,27 @@ class CreateRealJofotaraSample extends Command
     public function handle(ICVService $icv, TaxCalculationService $tax): int
     {
         $invoice = DB::transaction(function () use ($icv, $tax): Invoice {
-            $company = Company::updateOrCreate(
-                ['tax_number' => '9578331'],
-                [
-                    'legal_name_ar' => 'مطبخ ومشاوي جوهرة الجبيهة',
-                    'legal_name_en' => 'Jawharat Al Jubaiha Kitchen and Grills',
-                    'trade_name' => 'مطبخ ومشاوي جوهرة الجبيهة',
-                    'national_number' => null,
-                    'registration_number' => null,
-                    'branch_code' => '0',
-                    'country_code' => 'JO',
-                    'city' => 'Jordan',
-                    'street' => 'Jordan',
-                    'phone' => '799021616',
-                    'default_currency' => 'JOD',
-                    'icv_prefix' => 'INV',
-                    'jofotara_client_id' => config('services.jofotara.client_id'),
-                    'jofotara_secret_key' => config('services.jofotara.secret_key'),
-                    'jofotara_source_id' => '18412122',
-                    'is_active' => true,
-                ]
-            );
+            $companyData = [
+                'legal_name_ar' => 'مطبخ ومشاوي جوهرة الجبيهة',
+                'legal_name_en' => 'Jawharat Al Jubaiha Kitchen and Grills',
+                'trade_name' => 'مطبخ ومشاوي جوهرة الجبيهة',
+                'national_number' => null,
+                'registration_number' => null,
+                'branch_code' => '0',
+                'country_code' => 'JO',
+                'city' => 'Jordan',
+                'street' => 'Jordan',
+                'phone' => '799021616',
+                'default_currency' => 'JOD',
+                'icv_prefix' => 'INV',
+                'jofotara_client_id' => config('services.jofotara.client_id'),
+                'jofotara_source_id' => '18412122',
+                'is_active' => true,
+            ];
+            if (filled(config('services.jofotara.secret_key'))) {
+                $companyData['jofotara_secret_key'] = config('services.jofotara.secret_key');
+            }
+            $company = Company::updateOrCreate(['tax_number' => '9578331'], $companyData);
 
             $customer = Customer::updateOrCreate(
                 ['name' => 'عميل نقدي', 'tax_number' => null],
@@ -85,13 +86,25 @@ class CreateRealJofotaraSample extends Command
             return $invoice;
         });
 
-        $this->info('invoice id: '.$invoice->id);
+        $this->warnIfSecretColumnLooksTooSmall();
+        $this->info('created invoice id: '.$invoice->id);
         $this->line('invoice number: '.$invoice->invoice_number);
         $this->line('uuid: '.$invoice->uuid);
         $this->line('icv: '.$invoice->icv);
         $this->line('total: '.$invoice->payable_amount);
         $this->line('status: '.$invoice->status);
+        $this->line('next prepare command: php artisan jofotara:prepare '.$invoice->id);
+        $this->line('next submit command: php artisan jofotara:submit-real '.$invoice->id);
 
         return self::SUCCESS;
+    }
+
+    private function warnIfSecretColumnLooksTooSmall(): void
+    {
+        foreach (Schema::getColumns('companies') as $column) {
+            if (($column['name'] ?? null) === 'jofotara_secret_key' && (($column['type_name'] ?? '') === 'varchar' || (int) ($column['length'] ?? 0) > 0 && (int) ($column['length'] ?? 0) < 1000)) {
+                $this->warn('jofotara_secret_key column may be too small for production keys.');
+            }
+        }
     }
 }

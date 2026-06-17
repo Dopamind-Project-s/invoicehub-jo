@@ -1,12 +1,12 @@
 <?php
 
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InvoiceController;
-use App\Http\Controllers\SellerController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/invoices');
-Route::resource('sellers', SellerController::class);
+Route::resource('companies', CompanyController::class)->except(['show', 'destroy']);
 Route::resource('customers', CustomerController::class);
 Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
 Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');

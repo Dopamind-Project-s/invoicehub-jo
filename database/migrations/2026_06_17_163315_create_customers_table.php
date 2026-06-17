@@ -71,7 +71,7 @@ return new class extends Migration
             $table->string('legal_name_ar');
             $table->string('legal_name_en')->nullable();
             $table->string('trade_name')->nullable();
-            $table->string('tax_number')->unique();
+            $table->string('tax_number', 50)->unique();
             $table->string('national_number')->nullable();
             $table->string('registration_number')->nullable();
             $table->string('branch_code')->default('0');
@@ -85,9 +85,9 @@ return new class extends Migration
             $table->string('economic_activity')->nullable();
             $table->string('default_currency', 3)->default('JOD');
             $table->string('icv_prefix')->default('INV');
-            $table->string('jofotara_client_id')->nullable();
-            $table->string('jofotara_secret_key')->nullable();
-            $table->string('jofotara_source_id')->nullable();
+            $table->string('jofotara_client_id', 100)->nullable();
+            $table->longText('jofotara_secret_key')->nullable();
+            $table->string('jofotara_source_id', 50)->nullable();
             $table->unsignedBigInteger('last_icv')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
