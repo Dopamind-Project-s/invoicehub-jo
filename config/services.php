@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'jofotara' => [
+        'url' => env('JOFOTARA_API_URL'),
+        'client_id' => env('JOFOTARA_CLIENT_ID'),
+        'secret_key' => env('JOFOTARA_SECRET_KEY'),
+        'source_id' => env('JOFOTARA_SOURCE_ID'),
+        'tax_number' => env('JOFOTARA_TAX_NUMBER'),
+        'seller_name' => env('JOFOTARA_SELLER_NAME'),
+    ],
+
 ];

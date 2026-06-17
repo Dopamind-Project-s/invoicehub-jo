@@ -2,24 +2,45 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Customer;
+use App\Models\Invoice;
+use App\Models\Seller;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $seller = Seller::firstOrCreate(
+            ['name' => 'مطبخ ومشاوي جوهرة الجبيهة'],
+            ['is_default' => true]
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        if (! $seller->is_default && Seller::where('is_default', true)->doesntExist()) {
+            $seller->update(['is_default' => true]);
+        }
+
+        $customer = Customer::firstOrCreate(
+            ['name' => 'شركة الاتصالات الاردنيه'],
+            ['tax_number' => '000000000', 'phone' => '0790000000', 'address' => 'عمّان - الأردن']
+        );
+
+        $invoiceNumber = 'INV/'.now()->year.'/00001';
+        $invoice = Invoice::firstOrCreate(
+            ['invoice_number' => $invoiceNumber],
+            ['seller_id' => $seller->id, 'customer_id' => $customer->id, 'invoice_date' => now()->toDateString(), 'subtotal' => 71.400, 'tax_total' => 0, 'discount_total' => 0, 'total' => 71.400, 'payment_reference' => $invoiceNumber]
+        );
+
+        if (! $invoice->seller_id) {
+            $invoice->update(['seller_id' => $seller->id]);
+        }
+
+        if ($invoice->items()->doesntExist()) {
+            $invoice->items()->createMany([
+                ['description' => 'وجبة منسف لحم بلدي', 'quantity' => 8, 'unit_price' => 8, 'tax_rate' => 0, 'tax_amount' => 0, 'line_total' => 64],
+                ['description' => 'ماتريكس', 'quantity' => 8, 'unit_price' => 0.300, 'tax_rate' => 0, 'tax_amount' => 0, 'line_total' => 2.400],
+                ['description' => 'توصيل', 'quantity' => 1, 'unit_price' => 5, 'tax_rate' => 0, 'tax_amount' => 0, 'line_total' => 5],
+            ]);
+        }
     }
 }
