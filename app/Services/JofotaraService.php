@@ -8,6 +8,7 @@ use DOMElement;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class JofotaraService
 {
@@ -18,15 +19,36 @@ class JofotaraService
     public function submitInvoice(Invoice $invoice): array
     {
         $invoice->load(['seller', 'customer', 'items']);
-        $payload = ['invoice' => base64_encode($this->buildUblXml($invoice))];
-        Log::info('Submitting invoice to JoFotara', ['invoice_id' => $invoice->id, 'seller_id' => $invoice->seller_id, 'url' => config('services.jofotara.url')]);
+        $xml = $this->buildUblXml($invoice);
+        $encodedXml = base64_encode($xml);
+        $payload = ['invoice' => $encodedXml];
+        Storage::disk('local')->put('jofotara/last-submission-'.$invoice->id.'.xml', $xml);
+        Storage::disk('local')->put('jofotara/last-payload-'.$invoice->id.'.json', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        Log::info('Submitting invoice to JoFotara', [
+            'invoice_id' => $invoice->id,
+            'seller_id' => $invoice->seller_id,
+            'url' => config('services.jofotara.url'),
+            'xml_length' => strlen($xml),
+            'base64_length' => strlen($encodedXml),
+            'client_id_exists' => filled($this->sellerConfig($invoice, 'client_id')),
+            'secret_key_length' => strlen((string) $this->sellerConfig($invoice, 'secret_key')),
+            'source_id' => $this->sellerConfig($invoice, 'source_id'),
+            'tax_number' => $this->sellerConfig($invoice, 'tax_number'),
+        ]);
         $response = Http::withHeaders([
             'Client-Id' => $this->sellerConfig($invoice, 'client_id'),
             'Secret-Key' => $this->sellerConfig($invoice, 'secret_key'),
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
         ])->post(config('services.jofotara.url'), $payload);
-        Log::info('JoFotara HTTP response received', ['invoice_id' => $invoice->id, 'seller_id' => $invoice->seller_id, 'http_status' => $response->status()]);
+        Log::info('JoFotara HTTP response received', [
+            'invoice_id' => $invoice->id,
+            'seller_id' => $invoice->seller_id,
+            'http_status' => $response->status(),
+            'response_headers' => $response->headers(),
+            'raw_response_body' => $response->body(),
+            'response_length' => strlen($response->body()),
+        ]);
         $parsed = $this->parseResponse($response);
         $invoice->forceFill([
             'status' => $parsed['accepted'] ? 'accepted' : 'rejected',
