@@ -43,6 +43,8 @@ return [
         'tax_number' => env('JOFOTARA_TAX_NUMBER'),
         'seller_name' => env('JOFOTARA_SELLER_NAME'),
         'include_customization_id' => env('JOFOTARA_INCLUDE_CUSTOMIZATION_ID', false),
+        'verify_ssl' => env('JOFOTARA_VERIFY_SSL', true),
+        'timeout' => env('JOFOTARA_TIMEOUT', 60),
     ],
 
 ];

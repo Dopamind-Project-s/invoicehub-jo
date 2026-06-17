@@ -39,8 +39,10 @@ class JofotaraService
             'Client-Id' => $this->sellerConfig($invoice, 'client_id'),
             'Secret-Key' => $this->sellerConfig($invoice, 'secret_key'),
             'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ])->post(config('services.jofotara.url'), $payload);
+            'Accept' => '*/*',
+        ])->timeout((int) config('services.jofotara.timeout', 60))
+            ->withOptions(['verify' => filter_var(config('services.jofotara.verify_ssl', true), FILTER_VALIDATE_BOOLEAN)])
+            ->post(config('services.jofotara.url'), $payload);
         Log::info('JoFotara HTTP response received', [
             'invoice_id' => $invoice->id,
             'seller_id' => $invoice->seller_id,
