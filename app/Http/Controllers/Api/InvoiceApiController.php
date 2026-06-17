@@ -28,10 +28,14 @@ class InvoiceApiController extends Controller
         $company = Company::findOrFail($data['supplier_id']);
         $invoice = DB::transaction(function () use ($data, $company, $icv, $tax) {
             $totals = $tax->calculateInvoice($data['items']);
-            $inv = Invoice::create(array_merge($totals, ['uuid' => (string) Str::uuid(), 'invoice_number' => $data['invoice_number'], 'icv' => $icv->next($company), 'invoice_type' => $data['invoice_type'], 'invoice_subtype' => $data['invoice_subtype'], 'issue_date' => now()->toDateString(), 'issue_time' => now()->format('H:i:s'), 'currency_code' => $data['currency_code'], 'exchange_rate' => '1', 'supplier_id' => $company->id, 'customer_id' => $data['customer_id'] ?? null, 'status' => 'DRAFT']));
+            $inv = Invoice::create(array_merge($totals, ['uuid' => (string) Str::uuid(), 'invoice_number' => $data['invoice_number'], 'icv' => $icv->next($company), 'invoice_type' => $data['invoice_type'], 'invoice_subtype' => $data['invoice_subtype'], 'invoice_scope' => $data['invoice_scope'] ?? 'local', 'payment_type' => $data['payment_type'] ?? 'receivable', 'taxpayer_type' => $data['taxpayer_type'] ?? 'general_sales', 'issue_date' => now()->toDateString(), 'issue_time' => now()->format('H:i:s'), 'currency_code' => $data['currency_code'], 'exchange_rate' => '1', 'supplier_id' => $company->id, 'customer_id' => $data['customer_id'] ?? null, 'status' => 'DRAFT']));
             foreach ($data['items'] as $line) {
                 $calc = $tax->calculateLine((string) $line['quantity'], (string) $line['unit_price'], (string) ($line['discount'] ?? 0), (string) $line['tax_percent']);
-                $inv->items()->create(array_merge($line, $calc));
+                $inv->items()->create(array_merge($line, [
+                    'line_extension_amount' => $calc['line_extension_amount'],
+                    'tax_amount' => $calc['tax_amount'],
+                    'line_total' => $calc['line_total'],
+                ]));
             }
 
             return $inv;
@@ -57,7 +61,7 @@ class InvoiceApiController extends Controller
 
     public function submit(Invoice $invoice, UBLInvoiceBuilder $builder, JoFotaraApiService $api): JsonResponse
     {
-        return response()->json($api->submit($invoice, $builder->build($invoice)));
+        return response()->json($api->submit($invoice));
     }
 
     public function show(Invoice $invoice): JsonResponse

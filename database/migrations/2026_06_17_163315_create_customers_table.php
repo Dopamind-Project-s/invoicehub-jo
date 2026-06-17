@@ -116,6 +116,7 @@ return new class extends Migration
             $table->string('country_code', 2)->default('JO');
             $table->string('city')->nullable();
             $table->text('address')->nullable();
+            $table->string('postal_code')->nullable();
             $table->string('phone')->nullable();
             $table->string('email')->nullable();
             $table->boolean('is_taxable')->default(true);

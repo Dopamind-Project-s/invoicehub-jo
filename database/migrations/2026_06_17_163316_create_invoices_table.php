@@ -15,6 +15,9 @@ return new class extends Migration
             $table->unsignedBigInteger('icv')->unique();
             $table->enum('invoice_type', ['STANDARD', 'SIMPLIFIED'])->default('STANDARD');
             $table->enum('invoice_subtype', ['SALE', 'RETURN', 'DEBIT_NOTE', 'CREDIT_NOTE'])->default('SALE');
+            $table->enum('invoice_scope', ['local', 'export', 'development_area'])->default('local');
+            $table->enum('payment_type', ['cash', 'receivable'])->default('receivable');
+            $table->enum('taxpayer_type', ['income', 'general_sales', 'special_sales'])->default('general_sales');
             $table->date('issue_date');
             $table->time('issue_time');
             $table->string('currency_code', 3)->default('JOD');
@@ -32,10 +35,11 @@ return new class extends Migration
             $table->string('previous_invoice_hash')->nullable();
             $table->string('xml_hash')->nullable();
             $table->longText('qr_code')->nullable();
-            $table->enum('status', ['DRAFT', 'GENERATED', 'SIGNED', 'SUBMITTED', 'ACCEPTED', 'REJECTED'])->default('DRAFT');
+            $table->enum('status', ['DRAFT', 'GENERATED', 'SIGNED', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'ERROR'])->default('DRAFT');
             $table->uuid('submission_uuid')->nullable();
             $table->longText('submission_response')->nullable();
             $table->timestamp('submitted_at')->nullable();
+            $table->timestamp('accepted_at')->nullable();
             $table->timestamps();
         });
     }
