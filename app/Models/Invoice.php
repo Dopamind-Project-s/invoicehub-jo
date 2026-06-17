@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -8,13 +10,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
-    protected $fillable = ['invoice_number', 'jofotara_invoice_number', 'jofotara_xml_uuid', 'seller_id', 'customer_id', 'invoice_date', 'due_date', 'subtotal', 'tax_total', 'discount_total', 'total', 'payment_reference', 'payment_type', 'taxpayer_type', 'icv_counter', 'status', 'jofotara_uuid', 'jofotara_qr', 'jofotara_response', 'submitted_at'];
+    protected $fillable = ['uuid', 'invoice_number', 'icv', 'invoice_type', 'invoice_subtype', 'issue_date', 'issue_time', 'currency_code', 'exchange_rate', 'supplier_id', 'customer_id', 'payment_method_id', 'subtotal', 'discount_amount', 'taxable_amount', 'tax_amount', 'total_amount', 'rounding_amount', 'payable_amount', 'previous_invoice_hash', 'xml_hash', 'qr_code', 'status', 'submission_uuid', 'submission_response', 'submitted_at'];
 
-    protected $casts = ['invoice_date' => 'date', 'due_date' => 'date', 'submitted_at' => 'datetime'];
+    protected $casts = ['issue_date' => 'date', 'submitted_at' => 'datetime', 'exchange_rate' => 'decimal:6', 'subtotal' => 'decimal:6', 'discount_amount' => 'decimal:6', 'taxable_amount' => 'decimal:6', 'tax_amount' => 'decimal:6', 'total_amount' => 'decimal:6', 'rounding_amount' => 'decimal:6', 'payable_amount' => 'decimal:6'];
 
-    public function seller(): BelongsTo
+    public function supplier(): BelongsTo
     {
-        return $this->belongsTo(Seller::class);
+        return $this->belongsTo(Company::class, 'supplier_id');
     }
 
     public function customer(): BelongsTo
@@ -25,5 +27,10 @@ class Invoice extends Model
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);
+    }
+
+    public function xmlLogs(): HasMany
+    {
+        return $this->hasMany(InvoiceXmlLog::class);
     }
 }

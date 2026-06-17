@@ -8,26 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('sellers', function (Blueprint $table) {
+        Schema::create('branches', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->string('code');
             $table->string('name');
-            $table->string('tax_number')->nullable();
-            $table->string('national_number')->nullable();
-            $table->string('income_source_sequence')->nullable();
-            $table->string('phone')->nullable();
-            $table->string('email')->nullable();
+            $table->string('city')->nullable();
             $table->text('address')->nullable();
-            $table->string('logo_path')->nullable();
-            $table->string('jofotara_client_id')->nullable();
-            $table->string('jofotara_secret_key')->nullable();
-            $table->string('jofotara_source_id')->nullable();
-            $table->boolean('is_default')->default(false);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->unique(['company_id', 'code']);
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('sellers');
+        Schema::dropIfExists('branches');
     }
 };
