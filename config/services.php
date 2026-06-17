@@ -42,6 +42,7 @@ return [
         'source_id' => env('JOFOTARA_SOURCE_ID'),
         'tax_number' => env('JOFOTARA_TAX_NUMBER'),
         'seller_name' => env('JOFOTARA_SELLER_NAME'),
+        'include_customization_id' => env('JOFOTARA_INCLUDE_CUSTOMIZATION_ID', false),
     ],
 
 ];

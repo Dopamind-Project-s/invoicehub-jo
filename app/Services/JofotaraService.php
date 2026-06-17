@@ -71,11 +71,14 @@ class JofotaraService
         $root = $document->createElementNS('urn:oasis:names:specification:ubl:schema:xsd:Invoice-2', 'Invoice');
         $root->setAttribute('xmlns:cac', self::CAC);
         $root->setAttribute('xmlns:cbc', self::CBC);
+        $root->setAttribute('xmlns:ext', 'urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2');
         $document->appendChild($root);
 
         $this->append($document, $root, 'cbc:UBLVersionID', '2.1');
-        // TODO: Confirm JoFotara-required CustomizationID/ProfileID values against the latest official ISTD XML examples before production use.
-        $this->append($document, $root, 'cbc:CustomizationID', 'urn:cen.eu:en16931:2017');
+        // TODO: Confirm whether JoFotara requires CustomizationID for this invoice type against the latest official ISTD XML examples before production use.
+        if (filter_var(config('services.jofotara.include_customization_id'), FILTER_VALIDATE_BOOLEAN)) {
+            $this->append($document, $root, 'cbc:CustomizationID', 'urn:cen.eu:en16931:2017');
+        }
         $this->append($document, $root, 'cbc:ProfileID', 'reporting:1.0');
         $this->append($document, $root, 'cbc:ID', $this->safeText($invoice->invoice_number));
         $this->append($document, $root, 'cbc:UUID', $this->safeText($invoice->jofotara_uuid, (string) $invoice->id));
@@ -254,12 +257,17 @@ class JofotaraService
         return $parent->appendChild($element);
     }
 
+    public function credential(Invoice $invoice, string $key): ?string
+    {
+        return $this->sellerConfig($invoice, $key);
+    }
+
     private function sellerConfig(Invoice $invoice, string $key): ?string
     {
         return match ($key) {
             'client_id' => $invoice->seller?->jofotara_client_id ?: config('services.jofotara.client_id'),
             'secret_key' => $invoice->seller?->jofotara_secret_key ?: config('services.jofotara.secret_key'),
-            'source_id' => $invoice->seller?->jofotara_source_id ?: config('services.jofotara.source_id'),
+            'source_id' => $invoice->seller?->jofotara_source_id ?: $invoice->seller?->income_source_sequence ?: config('services.jofotara.source_id'),
             'tax_number' => $invoice->seller?->tax_number ?: config('services.jofotara.tax_number'),
             'seller_name' => $invoice->seller?->name ?: config('services.jofotara.seller_name'),
             default => null,
