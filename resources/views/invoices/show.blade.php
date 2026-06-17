@@ -7,7 +7,7 @@
 
     <div class="d-flex justify-content-between align-items-center">
         <h1>فاتورة {{ $invoice->invoice_number }}</h1>
-        <a class="btn btn-dark" href="{{ route('invoices.issued-pdf', $invoice) }}">تحميل PDF النهائي</a>
+        <a class="btn btn-secondary" href="{{ route('invoices.edit', $invoice) }}">تعديل</a> <a class="btn btn-dark" href="{{ route('invoices.issued-pdf', $invoice) }}">تحميل PDF النهائي</a>
     </div>
 
     <div class="card card-body mt-3">
@@ -27,8 +27,8 @@
         </div>
 
         <div class="d-flex gap-2 flex-wrap my-3">
-            <form method="post" action="{{ route('invoices.prepare-jofotara', $invoice) }}">@csrf<button class="btn btn-info">تجهيز XML</button></form>
-            <form method="post" action="{{ route('invoices.submit-real-jofotara', $invoice) }}">@csrf<button class="btn btn-danger" onclick="return confirm('الإرسال الحقيقي إلى نظام الفوترة الوطني سيقوم بمحاولة إصدار فاتورة فعلية. هل أنت متأكد؟')">إرسال فعلي إلى جوفوتارا</button></form>
+            <form method="post" action="{{ route('invoices.prepare', $invoice) }}">@csrf<button class="btn btn-info">تجهيز XML</button></form>
+            <form method="post" action="{{ route('invoices.submit-to-jofotara', $invoice) }}">@csrf<button class="btn btn-danger" onclick="return confirm('الإرسال الحقيقي إلى نظام الفوترة الوطني سيقوم بمحاولة إصدار فاتورة فعلية. هل أنت متأكد؟')">إرسال فعلي إلى جوفوتارا</button></form>
             <a class="btn btn-outline-secondary" href="{{ route('invoices.download-xml', $invoice) }}">Download XML</a>
             <a class="btn btn-outline-secondary" href="{{ route('invoices.download-payload', $invoice) }}">Download Payload</a>
         </div>
@@ -50,6 +50,15 @@
         <h5>Discount: {{ $invoice->discount_amount }} JOD</h5>
         <h5>Tax: {{ $invoice->tax_amount }} JOD</h5>
         <h3>Total: {{ $invoice->payable_amount }} JOD</h3>
+
+
+        <h4 class="mt-4">QR</h4>
+        @if($invoice->status === 'ACCEPTED' && $invoice->qr_code)
+            <img src="{{ route('invoices.qr', $invoice) }}" alt="QR" style="width:160px;height:160px">
+        @else
+            <p class="text-muted">لا يوجد رمز QR مقبول لهذه الفاتورة.</p>
+        @endif
+        <form method="post" action="{{ route('invoices.update-qr', $invoice) }}" class="mt-2">@csrf<input name="qr_code" class="form-control" placeholder="تحديث QR يدوياً عند الحاجة" value=""><button class="btn btn-outline-primary mt-2">حفظ QR</button></form>
 
         <h4 class="mt-4">رد جوفوتارا</h4>
         <pre dir="ltr" class="bg-light p-3">{{ $invoice->submission_response ?: 'لا يوجد رد بعد.' }}</pre>

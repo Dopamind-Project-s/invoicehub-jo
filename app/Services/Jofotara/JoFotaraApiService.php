@@ -56,7 +56,7 @@ class JoFotaraApiService
             'http_status' => $response->status(),
             'request_payload' => ['invoice_base64_length' => strlen($payload['invoice'])],
             'response_body' => $parsed['raw_response'],
-            'error_message' => is_scalar($parsed['errors']) ? (string) $parsed['errors'] : json_encode($parsed['errors'], JSON_UNESCAPED_UNICODE),
+            'error_message' => is_scalar($parsed['errors']) ? (string) $parsed['errors'] : json_encode(['errors' => $parsed['errors'], 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE),
             'attempt' => InvoiceSubmissionLog::where('invoice_id', $preparedInvoice->id)->count() + 1,
             'submitted_at' => now(),
         ]);
@@ -64,7 +64,7 @@ class JoFotaraApiService
         $preparedInvoice->forceFill([
             'status' => $status,
             'submission_uuid' => $submissionUuid,
-            'submission_response' => $parsed['raw_response'] !== '' ? $parsed['raw_response'] : json_encode($parsed['body'], JSON_UNESCAPED_UNICODE),
+            'submission_response' => json_encode(['body' => $parsed['raw_response'] !== '' ? $parsed['raw_response'] : $parsed['body'], 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE),
             'qr_code' => $parsed['qr'] ?: $preparedInvoice->qr_code,
             'submitted_at' => now(),
             'accepted_at' => $status === 'ACCEPTED' ? now() : null,

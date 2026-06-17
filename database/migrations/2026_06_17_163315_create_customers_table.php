@@ -93,6 +93,18 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        Schema::create('branches', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('company_id')->constrained()->cascadeOnDelete();
+            $table->string('code');
+            $table->string('name');
+            $table->string('city')->nullable();
+            $table->text('address')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+            $table->unique(['company_id', 'code']);
+        });
+
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name_ar');
@@ -128,6 +140,7 @@ return new class extends Migration
     {
         Schema::dropIfExists('customers');
         Schema::dropIfExists('products');
+        Schema::dropIfExists('branches');
         Schema::dropIfExists('companies');
         Schema::dropIfExists('invoice_statuses');
         Schema::dropIfExists('payment_methods');

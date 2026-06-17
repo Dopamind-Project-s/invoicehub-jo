@@ -14,7 +14,7 @@ class JoFotaraResponseParser
         $json = $response->json();
         $body = is_array($json) ? $json : ['raw' => $raw];
         $uuid = $this->first($body, ['uuid', 'invoice_uuid', 'EINV_NUM', 'submission_uuid']);
-        $qr = $this->first($body, ['qr', 'qr_code', 'EINV_QR', 'invoiceQr']);
+        $qr = $this->first($body, ['qr', 'qr_code', 'EINV_QR', 'invoiceQr', 'QR', 'data.qr', 'data.qr_code', 'data.EINV_QR']);
         $errors = $this->first($body, ['errors', 'message', 'validationErrors', 'ErrorMessage']);
         $accepted = $response->successful() && $raw !== '' && ! $errors;
 
@@ -26,6 +26,7 @@ class JoFotaraResponseParser
             'errors' => $errors,
             'body' => $body,
             'raw_response' => $raw,
+            'warnings' => $accepted && blank($qr) ? ['Accepted but QR was not found in response.'] : [],
         ];
     }
 

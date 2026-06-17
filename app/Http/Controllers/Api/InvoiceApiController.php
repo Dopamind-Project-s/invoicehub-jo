@@ -12,7 +12,6 @@ use App\Models\InvoiceXmlLog;
 use App\Services\Jofotara\ICVService;
 use App\Services\Jofotara\InvoiceHashService;
 use App\Services\Jofotara\JoFotaraApiService;
-use App\Services\Jofotara\QRCodeService;
 use App\Services\Jofotara\TaxCalculationService;
 use App\Services\Jofotara\UBLInvoiceBuilder;
 use App\Services\Jofotara\UBLValidationService;
@@ -44,14 +43,13 @@ class InvoiceApiController extends Controller
         return response()->json($invoice->load('items'), 201);
     }
 
-    public function generate(Invoice $invoice, UBLInvoiceBuilder $builder, InvoiceHashService $hash, QRCodeService $qr, UBLValidationService $validator): JsonResponse
+    public function generate(Invoice $invoice, UBLInvoiceBuilder $builder, InvoiceHashService $hash, UBLValidationService $validator): JsonResponse
     {
         $invoice->load(['supplier', 'customer', 'items']);
         $invoice->previous_invoice_hash = $hash->previousHash($invoice);
         $xml = $builder->build($invoice);
         $canonical = $hash->canonicalize($xml);
         $invoice->xml_hash = $hash->hash($canonical);
-        $invoice->qr_code = $qr->base64($invoice);
         $invoice->status = 'GENERATED';
         $invoice->save();
         InvoiceXmlLog::create(['invoice_id' => $invoice->id, 'generated_xml' => $xml, 'canonical_xml' => $canonical, 'hash' => $invoice->xml_hash, 'validation_result' => $validator->validateXml($xml)]);

@@ -6,10 +6,10 @@
     </div>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>الفواتير الإلكترونية - جوفوتارا</h1>
-        <form method="post" action="{{ route('jofotara.create-real-sample') }}">
+        <div class="d-flex gap-2"><a class="btn btn-success" href="{{ route('invoices.create') }}">فاتورة يدوية</a><form method="post" action="{{ route('jofotara.create-real-sample') }}">
             @csrf
             <button class="btn btn-primary" onclick="return confirm('إنشاء فاتورة عينة حقيقية جاهزة لجوفوتارا؟')">إنشاء فاتورة عينة حقيقية</button>
-        </form>
+        </form></div>
     </div>
     @if(session('success'))<pre class="alert alert-success text-start" dir="ltr">{{ session('success') }}</pre>@endif
     @if(session('error'))<pre class="alert alert-danger text-start" dir="ltr">{{ session('error') }}</pre>@endif
