@@ -169,7 +169,7 @@ class UBLInvoiceBuilder
 
     private function previousHash(Invoice $invoice): string
     {
-        return (string) ($invoice->previous_invoice_hash ?: config('services.jofotara.initial_pih', ''));
+        return (string) $invoice->previous_invoice_hash;
     }
 
     private function realBuyerId(?string $taxNumber, ?string $nationalNumber): ?string

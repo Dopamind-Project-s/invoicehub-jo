@@ -26,7 +26,7 @@ class JoFotaraPreparationService
         $invoice->loadMissing(['supplier', 'customer', 'items']);
         $this->ensureIdentifiers($invoice);
         $this->recalculateTotals($invoice);
-        $invoice->previous_invoice_hash = $this->hash->previousHash($invoice) ?: (string) config('services.jofotara.initial_pih', '');
+        $invoice->previous_invoice_hash = $this->resolvePreviousHash($invoice);
         $invoice->save();
 
         $xml = $this->builder->build($invoice->fresh(['supplier', 'customer', 'items']));
@@ -67,6 +67,38 @@ class JoFotaraPreparationService
             'invoice_type_code_name' => $this->typeCodes->nameFor($invoice),
             'checks' => $checks,
         ];
+    }
+
+    public function resolvePreviousHash(Invoice $invoice): string
+    {
+        $invoice->loadMissing('supplier');
+        $icv = (int) $invoice->icv;
+        if ($icv <= 0) {
+            throw new RuntimeException('ICV is required before resolving PIH.');
+        }
+
+        if ($icv === 1) {
+            $initialPih = (string) config('services.jofotara.initial_pih', '');
+            if (blank($initialPih)) {
+                throw new RuntimeException('PIH is missing: set JOFOTARA_INITIAL_PIH for ICV 1 before preparing or submitting.');
+            }
+
+            return $initialPih;
+        }
+
+        $previous = Invoice::query()
+            ->where('supplier_id', $invoice->supplier_id)
+            ->where('icv', $icv - 1)
+            ->first();
+
+        if (! $previous) {
+            throw new RuntimeException('PIH is missing: previous invoice with ICV '.($icv - 1).' was not found for this company.');
+        }
+        if (blank($previous->xml_hash)) {
+            throw new RuntimeException('PIH is missing: previous invoice '.$previous->invoice_number.' has no xml_hash. Prepare/generate the previous invoice first.');
+        }
+
+        return (string) $previous->xml_hash;
     }
 
     public function ensureIdentifiers(Invoice $invoice): void
@@ -116,7 +148,7 @@ class JoFotaraPreparationService
             'seller_tax_number_exists' => filled($invoice->supplier?->tax_number),
             'icv_exists' => filled($invoice->icv),
             'uuid_exists' => filled($invoice->uuid),
-            'pih_exists' => filled($invoice->previous_invoice_hash) || filled(config('services.jofotara.initial_pih')),
+            'pih_exists' => filled($invoice->previous_invoice_hash),
             'seller_supplier_party_exists' => str_contains($xml, '<cac:SellerSupplierParty>'),
             'buyer_fake_id_exists' => (bool) preg_match('/<cbc:ID>0+<\/cbc:ID>/', $xml),
             'invoice_type_code_name' => $this->typeCodes->nameFor($invoice),
@@ -127,7 +159,7 @@ class JoFotaraPreparationService
     private function failIfInvalid(array $validation, array $checks): void
     {
         $errors = $validation['errors'] ?? [];
-        foreach (['source_id_exists', 'seller_tax_number_exists', 'icv_exists', 'uuid_exists', 'seller_supplier_party_exists'] as $required) {
+        foreach (['source_id_exists', 'seller_tax_number_exists', 'icv_exists', 'uuid_exists', 'pih_exists', 'seller_supplier_party_exists'] as $required) {
             if (! $checks[$required]) {
                 $errors[] = str_replace('_', ' ', $required).' failed';
             }
