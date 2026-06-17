@@ -26,7 +26,8 @@ class JoFotaraPreparationService
         $invoice->loadMissing(['supplier', 'customer', 'items']);
         $this->ensureIdentifiers($invoice);
         $this->recalculateTotals($invoice);
-        $invoice->previous_invoice_hash = $this->resolvePreviousHash($invoice);
+        $pih = $this->resolvePih($invoice);
+        $invoice->previous_invoice_hash = $pih['value'];
         $invoice->save();
 
         $xml = $this->builder->build($invoice->fresh(['supplier', 'customer', 'items']));
@@ -66,10 +67,16 @@ class JoFotaraPreparationService
             'previous_invoice_hash' => $invoice->previous_invoice_hash,
             'invoice_type_code_name' => $this->typeCodes->nameFor($invoice),
             'checks' => $checks,
+            'pih' => $pih,
         ];
     }
 
     public function resolvePreviousHash(Invoice $invoice): string
+    {
+        return $this->resolvePih($invoice)['value'];
+    }
+
+    public function resolvePih(Invoice $invoice): array
     {
         $invoice->loadMissing('supplier');
         $icv = (int) $invoice->icv;
@@ -79,26 +86,36 @@ class JoFotaraPreparationService
 
         if ($icv === 1) {
             $initialPih = (string) config('services.jofotara.initial_pih', '');
-            if (blank($initialPih)) {
-                throw new RuntimeException('PIH is missing: set JOFOTARA_INITIAL_PIH for ICV 1 before preparing or submitting.');
-            }
 
-            return $initialPih;
+            return [
+                'value' => $initialPih,
+                'source' => 'initial',
+                'previous_accepted_invoice_found' => false,
+                'warning' => blank($initialPih) ? 'No previous accepted invoice and JOFOTARA_INITIAL_PIH is empty.' : null,
+            ];
         }
 
         $previous = Invoice::query()
             ->where('supplier_id', $invoice->supplier_id)
             ->where('icv', $icv - 1)
+            ->where('status', 'ACCEPTED')
             ->first();
 
         if (! $previous) {
-            throw new RuntimeException('PIH is missing: previous invoice with ICV '.($icv - 1).' was not found for this company.');
+            throw new RuntimeException('PIH is missing: previous ACCEPTED invoice with ICV '.($icv - 1).' was not found for this company. Reset local failed attempts or accept the previous invoice first.');
         }
         if (blank($previous->xml_hash)) {
-            throw new RuntimeException('PIH is missing: previous invoice '.$previous->invoice_number.' has no xml_hash. Prepare/generate the previous invoice first.');
+            throw new RuntimeException('PIH is missing: previous ACCEPTED invoice '.$previous->invoice_number.' has no xml_hash.');
         }
 
-        return (string) $previous->xml_hash;
+        return [
+            'value' => (string) $previous->xml_hash,
+            'source' => 'previous accepted invoice',
+            'previous_accepted_invoice_found' => true,
+            'previous_invoice_id' => $previous->id,
+            'previous_invoice_number' => $previous->invoice_number,
+            'warning' => null,
+        ];
     }
 
     public function ensureIdentifiers(Invoice $invoice): void
@@ -152,14 +169,17 @@ class JoFotaraPreparationService
             'seller_supplier_party_exists' => str_contains($xml, '<cac:SellerSupplierParty>'),
             'buyer_fake_id_exists' => (bool) preg_match('/<cbc:ID>0+<\/cbc:ID>/', $xml),
             'invoice_type_code_name' => $this->typeCodes->nameFor($invoice),
-            'invoice_type_code_name_valid' => $this->typeCodes->nameFor($invoice) === $this->typeCodes->nameFor($invoice),
+            'invoice_type_code_name_valid' => $this->typeCodes->nameFor($invoice) === '021',
+            'taxpayer_type' => $invoice->taxpayer_type,
+            'payment_type' => $invoice->payment_type,
+            'invoice_scope' => $invoice->invoice_scope,
         ];
     }
 
     private function failIfInvalid(array $validation, array $checks): void
     {
         $errors = $validation['errors'] ?? [];
-        foreach (['source_id_exists', 'seller_tax_number_exists', 'icv_exists', 'uuid_exists', 'pih_exists', 'seller_supplier_party_exists'] as $required) {
+        foreach (['source_id_exists', 'seller_tax_number_exists', 'icv_exists', 'uuid_exists', 'seller_supplier_party_exists', 'invoice_type_code_name_valid'] as $required) {
             if (! $checks[$required]) {
                 $errors[] = str_replace('_', ' ', $required).' failed';
             }

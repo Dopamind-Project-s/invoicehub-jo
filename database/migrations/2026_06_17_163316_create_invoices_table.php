@@ -17,7 +17,7 @@ return new class extends Migration
             $table->enum('invoice_subtype', ['SALE', 'RETURN', 'DEBIT_NOTE', 'CREDIT_NOTE'])->default('SALE');
             $table->enum('invoice_scope', ['local', 'export', 'development_area'])->default('local');
             $table->enum('payment_type', ['cash', 'receivable'])->default('receivable');
-            $table->enum('taxpayer_type', ['income', 'general_sales', 'special_sales'])->default('general_sales');
+            $table->enum('taxpayer_type', ['income', 'general_sales', 'special_sales'])->default('income');
             $table->date('issue_date');
             $table->time('issue_time');
             $table->string('currency_code', 3)->default('JOD');

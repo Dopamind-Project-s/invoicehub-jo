@@ -30,7 +30,7 @@ class InvoiceTypeCodeService
 
     public function nameFor(Invoice $invoice): string
     {
-        $key = ($invoice->taxpayer_type ?: 'general_sales').':'.($invoice->payment_type ?: 'receivable').':'.($invoice->invoice_scope ?: 'local');
+        $key = ($invoice->taxpayer_type ?: 'income').':'.($invoice->payment_type ?: 'receivable').':'.($invoice->invoice_scope ?: 'local');
 
         return self::MAP[$key] ?? throw new InvalidArgumentException("Unsupported JoFotara invoice type code combination [$key].");
     }

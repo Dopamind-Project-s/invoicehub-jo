@@ -51,9 +51,9 @@ class CreateRealJofotaraSample extends Command
             );
 
             $items = [
-                ['description' => 'وجبة منسف لحم بلدي', 'quantity' => '1.000000000', 'unit_price' => '7.000000000', 'discount' => '0.000000000', 'tax_category' => 'S', 'tax_percent' => '16.000000000'],
-                ['description' => 'ماتريكس', 'quantity' => '1.000000000', 'unit_price' => '1.000000000', 'discount' => '0.000000000', 'tax_category' => 'S', 'tax_percent' => '16.000000000'],
-                ['description' => 'توصيل', 'quantity' => '1.000000000', 'unit_price' => '1.000000000', 'discount' => '0.000000000', 'tax_category' => 'S', 'tax_percent' => '16.000000000'],
+                ['description' => 'وجبة منسف لحم بلدي', 'quantity' => '1.000000000', 'unit_price' => '8.000000000', 'discount' => '0.000000000', 'tax_category' => 'Z', 'tax_percent' => '0.000000000'],
+                ['description' => 'ماتريكس', 'quantity' => '8.000000000', 'unit_price' => '0.180000000', 'discount' => '0.000000000', 'tax_category' => 'Z', 'tax_percent' => '0.000000000'],
+                ['description' => 'توصيل', 'quantity' => '1.000000000', 'unit_price' => '1.000000000', 'discount' => '0.000000000', 'tax_category' => 'Z', 'tax_percent' => '0.000000000'],
             ];
             $totals = $tax->calculateInvoice($items);
             $number = 'INV_'.now()->year.'_'.str_pad((string) (Invoice::whereYear('created_at', now()->year)->count() + 1), 5, '0', STR_PAD_LEFT);
@@ -65,7 +65,7 @@ class CreateRealJofotaraSample extends Command
                 'invoice_subtype' => 'SALE',
                 'invoice_scope' => 'local',
                 'payment_type' => 'receivable',
-                'taxpayer_type' => 'general_sales',
+                'taxpayer_type' => 'income',
                 'issue_date' => now()->toDateString(),
                 'issue_time' => now()->format('H:i:s'),
                 'currency_code' => 'JOD',

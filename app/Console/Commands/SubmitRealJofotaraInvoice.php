@@ -40,6 +40,8 @@ class SubmitRealJofotaraInvoice extends Command
         $this->line('invoice number: '.$prepared['invoice']->invoice_number);
         $this->line('uuid: '.$prepared['invoice']->uuid);
         $this->line('icv: '.$prepared['invoice']->icv);
+        $this->line('InvoiceTypeCode name: '.$prepared['invoice_type_code_name']);
+        $this->line('PIH source: '.$prepared['pih']['source']);
         $this->line('XML length: '.$prepared['xml_length']);
         $this->line('Base64 length: '.$prepared['base64_length']);
         $this->line('HTTP status: '.$response->status());
