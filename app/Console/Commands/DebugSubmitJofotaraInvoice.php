@@ -64,16 +64,21 @@ class DebugSubmitJofotaraInvoice extends Command
                 'Accept' => '*/*',
             ])->post(config('services.jofotara.url'), $payload);
 
-            $this->line('HTTP status: '.$response->status());
-            $this->line('raw response body length: '.strlen($response->body()));
-            $this->line('raw response body:');
+            $this->line('response status: '.$response->status());
+            $this->line('response reason phrase: '.$response->toPsrResponse()->getReasonPhrase());
+            $this->line('response headers: '.json_encode($response->headers(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+            $cookies = method_exists($response, 'cookies') ? $response->cookies()->toArray() : [];
+            $this->line('response cookies: '.json_encode($cookies, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+            $this->line('response body length: '.strlen($response->body()));
+            $this->line('response body:');
             $this->line($response->body() !== '' ? $response->body() : '[empty]');
+            $this->line('transfer stats: '.json_encode($response->handlerStats(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
             return $response->successful() ? self::SUCCESS : self::FAILURE;
         } catch (\Throwable $exception) {
             $this->line('HTTP status: FAILED');
             $this->line('raw response body length: '.strlen($exception->getMessage()));
-            $this->line('raw response body:');
+            $this->line('response body:');
             $this->line($exception->getMessage());
 
             return self::FAILURE;

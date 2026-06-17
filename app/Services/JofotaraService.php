@@ -47,14 +47,28 @@ class JofotaraService
             'source_id' => $this->sellerConfig($invoice, 'source_id'),
             'tax_number' => $this->sellerConfig($invoice, 'tax_number'),
         ]);
+        $httpOptions = ['verify' => filter_var(config('services.jofotara.verify_ssl', true), FILTER_VALIDATE_BOOLEAN)];
+        $debugStream = null;
+        if (filter_var(config('services.jofotara.http_debug', false), FILTER_VALIDATE_BOOLEAN)) {
+            $debugStream = fopen('php://temp', 'w+');
+            $httpOptions['debug'] = $debugStream;
+        }
+
         $response = Http::withHeaders([
             'Client-Id' => $this->sellerConfig($invoice, 'client_id'),
             'Secret-Key' => $this->sellerConfig($invoice, 'secret_key'),
             'Content-Type' => 'application/json',
             'Accept' => '*/*',
         ])->timeout((int) config('services.jofotara.timeout', 60))
-            ->withOptions(['verify' => filter_var(config('services.jofotara.verify_ssl', true), FILTER_VALIDATE_BOOLEAN)])
+            ->withOptions($httpOptions)
             ->post(config('services.jofotara.url'), $payload);
+
+        if (is_resource($debugStream)) {
+            rewind($debugStream);
+            $debugOutput = stream_get_contents($debugStream) ?: '';
+            fclose($debugStream);
+            $this->saveHttpDebugFiles($invoice, $payload, $response, $debugOutput);
+        }
         Log::info('JoFotara HTTP response received', [
             'invoice_id' => $invoice->id,
             'invoice_number' => $invoice->invoice_number,
@@ -147,6 +161,45 @@ class JofotaraService
             'exists' => $exists,
             'size' => $exists ? $disk->size($path) : null,
         ];
+    }
+
+    public function saveHttpDebugFiles(Invoice $invoice, array $payload, Response $response, string $debugOutput = ''): void
+    {
+        $requestText = 'REQUEST:
+POST /core/invoices/
+'.
+            'Client-Id: '.$this->sellerConfig($invoice, 'client_id').'
+'.
+            'Secret-Key: [masked length '.strlen((string) $this->sellerConfig($invoice, 'secret_key')).']
+'.
+            'Content-Type: application/json
+'.
+            'Accept: */*
+
+'.
+            json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE).
+            '
+
+GUZZLE DEBUG:
+'.$this->redactSecret($debugOutput, $this->sellerConfig($invoice, 'secret_key'));
+
+        $responseText = 'RESPONSE:'.'
+'.
+            'HTTP status: '.$response->status().' '.$response->toPsrResponse()->getReasonPhrase().'
+'.
+            'Headers: '.json_encode($response->headers(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE).'
+
+'.
+            ($response->body() !== '' ? $response->body() : '[empty]');
+
+        $disk = Storage::build(['driver' => 'local', 'root' => storage_path('app')]);
+        $disk->put('jofotara/http-request.txt', $requestText);
+        $disk->put('jofotara/http-response.txt', $responseText);
+    }
+
+    private function redactSecret(string $text, ?string $secret): string
+    {
+        return filled($secret) ? str_replace($secret, '[SECRET-KEY-REDACTED]', $text) : $text;
     }
 
     public function parseResponse(Response $response): array
