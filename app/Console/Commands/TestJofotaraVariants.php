@@ -24,6 +24,7 @@ class TestJofotaraVariants extends Command
             return self::FAILURE;
         }
 
+        $jofotara->ensureJofotaraIdentifiers($invoice);
         $xml = $jofotara->buildUblXml($invoice);
         $encodedXml = base64_encode($xml);
         $payload = ['invoice' => $encodedXml];
@@ -31,10 +32,13 @@ class TestJofotaraVariants extends Command
         $secretKey = $jofotara->credential($invoice, 'secret_key');
         $endpoint = config('services.jofotara.url');
 
-        Storage::disk('local')->put('jofotara/test-variants-'.$invoice->id.'.xml', $xml);
+        Storage::build(['driver' => 'local', 'root' => storage_path('app')])->put('jofotara/test-variants-'.$invoice->id.'.xml', $xml);
 
         $this->line('endpoint: '.$endpoint);
         $this->line('invoice_id: '.$invoice->id);
+        $this->line('invoice_number: '.$invoice->invoice_number);
+        $this->line('jofotara_invoice_number: '.$invoice->jofotara_invoice_number);
+        $this->line('jofotara_xml_uuid: '.$invoice->jofotara_xml_uuid);
         $this->line('client_id exists: '.(filled($clientId) ? 'yes' : 'no'));
         $this->line('secret key length: '.strlen((string) $secretKey));
         $this->line('XML length: '.strlen($xml));
@@ -66,7 +70,7 @@ class TestJofotaraVariants extends Command
         ];
 
         foreach ($variants as $variant => $send) {
-            Storage::disk('local')->put('jofotara/variant-'.$variant.'.json', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+            Storage::build(['driver' => 'local', 'root' => storage_path('app')])->put('jofotara/variant-'.$variant.'.json', json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
             $this->newLine();
             $this->line('Variant '.$variant);
 

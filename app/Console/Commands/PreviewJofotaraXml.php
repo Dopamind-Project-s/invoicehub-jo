@@ -23,12 +23,16 @@ class PreviewJofotaraXml extends Command
             return self::FAILURE;
         }
 
+        $jofotara->ensureJofotaraIdentifiers($invoice);
         $xml = $jofotara->buildUblXml($invoice);
+        $this->line('invoice_number: '.$invoice->invoice_number);
+        $this->line('jofotara_invoice_number: '.$invoice->jofotara_invoice_number);
+        $this->line('jofotara_xml_uuid: '.$invoice->jofotara_xml_uuid);
         $this->line($xml);
 
         if ($this->option('save')) {
             $path = 'jofotara/invoice-'.$invoice->id.'.xml';
-            Storage::disk('local')->put($path, $xml);
+            Storage::build(['driver' => 'local', 'root' => storage_path('app')])->put($path, $xml);
             $this->info('XML saved to storage/app/'.$path);
         }
 

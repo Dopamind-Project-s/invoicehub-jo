@@ -9,6 +9,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class JofotaraService
 {
@@ -19,17 +20,28 @@ class JofotaraService
     public function submitInvoice(Invoice $invoice): array
     {
         $invoice->load(['seller', 'customer', 'items']);
+        $this->ensureJofotaraIdentifiers($invoice);
         $xml = $this->buildUblXml($invoice);
         $encodedXml = base64_encode($xml);
         $payload = ['invoice' => $encodedXml];
-        Storage::disk('local')->put('jofotara/last-submission-'.$invoice->id.'.xml', $xml);
-        Storage::disk('local')->put('jofotara/last-payload-'.$invoice->id.'.json', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        $xmlPath = 'jofotara/last-submission-'.$invoice->id.'.xml';
+        $payloadPath = 'jofotara/last-payload-'.$invoice->id.'.json';
+        $this->saveDebugFiles($xmlPath, $xml, $payloadPath, $payload);
+        $xmlInfo = $this->debugFileInfo($xmlPath);
+        $payloadInfo = $this->debugFileInfo($payloadPath);
         Log::info('Submitting invoice to JoFotara', [
             'invoice_id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'jofotara_invoice_number' => $invoice->jofotara_invoice_number,
+            'jofotara_xml_uuid' => $invoice->jofotara_xml_uuid,
             'seller_id' => $invoice->seller_id,
             'url' => config('services.jofotara.url'),
             'xml_length' => strlen($xml),
             'base64_length' => strlen($encodedXml),
+            'xml_file_exists' => $xmlInfo['exists'],
+            'payload_file_exists' => $payloadInfo['exists'],
+            'xml_file_size' => $xmlInfo['size'],
+            'payload_file_size' => $payloadInfo['size'],
             'client_id_exists' => filled($this->sellerConfig($invoice, 'client_id')),
             'secret_key_length' => strlen((string) $this->sellerConfig($invoice, 'secret_key')),
             'source_id' => $this->sellerConfig($invoice, 'source_id'),
@@ -45,11 +57,14 @@ class JofotaraService
             ->post(config('services.jofotara.url'), $payload);
         Log::info('JoFotara HTTP response received', [
             'invoice_id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'jofotara_invoice_number' => $invoice->jofotara_invoice_number,
+            'jofotara_xml_uuid' => $invoice->jofotara_xml_uuid,
             'seller_id' => $invoice->seller_id,
             'http_status' => $response->status(),
             'response_headers' => $response->headers(),
-            'raw_response_body' => $response->body(),
-            'response_length' => strlen($response->body()),
+            'response_body_length' => strlen($response->body()),
+            'response_body' => $response->body() !== '' ? $response->body() : null,
         ]);
         $parsed = $this->parseResponse($response);
         $invoice->forceFill([
@@ -66,6 +81,7 @@ class JofotaraService
     public function buildUblXml(Invoice $invoice): string
     {
         $invoice->loadMissing(['seller', 'customer', 'items']);
+        $this->ensureJofotaraIdentifiers($invoice);
 
         $document = new DOMDocument('1.0', 'UTF-8');
         $document->formatOutput = true;
@@ -82,8 +98,8 @@ class JofotaraService
             $this->append($document, $root, 'cbc:CustomizationID', 'urn:cen.eu:en16931:2017');
         }
         $this->append($document, $root, 'cbc:ProfileID', 'reporting:1.0');
-        $this->append($document, $root, 'cbc:ID', $this->safeText($invoice->invoice_number));
-        $this->append($document, $root, 'cbc:UUID', $this->safeText($invoice->jofotara_uuid, (string) $invoice->id));
+        $this->append($document, $root, 'cbc:ID', $this->safeText($invoice->jofotara_invoice_number));
+        $this->append($document, $root, 'cbc:UUID', $this->safeText($invoice->jofotara_xml_uuid));
         $this->append($document, $root, 'cbc:IssueDate', $invoice->invoice_date->format('Y-m-d'));
         // TODO: Confirm InvoiceTypeCode and attributes for income/sales/return invoice scenarios with official JoFotara samples.
         $this->append($document, $root, 'cbc:InvoiceTypeCode', '388', ['name' => '012']);
@@ -97,6 +113,40 @@ class JofotaraService
         $this->addInvoiceLines($document, $root, $invoice);
 
         return $document->saveXML() ?: '';
+    }
+
+    public function ensureJofotaraIdentifiers(Invoice $invoice): void
+    {
+        $updates = [];
+        if (blank($invoice->jofotara_invoice_number)) {
+            $updates['jofotara_invoice_number'] = 'INV_'.$invoice->invoice_date->format('Y').'_'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT);
+        }
+        if (blank($invoice->jofotara_xml_uuid)) {
+            $updates['jofotara_xml_uuid'] = (string) Str::uuid();
+        }
+        if ($updates !== []) {
+            $invoice->forceFill($updates)->save();
+            $invoice->refresh();
+        }
+    }
+
+    public function saveDebugFiles(string $xmlPath, string $xml, string $payloadPath, array $payload): void
+    {
+        $disk = Storage::build(['driver' => 'local', 'root' => storage_path('app')]);
+        $disk->put($xmlPath, $xml);
+        $disk->put($payloadPath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    }
+
+    public function debugFileInfo(string $path): array
+    {
+        $disk = Storage::build(['driver' => 'local', 'root' => storage_path('app')]);
+        $exists = $disk->exists($path);
+
+        return [
+            'path' => 'storage/app/'.$path,
+            'exists' => $exists,
+            'size' => $exists ? $disk->size($path) : null,
+        ];
     }
 
     public function parseResponse(Response $response): array

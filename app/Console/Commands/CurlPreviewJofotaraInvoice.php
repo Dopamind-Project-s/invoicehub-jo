@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\Invoice;
 use App\Services\JofotaraService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Storage;
 
 class CurlPreviewJofotaraInvoice extends Command
 {
@@ -23,10 +22,12 @@ class CurlPreviewJofotaraInvoice extends Command
             return self::FAILURE;
         }
 
+        $jofotara->ensureJofotaraIdentifiers($invoice);
         $xml = $jofotara->buildUblXml($invoice);
         $payload = ['invoice' => base64_encode($xml)];
-        Storage::disk('local')->put('jofotara/last-submission-'.$invoice->id.'.xml', $xml);
-        Storage::disk('local')->put('jofotara/last-payload-'.$invoice->id.'.json', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        $xmlPath = 'jofotara/last-submission-'.$invoice->id.'.xml';
+        $payloadPath = 'jofotara/last-payload-'.$invoice->id.'.json';
+        $jofotara->saveDebugFiles($xmlPath, $xml, $payloadPath, $payload);
 
         $command = [
             'curl',
@@ -39,6 +40,17 @@ class CurlPreviewJofotaraInvoice extends Command
             '--data', json_encode($payload, JSON_UNESCAPED_UNICODE),
         ];
 
+        $xmlInfo = $jofotara->debugFileInfo($xmlPath);
+        $payloadInfo = $jofotara->debugFileInfo($payloadPath);
+        $this->line('invoice_number: '.$invoice->invoice_number);
+        $this->line('jofotara_invoice_number: '.$invoice->jofotara_invoice_number);
+        $this->line('jofotara_xml_uuid: '.$invoice->jofotara_xml_uuid);
+        $this->line('XML file path: '.$xmlInfo['path']);
+        $this->line('XML file exists: '.($xmlInfo['exists'] ? 'yes' : 'no'));
+        $this->line('XML file size: '.($xmlInfo['size'] ?? 0));
+        $this->line('Payload file path: '.$payloadInfo['path']);
+        $this->line('Payload file exists: '.($payloadInfo['exists'] ? 'yes' : 'no'));
+        $this->line('Payload file size: '.($payloadInfo['size'] ?? 0));
         $this->line(collect($command)->map(fn ($part) => escapeshellarg((string) $part))->implode(' '));
         $this->line('Note: Secret-Key is masked; replace the masked value before running manually.');
 

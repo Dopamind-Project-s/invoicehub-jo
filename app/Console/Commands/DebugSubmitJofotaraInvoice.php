@@ -6,7 +6,6 @@ use App\Models\Invoice;
 use App\Services\JofotaraService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
 
 class DebugSubmitJofotaraInvoice extends Command
 {
@@ -24,6 +23,7 @@ class DebugSubmitJofotaraInvoice extends Command
             return self::FAILURE;
         }
 
+        $jofotara->ensureJofotaraIdentifiers($invoice);
         $xml = $jofotara->buildUblXml($invoice);
         $encodedXml = base64_encode($xml);
         $payload = ['invoice' => $encodedXml];
@@ -32,10 +32,16 @@ class DebugSubmitJofotaraInvoice extends Command
         $sourceId = $jofotara->credential($invoice, 'source_id');
         $taxNumber = $jofotara->credential($invoice, 'tax_number');
 
-        Storage::disk('local')->put('jofotara/debug-submission-'.$invoice->id.'.xml', $xml);
-        Storage::disk('local')->put('jofotara/debug-payload-'.$invoice->id.'.json', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        $xmlPath = 'jofotara/last-submission-'.$invoice->id.'.xml';
+        $payloadPath = 'jofotara/last-payload-'.$invoice->id.'.json';
+        $jofotara->saveDebugFiles($xmlPath, $xml, $payloadPath, $payload);
+        $xmlInfo = $jofotara->debugFileInfo($xmlPath);
+        $payloadInfo = $jofotara->debugFileInfo($payloadPath);
 
         $this->line('endpoint: '.config('services.jofotara.url'));
+        $this->line('invoice_number: '.$invoice->invoice_number);
+        $this->line('jofotara_invoice_number: '.$invoice->jofotara_invoice_number);
+        $this->line('jofotara_xml_uuid: '.$invoice->jofotara_xml_uuid);
         $this->line('client_id exists: '.(filled($clientId) ? 'yes' : 'no'));
         $this->line('secret key length: '.strlen((string) $secretKey));
         $this->line('source_id: '.$sourceId);
@@ -43,19 +49,34 @@ class DebugSubmitJofotaraInvoice extends Command
         $this->line('XML length: '.strlen($xml));
         $this->line('base64 length: '.strlen($encodedXml));
         $this->line('payload keys: '.implode(', ', array_keys($payload)));
+        $this->line('XML file path: '.$xmlInfo['path']);
+        $this->line('XML file exists: '.($xmlInfo['exists'] ? 'yes' : 'no'));
+        $this->line('XML file size: '.($xmlInfo['size'] ?? 0));
+        $this->line('Payload file path: '.$payloadInfo['path']);
+        $this->line('Payload file exists: '.($payloadInfo['exists'] ? 'yes' : 'no'));
+        $this->line('Payload file size: '.($payloadInfo['size'] ?? 0));
 
-        $response = Http::withHeaders([
-            'Client-Id' => $clientId,
-            'Secret-Key' => $secretKey,
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
-        ])->post(config('services.jofotara.url'), $payload);
+        try {
+            $response = Http::withHeaders([
+                'Client-Id' => $clientId,
+                'Secret-Key' => $secretKey,
+                'Content-Type' => 'application/json',
+                'Accept' => '*/*',
+            ])->post(config('services.jofotara.url'), $payload);
 
-        $this->line('HTTP status: '.$response->status());
-        $this->line('raw response body length: '.strlen($response->body()));
-        $this->line('raw response body:');
-        $this->line($response->body() !== '' ? $response->body() : '[empty]');
+            $this->line('HTTP status: '.$response->status());
+            $this->line('raw response body length: '.strlen($response->body()));
+            $this->line('raw response body:');
+            $this->line($response->body() !== '' ? $response->body() : '[empty]');
 
-        return $response->successful() ? self::SUCCESS : self::FAILURE;
+            return $response->successful() ? self::SUCCESS : self::FAILURE;
+        } catch (\Throwable $exception) {
+            $this->line('HTTP status: FAILED');
+            $this->line('raw response body length: '.strlen($exception->getMessage()));
+            $this->line('raw response body:');
+            $this->line($exception->getMessage());
+
+            return self::FAILURE;
+        }
     }
 }
