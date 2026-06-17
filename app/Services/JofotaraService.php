@@ -137,14 +137,19 @@ class JofotaraService
     {
         $customer = $this->append($document, $root, 'cac:AccountingCustomerParty');
         $party = $this->append($document, $customer, 'cac:Party');
-        $this->append($document, $party, 'cbc:EndpointID', $this->safeText($invoice->customer?->tax_number ?: $invoice->customer?->national_number, '0000000000'), ['schemeID' => 'TN']);
+        $customerTaxNumber = $this->realIdentifier($invoice->customer?->tax_number);
+        $customerNationalNumber = $this->realIdentifier($invoice->customer?->national_number);
+
+        if ($customerTaxNumber || $customerNationalNumber) {
+            $this->append($document, $party, 'cbc:EndpointID', $customerTaxNumber ?: $customerNationalNumber, ['schemeID' => $customerTaxNumber ? 'TN' : 'NIN']);
+        }
 
         $partyName = $this->append($document, $party, 'cac:PartyName');
         $this->append($document, $partyName, 'cbc:Name', $this->safeText($invoice->customer?->name, 'عميل نقدي'));
 
-        if ($invoice->customer?->tax_number && $invoice->customer->tax_number !== '000000000') {
+        if ($customerTaxNumber) {
             $taxScheme = $this->append($document, $party, 'cac:PartyTaxScheme');
-            $this->append($document, $taxScheme, 'cbc:CompanyID', $invoice->customer->tax_number);
+            $this->append($document, $taxScheme, 'cbc:CompanyID', $customerTaxNumber);
             $this->addTaxScheme($taxScheme);
         }
     }
@@ -204,6 +209,13 @@ class JofotaraService
             $this->append($document, $price, 'cbc:PriceAmount', $this->money($item->unit_price), ['currencyID' => 'JOD']);
             $this->append($document, $price, 'cbc:BaseQuantity', $this->money(1), ['unitCode' => 'PCE']);
         }
+    }
+
+    private function realIdentifier($value): ?string
+    {
+        $value = $this->safeText($value);
+
+        return $value !== '' && $value !== '000000000' ? $value : null;
     }
 
     private function append(DOMDocument $document, DOMElement $parent, string $name, ?string $value = null, array $attributes = []): DOMElement
