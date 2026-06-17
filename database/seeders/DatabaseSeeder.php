@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
         $invoiceNumber = 'INV/'.now()->year.'/00001';
         $invoice = Invoice::firstOrCreate(
             ['invoice_number' => $invoiceNumber],
-            ['seller_id' => $seller->id, 'customer_id' => $customer->id, 'jofotara_invoice_number' => 'INV_'.now()->year.'_00001', 'jofotara_xml_uuid' => (string) Str::uuid(), 'invoice_date' => now()->toDateString(), 'subtotal' => 71.400, 'tax_total' => 0, 'discount_total' => 0, 'total' => 71.400, 'payment_reference' => $invoiceNumber]
+            ['seller_id' => $seller->id, 'customer_id' => $customer->id, 'jofotara_invoice_number' => 'INV_'.now()->year.'_00001', 'jofotara_xml_uuid' => (string) Str::uuid(), 'invoice_date' => now()->toDateString(), 'subtotal' => 71.400, 'tax_total' => 0, 'discount_total' => 0, 'total' => 71.400, 'payment_reference' => $invoiceNumber, 'payment_type' => 'receivable', 'taxpayer_type' => 'general_sales', 'icv_counter' => 1]
         );
 
         if (! $invoice->seller_id) {

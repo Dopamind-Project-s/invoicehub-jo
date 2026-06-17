@@ -18,6 +18,8 @@ class StoreInvoiceRequest extends FormRequest
             'customer_id' => ['nullable', 'exists:customers,id'],
             'invoice_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date'],
+            'payment_type' => ['nullable', 'in:cash,receivable'],
+            'taxpayer_type' => ['nullable', 'in:income,general_sales,special_sales'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.description' => ['required', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],

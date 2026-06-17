@@ -89,7 +89,7 @@ class InvoiceController extends Controller
                 return $item + ['tax_amount' => $tax, 'line_total' => round($lineBase + $tax, 3)];
             });
             $number = $invoice->exists ? $invoice->invoice_number : $this->nextNumber();
-            $invoice->fill(['invoice_number' => $number, 'seller_id' => $data['seller_id'] ?? $this->defaultSellerId(), 'customer_id' => $data['customer_id'] ?? null, 'invoice_date' => $data['invoice_date'], 'due_date' => $data['due_date'] ?? null, 'subtotal' => $subtotal, 'tax_total' => $taxTotal, 'discount_total' => 0, 'total' => round($subtotal + $taxTotal, 3), 'payment_reference' => $number, 'status' => $invoice->status ?: 'draft'])->save();
+            $invoice->fill(['invoice_number' => $number, 'seller_id' => $data['seller_id'] ?? $this->defaultSellerId(), 'customer_id' => $data['customer_id'] ?? null, 'invoice_date' => $data['invoice_date'], 'due_date' => $data['due_date'] ?? null, 'subtotal' => $subtotal, 'tax_total' => $taxTotal, 'discount_total' => 0, 'total' => round($subtotal + $taxTotal, 3), 'payment_reference' => $number, 'payment_type' => $data['payment_type'] ?? 'receivable', 'taxpayer_type' => $data['taxpayer_type'] ?? 'general_sales', 'status' => $invoice->status ?: 'draft'])->save();
             $invoice->items()->delete();
             $invoice->items()->createMany($items->all());
 

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Invoice extends Model
 {
-    protected $fillable = ['invoice_number', 'jofotara_invoice_number', 'jofotara_xml_uuid', 'seller_id', 'customer_id', 'invoice_date', 'due_date', 'subtotal', 'tax_total', 'discount_total', 'total', 'payment_reference', 'status', 'jofotara_uuid', 'jofotara_qr', 'jofotara_response', 'submitted_at'];
+    protected $fillable = ['invoice_number', 'jofotara_invoice_number', 'jofotara_xml_uuid', 'seller_id', 'customer_id', 'invoice_date', 'due_date', 'subtotal', 'tax_total', 'discount_total', 'total', 'payment_reference', 'payment_type', 'taxpayer_type', 'icv_counter', 'status', 'jofotara_uuid', 'jofotara_qr', 'jofotara_response', 'submitted_at'];
 
     protected $casts = ['invoice_date' => 'date', 'due_date' => 'date', 'submitted_at' => 'datetime'];
 

@@ -115,13 +115,15 @@ class JofotaraService
         $this->append($document, $root, 'cbc:ID', $this->safeText($invoice->jofotara_invoice_number));
         $this->append($document, $root, 'cbc:UUID', $this->safeText($invoice->jofotara_xml_uuid));
         $this->append($document, $root, 'cbc:IssueDate', $invoice->invoice_date->format('Y-m-d'));
-        // TODO: Confirm InvoiceTypeCode and attributes for income/sales/return invoice scenarios with official JoFotara samples.
-        $this->append($document, $root, 'cbc:InvoiceTypeCode', '388', ['name' => '012']);
+        $this->append($document, $root, 'cbc:InvoiceTypeCode', '388', ['name' => $this->getInvoiceTypeCodeName($invoice)]);
+        $this->append($document, $root, 'cbc:Note', $this->safeText($invoice->payment_reference, '-'));
         $this->append($document, $root, 'cbc:DocumentCurrencyCode', 'JOD');
         $this->append($document, $root, 'cbc:TaxCurrencyCode', 'JOD');
-
+        $this->addAdditionalDocumentReference($document, $root, $invoice);
         $this->addSupplierParty($document, $root, $invoice);
         $this->addCustomerParty($document, $root, $invoice);
+        $this->addSellerSupplierParty($document, $root, $invoice);
+        $this->addInvoiceAllowanceCharge($document, $root, $invoice);
         $this->addTaxTotal($document, $root, $invoice);
         $this->addLegalMonetaryTotal($document, $root, $invoice);
         $this->addInvoiceLines($document, $root, $invoice);
@@ -137,6 +139,9 @@ class JofotaraService
         }
         if (blank($invoice->jofotara_xml_uuid)) {
             $updates['jofotara_xml_uuid'] = (string) Str::uuid();
+        }
+        if (blank($invoice->icv_counter)) {
+            $updates['icv_counter'] = $invoice->id;
         }
         if ($updates !== []) {
             $invoice->forceFill($updates)->save();
@@ -219,7 +224,7 @@ GUZZLE DEBUG:
 
     public function money($value): string
     {
-        return number_format((float) $value, 3, '.', '');
+        return number_format((float) $value, 9, '.', '');
     }
 
     public function percent($value): string
@@ -243,17 +248,21 @@ GUZZLE DEBUG:
         return $value !== '' ? $value : (string) $fallback;
     }
 
+    private function addAdditionalDocumentReference(DOMDocument $document, DOMElement $root, Invoice $invoice): void
+    {
+        $reference = $this->append($document, $root, 'cac:AdditionalDocumentReference');
+        $this->append($document, $reference, 'cbc:ID', 'ICV');
+        $this->append($document, $reference, 'cbc:UUID', (string) $invoice->icv_counter);
+    }
+
     private function addSupplierParty(DOMDocument $document, DOMElement $root, Invoice $invoice): void
     {
         $supplier = $this->append($document, $root, 'cac:AccountingSupplierParty');
         $party = $this->append($document, $supplier, 'cac:Party');
-        $this->append($document, $party, 'cbc:EndpointID', $this->safeText($this->sellerConfig($invoice, 'tax_number'), '000000000'), ['schemeID' => 'TN']);
 
-        $identification = $this->append($document, $party, 'cac:PartyIdentification');
-        $this->append($document, $identification, 'cbc:ID', $this->safeText($this->sellerConfig($invoice, 'source_id'), '0'));
-
-        $partyName = $this->append($document, $party, 'cac:PartyName');
-        $this->append($document, $partyName, 'cbc:Name', $this->safeText($this->sellerConfig($invoice, 'seller_name'), 'اسم البائع'));
+        $address = $this->append($document, $party, 'cac:PostalAddress');
+        $country = $this->append($document, $address, 'cac:Country');
+        $this->append($document, $country, 'cbc:IdentificationCode', 'JO');
 
         $taxScheme = $this->append($document, $party, 'cac:PartyTaxScheme');
         $this->append($document, $taxScheme, 'cbc:CompanyID', $this->safeText($this->sellerConfig($invoice, 'tax_number'), '000000000'));
@@ -271,31 +280,53 @@ GUZZLE DEBUG:
         $customerNationalNumber = $this->realIdentifier($invoice->customer?->national_number);
 
         if ($customerTaxNumber || $customerNationalNumber) {
-            $this->append($document, $party, 'cbc:EndpointID', $customerTaxNumber ?: $customerNationalNumber, ['schemeID' => $customerTaxNumber ? 'TN' : 'NIN']);
+            $identification = $this->append($document, $party, 'cac:PartyIdentification');
+            $this->append($document, $identification, 'cbc:ID', $customerTaxNumber ?: $customerNationalNumber);
         }
 
-        $partyName = $this->append($document, $party, 'cac:PartyName');
-        $this->append($document, $partyName, 'cbc:Name', $this->safeText($invoice->customer?->name, 'عميل نقدي'));
+        $address = $this->append($document, $party, 'cac:PostalAddress');
+        $this->append($document, $address, 'cbc:PostalZone', $this->safeText($invoice->customer?->address, '-'));
+        $country = $this->append($document, $address, 'cac:Country');
+        $this->append($document, $country, 'cbc:IdentificationCode', 'JO');
 
-        if ($customerTaxNumber) {
-            $taxScheme = $this->append($document, $party, 'cac:PartyTaxScheme');
-            $this->append($document, $taxScheme, 'cbc:CompanyID', $customerTaxNumber);
-            $this->addTaxScheme($taxScheme);
-        }
+        $taxScheme = $this->append($document, $party, 'cac:PartyTaxScheme');
+        $this->addTaxScheme($taxScheme);
+
+        $legal = $this->append($document, $party, 'cac:PartyLegalEntity');
+        $this->append($document, $legal, 'cbc:RegistrationName', $this->safeText($invoice->customer?->name, 'عميل نقدي'));
+
+        $contact = $this->append($document, $customer, 'cac:AccountingContact');
+        $this->append($document, $contact, 'cbc:Telephone', $this->safeText($invoice->customer?->phone, '-'));
+    }
+
+    private function addSellerSupplierParty(DOMDocument $document, DOMElement $root, Invoice $invoice): void
+    {
+        $sellerSupplier = $this->append($document, $root, 'cac:SellerSupplierParty');
+        $party = $this->append($document, $sellerSupplier, 'cac:Party');
+        $identification = $this->append($document, $party, 'cac:PartyIdentification');
+        $this->append($document, $identification, 'cbc:ID', $this->safeText($this->sellerConfig($invoice, 'source_id')));
+    }
+
+    private function addInvoiceAllowanceCharge(DOMDocument $document, DOMElement $root, Invoice $invoice): void
+    {
+        $allowance = $this->append($document, $root, 'cac:AllowanceCharge');
+        $this->append($document, $allowance, 'cbc:ChargeIndicator', 'false');
+        $this->append($document, $allowance, 'cbc:AllowanceChargeReason', 'discount');
+        $this->append($document, $allowance, 'cbc:Amount', $this->money($this->lineDiscountTotal($invoice)), ['currencyID' => 'JO']);
     }
 
     private function addTaxTotal(DOMDocument $document, DOMElement $root, Invoice $invoice): void
     {
         $taxTotal = $this->append($document, $root, 'cac:TaxTotal');
-        $this->append($document, $taxTotal, 'cbc:TaxAmount', $this->money($invoice->tax_total), ['currencyID' => 'JOD']);
+        $this->append($document, $taxTotal, 'cbc:TaxAmount', $this->money($this->invoiceTaxAmount($invoice)), ['currencyID' => 'JO']);
 
         $groupedTaxes = $invoice->items->groupBy(fn ($item) => $this->percent($item->tax_rate));
         foreach ($groupedTaxes as $rate => $items) {
-            $taxable = $items->sum(fn ($item) => (float) $item->quantity * (float) $item->unit_price);
-            $tax = $items->sum('tax_amount');
+            $taxable = $items->sum(fn ($item) => $this->lineExtensionAmount($item));
+            $tax = $items->sum(fn ($item) => $this->lineTaxAmount($item));
             $subtotal = $this->append($document, $taxTotal, 'cac:TaxSubtotal');
-            $this->append($document, $subtotal, 'cbc:TaxableAmount', $this->money($taxable), ['currencyID' => 'JOD']);
-            $this->append($document, $subtotal, 'cbc:TaxAmount', $this->money($tax), ['currencyID' => 'JOD']);
+            $this->append($document, $subtotal, 'cbc:TaxableAmount', $this->money($taxable), ['currencyID' => 'JO']);
+            $this->append($document, $subtotal, 'cbc:TaxAmount', $this->money($tax), ['currencyID' => 'JO']);
             $category = $this->append($document, $subtotal, 'cac:TaxCategory');
             // TODO: Confirm category ID for zero-rated/exempt/non-taxable JoFotara invoices against official samples.
             $this->append($document, $category, 'cbc:ID', ((float) $rate) > 0 ? 'S' : 'Z');
@@ -307,26 +338,28 @@ GUZZLE DEBUG:
     private function addLegalMonetaryTotal(DOMDocument $document, DOMElement $root, Invoice $invoice): void
     {
         $total = $this->append($document, $root, 'cac:LegalMonetaryTotal');
-        $this->append($document, $total, 'cbc:LineExtensionAmount', $this->money($invoice->subtotal), ['currencyID' => 'JOD']);
-        $this->append($document, $total, 'cbc:TaxExclusiveAmount', $this->money($invoice->subtotal - $invoice->discount_total), ['currencyID' => 'JOD']);
-        $this->append($document, $total, 'cbc:TaxInclusiveAmount', $this->money($invoice->total), ['currencyID' => 'JOD']);
-        $this->append($document, $total, 'cbc:AllowanceTotalAmount', $this->money($invoice->discount_total), ['currencyID' => 'JOD']);
-        $this->append($document, $total, 'cbc:PrepaidAmount', $this->money(0), ['currencyID' => 'JOD']);
-        $this->append($document, $total, 'cbc:PayableAmount', $this->money($invoice->total), ['currencyID' => 'JOD']);
+        $taxExclusive = $invoice->items->sum(fn ($item) => round((float) $item->quantity * (float) $item->unit_price, 9));
+        $taxInclusive = $invoice->items->sum(fn ($item) => $this->lineRoundingAmount($item));
+        $this->append($document, $total, 'cbc:LineExtensionAmount', $this->money($invoice->items->sum(fn ($item) => $this->lineExtensionAmount($item))), ['currencyID' => 'JO']);
+        $this->append($document, $total, 'cbc:TaxExclusiveAmount', $this->money($taxExclusive), ['currencyID' => 'JO']);
+        $this->append($document, $total, 'cbc:TaxInclusiveAmount', $this->money($taxInclusive), ['currencyID' => 'JO']);
+        $this->append($document, $total, 'cbc:AllowanceTotalAmount', $this->money($this->lineDiscountTotal($invoice)), ['currencyID' => 'JO']);
+        $this->append($document, $total, 'cbc:PrepaidAmount', $this->money(0), ['currencyID' => 'JO']);
+        $this->append($document, $total, 'cbc:PayableAmount', $this->money($taxInclusive), ['currencyID' => 'JO']);
     }
 
     private function addInvoiceLines(DOMDocument $document, DOMElement $root, Invoice $invoice): void
     {
         foreach ($invoice->items as $index => $item) {
-            $lineBase = (float) $item->quantity * (float) $item->unit_price;
+            $discount = $this->lineDiscountAmount($item);
             $line = $this->append($document, $root, 'cac:InvoiceLine');
             $this->append($document, $line, 'cbc:ID', (string) ($index + 1));
             $this->append($document, $line, 'cbc:InvoicedQuantity', $this->money($item->quantity), ['unitCode' => 'PCE']);
-            $this->append($document, $line, 'cbc:LineExtensionAmount', $this->money($lineBase), ['currencyID' => 'JOD']);
+            $this->append($document, $line, 'cbc:LineExtensionAmount', $this->money($this->lineExtensionAmount($item)), ['currencyID' => 'JO']);
 
             $taxTotal = $this->append($document, $line, 'cac:TaxTotal');
-            $this->append($document, $taxTotal, 'cbc:TaxAmount', $this->money($item->tax_amount), ['currencyID' => 'JOD']);
-            $this->append($document, $taxTotal, 'cbc:RoundingAmount', $this->money($item->line_total), ['currencyID' => 'JOD']);
+            $this->append($document, $taxTotal, 'cbc:TaxAmount', $this->money($this->lineTaxAmount($item)), ['currencyID' => 'JO']);
+            $this->append($document, $taxTotal, 'cbc:RoundingAmount', $this->money($this->lineRoundingAmount($item)), ['currencyID' => 'JO']);
 
             $itemNode = $this->append($document, $line, 'cac:Item');
             $this->append($document, $itemNode, 'cbc:Name', $this->safeText($item->description, 'بند فاتورة'));
@@ -336,9 +369,55 @@ GUZZLE DEBUG:
             $this->addTaxScheme($category);
 
             $price = $this->append($document, $line, 'cac:Price');
-            $this->append($document, $price, 'cbc:PriceAmount', $this->money($item->unit_price), ['currencyID' => 'JOD']);
-            $this->append($document, $price, 'cbc:BaseQuantity', $this->money(1), ['unitCode' => 'PCE']);
+            $this->append($document, $price, 'cbc:PriceAmount', $this->money($item->unit_price), ['currencyID' => 'JO']);
+            $allowance = $this->append($document, $price, 'cac:AllowanceCharge');
+            $this->append($document, $allowance, 'cbc:ChargeIndicator', 'false');
+            $this->append($document, $allowance, 'cbc:AllowanceChargeReason', 'discount');
+            $this->append($document, $allowance, 'cbc:Amount', $this->money($discount), ['currencyID' => 'JO']);
         }
+    }
+
+    public function getInvoiceTypeCodeName(Invoice $invoice): string
+    {
+        return match (($invoice->taxpayer_type ?: 'general_sales').':'.($invoice->payment_type ?: 'receivable')) {
+            'general_sales:receivable' => '022',
+            'general_sales:cash' => '012',
+            'income:receivable' => '021',
+            'income:cash' => '011',
+            'special_sales:receivable' => '023',
+            'special_sales:cash' => '013',
+            default => '022',
+        };
+    }
+
+    private function lineDiscountAmount($item): float
+    {
+        return 0.0;
+    }
+
+    private function lineDiscountTotal(Invoice $invoice): float
+    {
+        return $invoice->items->sum(fn ($item) => $this->lineDiscountAmount($item));
+    }
+
+    private function lineExtensionAmount($item): float
+    {
+        return round(((float) $item->quantity * (float) $item->unit_price) - $this->lineDiscountAmount($item), 9);
+    }
+
+    private function lineTaxAmount($item): float
+    {
+        return round($this->lineExtensionAmount($item) * ((float) $item->tax_rate / 100), 9);
+    }
+
+    private function lineRoundingAmount($item): float
+    {
+        return round($this->lineExtensionAmount($item) + $this->lineTaxAmount($item), 9);
+    }
+
+    private function invoiceTaxAmount(Invoice $invoice): float
+    {
+        return $invoice->items->sum(fn ($item) => $this->lineTaxAmount($item));
     }
 
     private function realIdentifier($value): ?string

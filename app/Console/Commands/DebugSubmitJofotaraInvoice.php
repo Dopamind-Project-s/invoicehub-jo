@@ -42,6 +42,10 @@ class DebugSubmitJofotaraInvoice extends Command
         $this->line('invoice_number: '.$invoice->invoice_number);
         $this->line('jofotara_invoice_number: '.$invoice->jofotara_invoice_number);
         $this->line('jofotara_xml_uuid: '.$invoice->jofotara_xml_uuid);
+        $this->line('InvoiceTypeCode name: '.$jofotara->getInvoiceTypeCodeName($invoice));
+        $this->line('ICV counter: '.$invoice->icv_counter);
+        $this->line('SellerSupplierParty source id exists: '.(filled($jofotara->credential($invoice, 'source_id')) ? 'yes' : 'no'));
+        $this->line('AdditionalDocumentReference exists: '.(filled($invoice->icv_counter) ? 'yes' : 'no'));
         $this->line('client_id exists: '.(filled($clientId) ? 'yes' : 'no'));
         $this->line('secret key length: '.strlen((string) $secretKey));
         $this->line('source_id: '.$sourceId);
