@@ -2,24 +2,27 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            CountrySeeder::class,
+            CurrencySeeder::class,
+            UnitSeeder::class,
+            TaxCategorySeeder::class,
+            PaymentMethodSeeder::class,
+            CompanySeeder::class,
+            CustomerSeeder::class,
+            ProductSeeder::class,
+            InvoiceSeeder::class,
         ]);
+
+        foreach (['DRAFT', 'GENERATED', 'SIGNED', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'ERROR'] as $i => $status) {
+            DB::table('invoice_statuses')->updateOrInsert(['code' => $status], ['name' => ucfirst(strtolower($status)), 'sort_order' => $i, 'updated_at' => now(), 'created_at' => now()]);
+        }
     }
 }

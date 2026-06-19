@@ -1,58 +1,82 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# InvoiceHub Jo
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+نظام Laravel بسيط لإصدار فواتير عربية RTL وربطها مبدئياً مع نظام الفوترة الوطني الأردني JoFotara.
 
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Installation
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan storage:link
+php artisan db:seed
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+> يستخدم المشروع MySQL؛ اضبط `DB_DATABASE` و`DB_USERNAME` و`DB_PASSWORD` في ملف `.env` قبل تشغيل الهجرات.
 
-## Contributing
+## JoFotara environment setup
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+يمكن تخزين بيانات JoFotara لكل بائع من شاشة البائعين. وتبقى قيم `.env` التالية كقيم احتياطية عامة إذا كانت بيانات البائع المحدد ناقصة:
 
-## Code of Conduct
+```env
+JOFOTARA_API_URL=https://backend.jofotara.gov.jo/core/invoices/
+JOFOTARA_CLIENT_ID=
+JOFOTARA_SECRET_KEY=
+JOFOTARA_SOURCE_ID=
+JOFOTARA_TAX_NUMBER=
+JOFOTARA_SELLER_NAME=
+JOFOTARA_INCLUDE_CUSTOMIZATION_ID=false
+JOFOTARA_VERIFY_SSL=true
+JOFOTARA_TIMEOUT=60
+JOFOTARA_HTTP_DEBUG=false
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+يتم إنشاء رقم المستخدم والمفتاح السري من بوابة JoFotara من خلال خيار **ربط الأجهزة**. يستخدم النظام هذه القيم في ترويسات الطلب `Client-Id` و `Secret-Key` عند الإرسال إلى:
 
-## Security Vulnerabilities
+```text
+POST https://backend.jofotara.gov.jo/core/invoices/
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+للتحقق من الإعدادات:
 
-## License
+```bash
+php artisan jofotara:check-config
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Usage
+
+1. افتح `/sellers` لإضافة البائع/المصدر وبياناته الضريبية وشعار الفاتورة وبيانات JoFotara الخاصة به.
+2. إذا كان هناك بائع واحد فقط فسيتم اختياره تلقائياً عند إنشاء الفاتورة، ويمكن تعيين بائع افتراضي من شاشة البائعين.
+3. افتح `/customers` لإضافة الشركات والعملاء وبياناتهم الضريبية.
+4. افتح `/invoices/create` لإنشاء فاتورة يدوية، ثم اختر البائع والعميل وأضف البنود. نوع فاتورة JoFotara الافتراضي للعينة هو ذمم (`receivable`) ومكلف مبيعات عامة (`general_sales`) ليخرج `InvoiceTypeCode` بالخاصية `name="022"`.
+5. يحسب النظام المجاميع في الواجهة وفي الخادم بدقة 3 خانات عشرية للدينار الأردني.
+6. من صفحة عرض الفاتورة اضغط **إرسال إلى جوفوتارا** لإرسال XML بصيغة UBL 2.1 بعد ترميزه Base64.
+7. يتم حفظ رد JoFotara كاملاً، وحفظ UUID و QR عند القبول.
+8. استخدم زر **PDF** لطباعة الفاتورة أو **معاينة** لعرض تصميم الفاتورة في المتصفح.
+
+## JoFotara diagnostics
+
+قبل الإرسال الفعلي يمكن فحص الطلب والملفات الناتجة بدون تغيير حالة الفاتورة:
+
+```bash
+php artisan jofotara:dump-request 1
+php artisan jofotara:debug-submit 1
+php artisan jofotara:curl-preview 1
+php artisan jofotara:compare-request
+php artisan jofotara:test-ssl
+php artisan jofotara:raw-test
+```
+
+تُحفظ ملفات الفحص في `storage/app/jofotara` مثل `last-submission-{id}.xml` و `last-payload-{id}.json`. لا يطبع النظام ولا يسجل قيمة `Secret-Key` الفعلية؛ تظهر فقط حالة وجودها أو طولها.
+
+## JoFotara XML identifiers
+
+يحتفظ النظام برقم العرض المحلي مثل `INV/YYYY/00001`، لكنه يستخدم داخل XML رقم JoFotara بدون شرطات مائلة مثل `INV_YYYY_00001`. كما يولّد UUID حقيقياً في `jofotara_xml_uuid` ويعيد استخدامه عند إعادة المحاولة، ويستخدم `icv_counter` كعداد ICV ثابت، افتراضياً مساوي لمعرف الفاتورة عند أول توليد.
+
+## Notes
+
+- خدمة `App\Services\JofotaraService` تحتوي TODO للحقول النهائية التي قد تحتاج مطابقة مع عينات XML الرسمية من ISTD.
+- لا يتم تسجيل المفتاح السري في السجلات؛ يتم تسجيل رقم الفاتورة وحالة الاستجابة فقط.
+- عند ربط أجهزة المكلف في JoFotara قد يتم تعطيل إنشاء الفواتير يدوياً من البوابة، وبذلك يصبح هذا النظام هو مصدر إصدار الفواتير.

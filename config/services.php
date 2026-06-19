@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    'jofotara' => [
+        'url' => env('JOFOTARA_API_URL', 'https://backend.jofotara.gov.jo/core/invoices/'),
+        'client_id' => env('JOFOTARA_CLIENT_ID'),
+        'secret_key' => env('JOFOTARA_SECRET_KEY'),
+        'source_id' => env('JOFOTARA_SOURCE_ID'),
+        'tax_number' => env('JOFOTARA_TAX_NUMBER'),
+        'seller_name' => env('JOFOTARA_SELLER_NAME'),
+        'include_customization_id' => env('JOFOTARA_INCLUDE_CUSTOMIZATION_ID', false),
+        'verify_ssl' => env('JOFOTARA_VERIFY_SSL', true),
+        'timeout' => env('JOFOTARA_TIMEOUT', 60),
+        'http_debug' => env('JOFOTARA_HTTP_DEBUG', false),
+        'include_qr_in_xml' => env('JOFOTARA_INCLUDE_QR_IN_XML', false),
+        'amount_currency_id' => env('JOFOTARA_AMOUNT_CURRENCY_ID', 'JO'),
+        'initial_pih' => env('JOFOTARA_INITIAL_PIH', ''),
+    ],
+
 ];
