@@ -12,6 +12,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\Permission\Traits\HasRoles;
 
+use function setPermissionsTeamId;
+
 #[Fillable(['company_id', 'name', 'email', 'phone', 'status', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -28,6 +30,17 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->role === self::ROLE_SUPER_ADMIN;
+    }
+
+    public function canInCompany(string $permission, int $companyId): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        setPermissionsTeamId($companyId);
+
+        return $this->hasPermissionTo($permission, 'web');
     }
 
     public function company(): BelongsTo

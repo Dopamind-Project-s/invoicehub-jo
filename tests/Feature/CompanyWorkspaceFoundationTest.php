@@ -14,6 +14,8 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
+use function setPermissionsTeamId;
+
 class CompanyWorkspaceFoundationTest extends TestCase
 {
     use RefreshDatabase;
@@ -32,7 +34,8 @@ class CompanyWorkspaceFoundationTest extends TestCase
         app(CompanyRoleSeeder::class)->seed($a);
         app(CompanyRoleSeeder::class)->seed($b);
         $user = User::factory()->create(['company_id' => $a->id, 'status' => 'active']);
-        $user->assignRole('Owner', $a->id);
+        setPermissionsTeamId($a->id);
+        $user->assignRole('Owner');
 
         $this->assertTrue($user->canInCompany('users.manage', $a->id));
         $this->assertFalse($user->canInCompany('users.manage', $b->id));
@@ -44,7 +47,8 @@ class CompanyWorkspaceFoundationTest extends TestCase
         $company = Company::create(['name_ar' => 'شركة', 'legal_name_ar' => 'شركة', 'tax_number' => '303']);
         app(CompanyRoleSeeder::class)->seed($company);
         $admin = User::factory()->create(['company_id' => $company->id, 'status' => 'active']);
-        $admin->assignRole('Owner', $company->id);
+        setPermissionsTeamId($company->id);
+        $admin->assignRole('Owner');
         $role = Role::where('name', 'Viewer')->where('company_id', $company->id)->firstOrFail();
 
         $this->actingAs($admin)->post(route('company.users.store', $company), [
@@ -58,7 +62,8 @@ class CompanyWorkspaceFoundationTest extends TestCase
 
         $user = User::where('email', 'workspace@example.com')->firstOrFail();
         $this->assertSame($company->id, $user->company_id);
-        $this->assertTrue($user->hasRole('Viewer', $company->id));
+        setPermissionsTeamId($company->id);
+        $this->assertTrue($user->hasRole('Viewer'));
         $this->assertDatabaseHas('audit_logs', ['action' => 'company.user.created', 'auditable_id' => $user->id]);
 
         $this->actingAs($admin)->post(route('company.users.suspend', [$company, $user]))->assertRedirect();
@@ -70,7 +75,8 @@ class CompanyWorkspaceFoundationTest extends TestCase
         $company = Company::create(['legal_name_ar' => 'شركة', 'tax_number' => '404']);
         app(CompanyRoleSeeder::class)->seed($company);
         $viewer = User::factory()->create(['company_id' => $company->id, 'status' => 'active']);
-        $viewer->assignRole('Viewer', $company->id);
+        setPermissionsTeamId($company->id);
+        $viewer->assignRole('Viewer');
         $this->actingAs($viewer)->get(route('company.users.index', $company))->assertForbidden();
 
         $superAdmin = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
@@ -82,7 +88,8 @@ class CompanyWorkspaceFoundationTest extends TestCase
         $company = Company::create(['legal_name_ar' => 'شركة', 'tax_number' => '505']);
         app(CompanyRoleSeeder::class)->seed($company);
         $owner = User::factory()->create(['company_id' => $company->id, 'status' => 'active']);
-        $owner->assignRole('Owner', $company->id);
+        setPermissionsTeamId($company->id);
+        $owner->assignRole('Owner');
 
         $this->actingAs($owner)->put(route('company.settings.update', $company), [
             'settings' => ['default_language' => 'ar', 'default_currency' => 'JOD', 'invoice_prefix' => 'INV'],
@@ -93,5 +100,13 @@ class CompanyWorkspaceFoundationTest extends TestCase
 
         AuditLog::create(['user_id' => $owner->id, 'action' => 'company.settings.updated', 'auditable_type' => Company::class, 'auditable_id' => $company->id]);
         $this->actingAs($owner)->get(route('company.activity.index', $company))->assertOk()->assertSee('company.settings.updated');
+    }
+
+    public function test_authenticated_company_user_can_reach_dashboard(): void
+    {
+        $company = Company::create(['legal_name_ar' => 'شركة', 'tax_number' => '606']);
+        $user = User::factory()->create(['company_id' => $company->id, 'status' => 'active']);
+
+        $this->actingAs($user)->get(route('dashboard'))->assertOk();
     }
 }

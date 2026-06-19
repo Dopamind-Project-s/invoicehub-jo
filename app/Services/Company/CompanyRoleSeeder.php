@@ -23,7 +23,7 @@ class CompanyRoleSeeder
         foreach (self::DEFAULT_ROLES as $roleName => $permissions) {
             $role = Role::query()->firstOrCreate(['name' => $roleName, 'guard_name' => 'web', 'company_id' => $company->id]);
             $permissionIds = Permission::query()->whereIn('name', $permissions)->pluck('id')->all();
-            $role->permissions()->syncWithPivotValues($permissionIds, ['company_id' => $company->id]);
+            $role->syncPermissions($permissionIds);
         }
     }
 }
