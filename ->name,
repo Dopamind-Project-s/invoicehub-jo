@@ -1,0 +1,17 @@
+[90m= [39m[34;4mApp\Models\Seller[39;24m {#8085
+    [34mid[39m: [35m1[39m,
+    [34mname[39m: [32m"[39m[32mمطبخ ومشاوي جوهرة الجبيهة[39m[32m"[39m,
+    [34mtax_number[39m: [36mnull[39m,
+    [34mnational_number[39m: [36mnull[39m,
+    [34mincome_source_sequence[39m: [36mnull[39m,
+    [34mphone[39m: [36mnull[39m,
+    [34memail[39m: [36mnull[39m,
+    [34maddress[39m: [36mnull[39m,
+    [34mlogo_path[39m: [36mnull[39m,
+    [34mjofotara_client_id[39m: [36mnull[39m,
+    [34mjofotara_secret_key[39m: [36mnull[39m,
+    [34mjofotara_source_id[39m: [36mnull[39m,
+    [34mis_default[39m: [35m1[39m,
+    [34mcreated_at[39m: [32m"[39m[32m2026-06-17 17:25:24[39m[32m"[39m,
+    [34mupdated_at[39m: [32m"[39m[32m2026-06-17 17:25:24[39m[32m"[39m,
+  }
