@@ -12,6 +12,8 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
+use function setPermissionsTeamId;
+
 class CompanyRoleController extends Controller
 {
     public function __construct(private readonly AuditLogger $audit) {}
@@ -24,6 +26,7 @@ class CompanyRoleController extends Controller
     public function update(Request $request, Company $company, Role $role): RedirectResponse
     {
         abort_unless((int) $role->company_id === (int) $company->id, 404);
+        setPermissionsTeamId($company->id);
         $data = $request->validate(['permissions' => ['array'], 'permissions.*' => ['string', 'exists:permissions,name']]);
         $before = ['permissions' => $role->permissions()->pluck('name')->all()];
         $role->syncPermissions($data['permissions'] ?? []);

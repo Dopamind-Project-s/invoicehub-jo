@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\SetCompanyPermissionTeam;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Illuminate\Http\Request;
 
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'super.admin' => EnsureSuperAdmin::class,
+            'permission.team' => SetCompanyPermissionTeam::class,
             'permission' => PermissionMiddleware::class,
         ]);
     })

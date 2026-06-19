@@ -19,7 +19,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::table('role_has_permissions')->whereNotNull('company_id')->delete();
         DB::table('roles')->whereNotNull('company_id')->delete();
     }
 
@@ -36,7 +35,7 @@ return new class extends Migration
         foreach ($permissionSets as $roleName => $permissions) {
             $role = Role::query()->firstOrCreate(['name' => $roleName, 'guard_name' => 'web', 'company_id' => $companyId]);
             $ids = Permission::query()->whereIn('name', $permissions)->pluck('id')->all();
-            $role->permissions()->syncWithPivotValues($ids, ['company_id' => $companyId]);
+            $role->syncPermissions($ids);
         }
     }
 };

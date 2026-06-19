@@ -47,8 +47,7 @@ return new class extends Migration
         Schema::create('role_has_permissions', function (Blueprint $table) {
             $table->foreignId('permission_id')->constrained()->cascadeOnDelete();
             $table->foreignId('role_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('company_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->primary(['permission_id', 'role_id', 'company_id']);
+            $table->primary(['permission_id', 'role_id'], 'role_has_permissions_permission_id_role_id_primary');
         });
 
         foreach (['users.manage', 'products.manage', 'contacts.manage', 'invoices.view', 'invoices.create', 'invoices.approve', 'invoices.submit', 'settings.manage', 'reports.view'] as $permission) {

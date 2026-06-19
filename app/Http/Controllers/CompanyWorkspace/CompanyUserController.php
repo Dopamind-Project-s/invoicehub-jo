@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
+use function setPermissionsTeamId;
+
 class CompanyUserController extends Controller
 {
     public function __construct(private readonly AuditLogger $audit) {}
@@ -37,7 +39,8 @@ class CompanyUserController extends Controller
         $data['password'] = Hash::make($data['password']);
 
         $user = User::create($data);
-        $user->syncRoles($roleIds, $company->id);
+        setPermissionsTeamId($company->id);
+        $user->syncRoles($roleIds);
         $this->audit->record('company.user.created', $user, [], $this->snapshot($user, $roleIds), $request);
 
         return redirect()->route('company.users.show', [$company, $user])->with('success', 'تم إنشاء المستخدم.');
@@ -66,7 +69,8 @@ class CompanyUserController extends Controller
         $roleIds = $data['roles'] ?? [];
         unset($data['roles'], $data['password']);
         $user->update($data);
-        $user->syncRoles($roleIds, $company->id);
+        setPermissionsTeamId($company->id);
+        $user->syncRoles($roleIds);
         $this->audit->record('company.user.updated', $user, $before, $this->snapshot($user->refresh(), $roleIds), $request);
 
         return redirect()->route('company.users.show', [$company, $user])->with('success', 'تم تحديث المستخدم.');
