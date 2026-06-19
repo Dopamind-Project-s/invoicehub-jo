@@ -60,14 +60,14 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
    - [x] Create shared theme components; business-page redesign remains intentionally deferred.
 
 4. **Super admin and tenancy/company setup**
-   - [ ] Add super admin dashboard route/controller/view.
-   - [ ] Add tenant/company setup screens that reuse `companies` safely and do not change current JoFotara seller flow.
-   - [ ] Add basic company activation/status safeguards.
+   - [x] Add super admin dashboard route/controller/view with Phase 1 widgets.
+   - [x] Add protected Super Admin company setup screens that reuse `companies` safely and do not change current JoFotara seller flow.
+   - [x] Add company activation/suspension status controls with audit logging.
 
 5. **Users, roles, and feature keys**
-   - [ ] Add roles/permissions tables and seed baseline roles without introducing a breaking auth dependency.
-   - [ ] Add feature key management tied to companies/tenants.
-   - [ ] Gate Phase 1 admin pages while keeping existing routes usable for backward compatibility where needed.
+   - [x] Add a minimal Super Admin role flag on users and protected middleware without introducing a new auth package or breaking existing auth.
+   - [x] Add feature key tables, initial feature keys, and company feature assignment/removal in Super Admin company forms.
+   - [x] Gate new Phase 1 admin pages with Super Admin middleware while keeping existing routes usable for backward compatibility.
 
 6. **Customers, suppliers, products, and services**
    - [ ] Extend current customer UI where needed, preserving existing fields and validations.
@@ -89,9 +89,9 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
    - [ ] Use existing invoice data and avoid expensive queries.
 
 10. **Final hardening**
-    - [x] Full test pass for this execution step.
-    - [x] Route smoke check for this execution step via `php artisan route:list --except-vendor`.
-    - [x] Confirm migrations are additive/backward-compatible; credential migration encrypts in place and down() intentionally preserves encrypted credentials.
+    - [x] Full test pass for this execution step and Step 2.
+    - [x] Route smoke check for this execution step and Step 2 via `php artisan route:list --except-vendor`.
+    - [x] Confirm migrations are additive/backward-compatible; credential migration encrypts in place, admin schema adds new tables/nullable fields/defaults, and down() intentionally preserves encrypted credentials.
     - [x] Confirm no JoFotara XML/JSON/QR/UUID/ICV/PIH/API contract/submission-flow code paths were changed in this execution step.
 
 ## Completed change log
@@ -110,3 +110,12 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
 - **Tests added:** `tests/Feature/JofotaraCredentialSecurityTest.php`, `tests/Feature/AuditLoggerTest.php`, `tests/Feature/ArabicThemeLayoutTest.php`.
 - **Baseline status:** `php artisan test` passes; `php artisan migrate --pretend` shows only the credential-encryption pass and additive `audit_logs` table; route list still reports the same 36 application routes.
 - **Recommended next execution step:** wire audit logging into company create/update and JoFotara submission status changes, then add a Phase 1 super-admin dashboard shell using the new layout components.
+
+### 2026-06-19 — Phase 1 execution step 2 SaaS admin core
+- **Changed files:** `database/migrations/2026_06_19_000003_create_feature_keys_and_subscriptions.php`, `database/migrations/2026_06_19_000004_add_admin_fields_to_companies_and_users.php`, `database/migrations/2026_06_19_000005_seed_initial_feature_keys.php`, `app/Models/FeatureKey.php`, `app/Models/Plan.php`, `app/Models/Subscription.php`, `app/Models/Company.php`, `app/Models/User.php`, `app/Http/Middleware/EnsureSuperAdmin.php`, `bootstrap/app.php`, `routes/web.php`, `app/Http/Controllers/Admin/*`, `resources/views/admin/**/*`, `resources/views/components/layout/sidebar.blade.php`, and new feature tests.
+- **Migrations added/changed:** `2026_06_19_000003_create_feature_keys_and_subscriptions.php` creates `feature_keys`, `company_feature_keys`, `plans`, and `subscriptions`; `2026_06_19_000004_add_admin_fields_to_companies_and_users.php` adds admin company profile/status fields and the minimal user role field; `2026_06_19_000005_seed_initial_feature_keys.php` seeds the initial Phase 1 feature catalog.
+- **Commands that must be run:** `php artisan migrate`; optional verification commands: `php artisan test`, `php artisan route:list --except-vendor`.
+- **Breaking-risk areas:** new admin functionality is isolated under `/admin/*` and protected by `super.admin`; existing company/customer/invoice/JoFotara routes remain registered; company admin screens map `name_ar/name_en` to existing `legal_name_ar/legal_name_en` for backward compatibility; no product/customer/invoice business modules were started.
+- **Tests added:** `tests/Feature/FeatureSubscriptionFoundationTest.php`, `tests/Feature/SuperAdminCompanyManagementTest.php`.
+- **Baseline status:** `php artisan test` passes; `php artisan migrate --pretend` shows additive SaaS admin tables/columns plus feature seed inserts; route list reports 45 application routes including the new protected admin routes.
+- **Recommended next execution step:** wire the Super Admin dashboard to richer audit/company filters and begin Users/Roles management for company users, without starting products, contacts, invoices, templates, or analytics business modules yet.

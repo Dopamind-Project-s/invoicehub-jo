@@ -1,11 +1,26 @@
 <?php
 
+use App\Http\Controllers\Admin\CompanyManagementController;
+use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InvoiceController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/invoices');
+
+Route::middleware('super.admin')->prefix('admin')->name('admin.')->group(function (): void {
+    Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/companies', [CompanyManagementController::class, 'index'])->name('companies.index');
+    Route::get('/companies/create', [CompanyManagementController::class, 'create'])->name('companies.create');
+    Route::post('/companies', [CompanyManagementController::class, 'store'])->name('companies.store');
+    Route::get('/companies/{company}', [CompanyManagementController::class, 'show'])->name('companies.show');
+    Route::get('/companies/{company}/edit', [CompanyManagementController::class, 'edit'])->name('companies.edit');
+    Route::put('/companies/{company}', [CompanyManagementController::class, 'update'])->name('companies.update');
+    Route::post('/companies/{company}/activate', [CompanyManagementController::class, 'activate'])->name('companies.activate');
+    Route::post('/companies/{company}/suspend', [CompanyManagementController::class, 'suspend'])->name('companies.suspend');
+});
+
 Route::resource('companies', CompanyController::class)->except(['show', 'destroy']);
 Route::resource('customers', CustomerController::class);
 Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');

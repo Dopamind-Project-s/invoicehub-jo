@@ -1,5 +1,9 @@
 @php
     $items = [
+        ...((auth()->user()?->isSuperAdmin()) ? [
+            ['label' => 'لوحة المدير', 'route' => 'admin.dashboard', 'icon' => '📊'],
+            ['label' => 'إدارة الشركات', 'route' => 'admin.companies.index', 'icon' => '🏢'],
+        ] : []),
         ['label' => 'الفواتير', 'route' => 'invoices.index', 'icon' => '🧾'],
         ['label' => 'الشركات', 'route' => 'companies.index', 'icon' => '🏢'],
         ['label' => 'العملاء', 'route' => 'customers.index', 'icon' => '👥'],
