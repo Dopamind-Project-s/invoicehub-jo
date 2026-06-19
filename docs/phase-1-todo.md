@@ -46,18 +46,18 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
 1. **Baseline safety/documentation**
    - [x] Scan project structure, routes, packages, models, migrations, services, views, tests, resources, and Arabic theme.
    - [x] Create this Phase 1 TODO file.
-   - [ ] Add/confirm tests around current JoFotara preparation/submission log behavior before refactors.
-   - [ ] Add tests proving JoFotara secrets are not exposed in logs, UI, API responses, or exceptions.
+   - [x] Add/confirm tests around current JoFotara preparation/submission log behavior before refactors (baseline suite re-run; no invoicing flow changes were made in this step).
+   - [x] Add tests proving JoFotara secrets are not exposed in stored model arrays, company admin edit pages, config command output, validator output, and audit logs.
 
 2. **Credential and audit foundation**
-   - [ ] Add encrypted casts/accessors or a safe encrypted credential store for company JoFotara Client ID/Secret Key without breaking existing rows.
-   - [ ] Add migration(s) for audit logs and any credential metadata needed.
-   - [ ] Add audit service/model and record security-sensitive actions: login/admin changes/company credentials/invoice submission/status changes.
+   - [x] Add encrypted model mutators/accessors for company JoFotara Client ID/Secret Key without breaking existing plaintext rows.
+   - [x] Add migrations for encrypting existing company JoFotara credentials in place and creating audit logs.
+   - [x] Add generic audit model/service foundation with sensitive-field redaction; wiring individual business events remains a later task.
 
 3. **Theme integration foundation**
-   - [ ] Move/copy required Arabic theme assets into Laravel-managed public/resources paths without deleting original theme references.
-   - [ ] Refactor `resources/views/layouts/app.blade.php` incrementally to use the Arabic theme shell while preserving all current content sections and routes.
-   - [ ] Apply theme components to existing company/customer/invoice views first, then new Phase 1 pages.
+   - [x] Move/copy required Arabic theme assets into Laravel-managed public paths without deleting original theme references.
+   - [x] Refactor `resources/views/layouts/app.blade.php` incrementally to use the Arabic theme shell while preserving all current content sections and routes.
+   - [x] Create shared theme components; business-page redesign remains intentionally deferred.
 
 4. **Super admin and tenancy/company setup**
    - [ ] Add super admin dashboard route/controller/view.
@@ -89,10 +89,10 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
    - [ ] Use existing invoice data and avoid expensive queries.
 
 10. **Final hardening**
-    - [ ] Full test pass.
-    - [ ] Manual route smoke test.
-    - [ ] Confirm migrations are additive/backward-compatible.
-    - [ ] Confirm JoFotara XML/JSON/QR/status behavior remains backward-compatible.
+    - [x] Full test pass for this execution step.
+    - [x] Route smoke check for this execution step via `php artisan route:list --except-vendor`.
+    - [x] Confirm migrations are additive/backward-compatible; credential migration encrypts in place and down() intentionally preserves encrypted credentials.
+    - [x] Confirm no JoFotara XML/JSON/QR/UUID/ICV/PIH/API contract/submission-flow code paths were changed in this execution step.
 
 ## Completed change log
 
@@ -101,3 +101,12 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
 - **Migrations added/changed:** none.
 - **Commands that must be run:** none for this documentation-only step.
 - **Breaking-risk areas:** none introduced; identified credential encryption and theme integration as high-risk areas for later incremental work.
+
+### 2026-06-19 — Phase 1 execution step 1 foundation
+- **Changed files:** `app/Models/Company.php`, `app/Http/Controllers/CompanyController.php`, `app/Console/Commands/CheckJofotaraConfig.php`, `app/Services/Jofotara/JoFotaraCredentialValidator.php`, `resources/views/companies/_form.blade.php`, `app/Models/AuditLog.php`, `app/Services/Audit/AuditLogger.php`, `resources/views/layouts/app.blade.php`, `resources/views/components/layout/*`, `resources/views/components/ui/stat-card.blade.php`, `public/css/phase1-layout.css`, `public/js/phase1-layout.js`, `public/vendor/zaha-theme/*`, and new feature tests.
+- **Migrations added/changed:** `2026_06_19_000001_encrypt_company_jofotara_credentials.php` encrypts existing plaintext company JoFotara Client ID/Secret Key values in place; `2026_06_19_000002_create_audit_logs_table.php` creates the reusable audit log table.
+- **Commands that must be run:** `php artisan migrate`; optional verification commands: `php artisan test`, `php artisan jofotara:check-config`.
+- **Breaking-risk areas:** company-level JoFotara credentials are now encrypted at rest but still exposed to existing code through model accessors for backward compatibility; the credential migration intentionally does not decrypt on rollback; the shared layout changes are perceptible UI foundation changes but do not redesign business pages or change routes.
+- **Tests added:** `tests/Feature/JofotaraCredentialSecurityTest.php`, `tests/Feature/AuditLoggerTest.php`, `tests/Feature/ArabicThemeLayoutTest.php`.
+- **Baseline status:** `php artisan test` passes; `php artisan migrate --pretend` shows only the credential-encryption pass and additive `audit_logs` table; route list still reports the same 36 application routes.
+- **Recommended next execution step:** wire audit logging into company create/update and JoFotara submission status changes, then add a Phase 1 super-admin dashboard shell using the new layout components.

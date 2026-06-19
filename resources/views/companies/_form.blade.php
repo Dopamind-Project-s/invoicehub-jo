@@ -4,8 +4,8 @@
     <div class="col-md-6"><label class="form-label">الاسم التجاري</label><input name="trade_name" class="form-control" value="{{ old('trade_name', $company->trade_name) }}"></div>
     <div class="col-md-6"><label class="form-label">الرقم الضريبي</label><input name="tax_number" class="form-control" value="{{ old('tax_number', $company->tax_number) }}" required></div>
     <div class="col-md-4"><label class="form-label">تسلسل مصدر الدخل</label><input name="jofotara_source_id" class="form-control" value="{{ old('jofotara_source_id', $company->jofotara_source_id) }}"></div>
-    <div class="col-md-4"><label class="form-label">Client ID</label><input name="jofotara_client_id" class="form-control" value="{{ old('jofotara_client_id', $company->jofotara_client_id) }}"></div>
-    <div class="col-md-4"><label class="form-label">Secret Key</label><input name="jofotara_secret_key" type="password" autocomplete="new-password" class="form-control" placeholder="اتركه فارغاً للإبقاء على القيمة الحالية"></div>
+    <div class="col-md-4"><label class="form-label">Client ID</label><input name="jofotara_client_id" type="password" autocomplete="new-password" class="form-control" placeholder="{{ $company->exists && $company->hasJofotaraClientId() ? 'محفوظ ومشفّر — اتركه فارغاً للإبقاء عليه' : 'أدخل Client ID' }}"></div>
+    <div class="col-md-4"><label class="form-label">Secret Key</label><input name="jofotara_secret_key" type="password" autocomplete="new-password" class="form-control" placeholder="{{ $company->exists && $company->hasJofotaraSecretKey() ? 'محفوظ ومشفّر — اتركه فارغاً للإبقاء عليه' : 'أدخل Secret Key' }}"></div>
     <div class="col-md-4"><label class="form-label">الهاتف</label><input name="phone" class="form-control" value="{{ old('phone', $company->phone) }}"></div>
     <div class="col-md-2"><label class="form-label">الدولة</label><input name="country_code" class="form-control" value="{{ old('country_code', $company->country_code ?: 'JO') }}" required maxlength="2"></div>
     <div class="col-md-3"><label class="form-label">المدينة</label><input name="city" class="form-control" value="{{ old('city', $company->city) }}"></div>
