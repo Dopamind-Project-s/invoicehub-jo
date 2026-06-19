@@ -79,16 +79,24 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
    - [ ] Preserve JoFotara-compatible decimal/tax calculations and add regression tests before changing calculations.
    - [ ] Keep issued PDF/QR behavior compatible and theme invoice screens.
 
-8. **JoFotara submission, sync logs, status tracking**
+8. **Company workspace foundation**
+   - [x] Configure team-aware permission foundation with `company_id` as team id and default roles/permissions.
+   - [x] Add company user management: create/edit/details/activate/suspend/password reset/role assignment.
+   - [x] Add company role and permission assignment UI scoped by company.
+   - [x] Add flexible key/value company settings by category.
+   - [x] Add activity center over `audit_logs` with date/action/user filters.
+   - [x] Protect company workspace routes with permission middleware and Super Admin bypass.
+
+9. **JoFotara submission, sync logs, status tracking**
    - [ ] Add submission log screens using existing `invoice_submission_logs` without exposing secrets or raw sensitive headers.
    - [ ] Add status tracking dashboard and filters for DRAFT/GENERATED/SUBMITTED/ACCEPTED/REJECTED/ERROR.
    - [ ] Add safe retry/sync actions only after confirming current PIH/ICV constraints.
 
-9. **Basic dashboard analytics**
+10. **Basic dashboard analytics**
    - [ ] Add analytics cards/charts: invoices by status, totals, accepted/rejected counts, recent submissions, active companies/customers/products.
    - [ ] Use existing invoice data and avoid expensive queries.
 
-10. **Final hardening**
+11. **Final hardening**
     - [x] Full test pass for this execution step and Step 2.
     - [x] Route smoke check for this execution step and Step 2 via `php artisan route:list --except-vendor`.
     - [x] Confirm migrations are additive/backward-compatible; credential migration encrypts in place, admin schema adds new tables/nullable fields/defaults, and down() intentionally preserves encrypted credentials.
@@ -119,3 +127,12 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
 - **Tests added:** `tests/Feature/FeatureSubscriptionFoundationTest.php`, `tests/Feature/SuperAdminCompanyManagementTest.php`.
 - **Baseline status:** `php artisan test` passes; `php artisan migrate --pretend` shows additive SaaS admin tables/columns plus feature seed inserts; route list reports 45 application routes including the new protected admin routes.
 - **Recommended next execution step:** wire the Super Admin dashboard to richer audit/company filters and begin Users/Roles management for company users, without starting products, contacts, invoices, templates, or analytics business modules yet.
+
+### 2026-06-19 — Phase 1 execution step 3 company workspace foundation
+- **Changed files:** `composer.json`, `config/permission.php`, `app/Support/SpatiePermission/*`, `database/migrations/2026_06_19_000006_create_permission_tables.php`, `database/migrations/2026_06_19_000007_add_company_workspace_fields.php`, `database/migrations/2026_06_19_000008_seed_default_company_roles.php`, `app/Models/User.php`, `app/Models/Company.php`, `app/Models/CompanySetting.php`, `app/Services/Company/CompanyRoleSeeder.php`, `bootstrap/app.php`, `routes/web.php`, `app/Http/Controllers/CompanyWorkspace/*`, `resources/views/company/**/*`, and `tests/Feature/CompanyWorkspaceFoundationTest.php`.
+- **Migrations added/changed:** `2026_06_19_000006_create_permission_tables.php` creates team-aware roles/permissions pivots and default permissions; `2026_06_19_000007_add_company_workspace_fields.php` adds `company_id`, `phone`, and `status` to users and creates `company_settings`; `2026_06_19_000008_seed_default_company_roles.php` seeds default company roles for existing companies.
+- **Commands that must be run:** `php artisan migrate`; optional verification commands: `php artisan test`, `php artisan route:list --except-vendor`.
+- **Breaking-risk areas:** Packagist/GitHub package installation was blocked by the environment, so a minimal Spatie-compatible namespace/config/schema was added locally to keep the team-aware interface and middleware semantics; this should be replaced by the official `spatie/laravel-permission` package as soon as dependency installation is available. Existing JoFotara XML/QR/UUID/ICV/PIH/payload/submission code remains untouched.
+- **Tests added:** `tests/Feature/CompanyWorkspaceFoundationTest.php` covers team configuration, company role isolation, permission isolation, company user CRUD and role assignment, permission middleware, settings storage, and activity center access.
+- **Baseline status:** `php artisan test` passes; `php artisan migrate --pretend` shows permission/settings tables and user workspace fields; route list reports 59 application routes including the protected company workspace routes.
+- **Recommended next execution step:** replace the local Spatie-compatible shim with the official package when network access permits, then continue with company user UX hardening and invitations; do not start products, contacts, invoices, templates, inventory, accounting, analytics, POS, or branches yet.

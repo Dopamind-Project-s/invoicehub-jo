@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\FeatureKey;
 use App\Services\Audit\AuditLogger;
+use App\Services\Company\CompanyRoleSeeder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -15,7 +16,7 @@ use Illuminate\Validation\Rule;
 
 class CompanyManagementController extends Controller
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(private readonly AuditLogger $audit, private readonly CompanyRoleSeeder $roles) {}
 
     public function index()
     {
@@ -41,6 +42,7 @@ class CompanyManagementController extends Controller
 
         $company = Company::create($this->payload($data, $request));
         $company->featureKeys()->sync($features);
+        $this->roles->seed($company);
         $this->audit->record('admin.company.created', $company, [], $this->auditSnapshot($company), $request);
         $this->audit->record('admin.company.features.synced', $company, [], ['feature_key_ids' => $features], $request);
 

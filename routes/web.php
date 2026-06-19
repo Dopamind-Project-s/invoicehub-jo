@@ -3,6 +3,10 @@
 use App\Http\Controllers\Admin\CompanyManagementController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\CompanyWorkspace\ActivityController;
+use App\Http\Controllers\CompanyWorkspace\CompanyRoleController;
+use App\Http\Controllers\CompanyWorkspace\CompanySettingsController;
+use App\Http\Controllers\CompanyWorkspace\CompanyUserController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InvoiceController;
 use Illuminate\Support\Facades\Route;
@@ -19,6 +23,28 @@ Route::middleware('super.admin')->prefix('admin')->name('admin.')->group(functio
     Route::put('/companies/{company}', [CompanyManagementController::class, 'update'])->name('companies.update');
     Route::post('/companies/{company}/activate', [CompanyManagementController::class, 'activate'])->name('companies.activate');
     Route::post('/companies/{company}/suspend', [CompanyManagementController::class, 'suspend'])->name('companies.suspend');
+});
+
+
+Route::prefix('workspace/companies/{company}')->name('company.')->group(function (): void {
+    Route::middleware('permission:users.manage')->group(function (): void {
+        Route::get('/users', [CompanyUserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [CompanyUserController::class, 'create'])->name('users.create');
+        Route::post('/users', [CompanyUserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}', [CompanyUserController::class, 'show'])->name('users.show');
+        Route::get('/users/{user}/edit', [CompanyUserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [CompanyUserController::class, 'update'])->name('users.update');
+        Route::post('/users/{user}/activate', [CompanyUserController::class, 'activate'])->name('users.activate');
+        Route::post('/users/{user}/suspend', [CompanyUserController::class, 'suspend'])->name('users.suspend');
+        Route::post('/users/{user}/reset-password', [CompanyUserController::class, 'resetPassword'])->name('users.reset-password');
+        Route::get('/roles', [CompanyRoleController::class, 'index'])->name('roles.index');
+        Route::put('/roles/{role}', [CompanyRoleController::class, 'update'])->name('roles.update');
+    });
+    Route::middleware('permission:settings.manage')->group(function (): void {
+        Route::get('/settings', [CompanySettingsController::class, 'edit'])->name('settings.edit');
+        Route::put('/settings', [CompanySettingsController::class, 'update'])->name('settings.update');
+    });
+    Route::middleware('permission:reports.view')->get('/activity', [ActivityController::class, 'index'])->name('activity.index');
 });
 
 Route::resource('companies', CompanyController::class)->except(['show', 'destroy']);
