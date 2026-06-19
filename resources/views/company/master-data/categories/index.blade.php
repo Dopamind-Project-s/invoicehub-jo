@@ -1,0 +1,7 @@
+@extends('layouts.app')
+@section('title', 'تصنيفات المنتجات')
+@section('content')
+<x-layout.page-header :title="'تصنيفات المنتجات - '.($company->name_ar ?? $company->legal_name_ar)" subtitle="إدارة بيانات أساسية عربية أولاً ومعزولة حسب الشركة."><x-slot:actions><a class="btn btn-primary" href="{{ route('company.product-categories.create', $company) }}">إضافة</a></x-slot:actions></x-layout.page-header>
+<form class="card card-body mb-3"><div class="row g-2"><div class="col-md-5"><input name="search" class="form-control" placeholder="بحث" value="{{ request('search') }}"></div><div class="col-md-3"><select name="status" class="form-select"><option value="">كل الحالات</option><option value="active" @selected(request('status')==='active')>نشط</option><option value="inactive" @selected(request('status')==='inactive')>غير نشط</option></select></div><div class="col-md-2"><button class="btn btn-primary w-100">تصفية</button></div></div></form>
+<div class="card"><table class="table mb-0"><tr><th>الكود</th><th>الاسم العربي</th><th>الاسم الإنجليزي</th><th>الحالة</th><th></th></tr>@foreach($categories as $category)<tr><td>{{ $category->code }}</td><td>{{ $category->name_ar }}</td><td>{{ $category->name_en ?: '—' }}</td><td>{{ $category->is_active ? 'نشط' : 'غير نشط' }}</td><td>@if(! isset($category->company_id) || $category->company_id)<a href="{{ route('company.product-categories.edit', [$company, $category]) }}">تعديل</a>@else عام@endif</td></tr>@endforeach</table></div>{{ $categories->links() }}
+@endsection

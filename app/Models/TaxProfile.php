@@ -8,11 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Unit extends Model
+class TaxProfile extends Model
 {
-    protected $fillable = ['company_id', 'code', 'name', 'name_ar', 'name_en', 'symbol', 'description', 'is_active'];
+    protected $fillable = ['company_id', 'name', 'tax_type', 'tax_percent', 'jofotara_tax_code', 'is_default', 'is_active'];
 
-    protected $casts = ['is_active' => 'boolean'];
+    protected $casts = ['tax_percent' => 'decimal:6', 'is_default' => 'boolean', 'is_active' => 'boolean'];
 
     public function company(): BelongsTo
     {

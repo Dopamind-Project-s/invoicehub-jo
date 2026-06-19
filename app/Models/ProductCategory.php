@@ -8,9 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Unit extends Model
+class ProductCategory extends Model
 {
-    protected $fillable = ['company_id', 'code', 'name', 'name_ar', 'name_en', 'symbol', 'description', 'is_active'];
+    protected $fillable = ['company_id', 'name_ar', 'name_en', 'code', 'description', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
 
@@ -21,6 +21,6 @@ class Unit extends Model
 
     public function products(): HasMany
     {
-        return $this->hasMany(Product::class);
+        return $this->hasMany(Product::class, 'category_id');
     }
 }

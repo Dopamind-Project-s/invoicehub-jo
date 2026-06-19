@@ -1,0 +1,7 @@
+@extends('layouts.app')
+@section('title', 'جهات الاتصال')
+@section('content')
+<x-layout.page-header :title="'جهات الاتصال - '.($company->name_ar ?? $company->legal_name_ar)" subtitle="إدارة بيانات أساسية عربية أولاً ومعزولة حسب الشركة."><x-slot:actions><a class="btn btn-primary" href="{{ route('company.contacts.create', $company) }}">إضافة</a></x-slot:actions></x-layout.page-header>
+<form class="card card-body mb-3"><div class="row g-2"><div class="col-md-5"><input name="search" class="form-control" placeholder="بحث" value="{{ request('search') }}"></div><div class="col-md-3"><select name="status" class="form-select"><option value="">كل الحالات</option><option value="active" @selected(request('status')==='active')>نشط</option><option value="inactive" @selected(request('status')==='inactive')>غير نشط</option></select></div><div class="col-md-2"><button class="btn btn-primary w-100">تصفية</button></div></div></form>
+<div class="card"><table class="table mb-0"><tr><th>الاسم</th><th>النوع</th><th>الرقم الضريبي/الوطني</th><th>الحالة</th><th></th></tr>@foreach($contacts as $contact)<tr><td>{{ $contact->name_ar }}</td><td>{{ $contact->type }}</td><td>{{ $contact->tax_number ?: $contact->national_number ?: '—' }}</td><td>{{ $contact->is_active ? 'نشط' : 'غير نشط' }}</td><td><a href="{{ route('company.contacts.edit', [$company, $contact]) }}">تعديل</a></td></tr>@endforeach</table></div>{{ $contacts->links() }}
+@endsection
