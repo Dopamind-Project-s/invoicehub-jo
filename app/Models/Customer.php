@@ -1,16 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Customer extends Model
 {
-    protected $fillable = ['name', 'tax_number', 'national_number', 'phone', 'email', 'address'];
+    protected $fillable = ['customer_type', 'name', 'tax_number', 'national_number', 'country_code', 'city', 'address', 'postal_code', 'phone', 'email', 'is_taxable'];
 
-    public function invoices(): HasMany
-    {
-        return $this->hasMany(Invoice::class);
-    }
+    protected $casts = ['is_taxable' => 'boolean'];
 }

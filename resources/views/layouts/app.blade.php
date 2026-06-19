@@ -16,7 +16,7 @@
     <div class="container">
         <a class="navbar-brand" href="{{ route('invoices.index') }}">InvoiceHub Jo</a>
         <div class="d-flex gap-2">
-            <a class="btn btn-sm btn-light" href="{{ route('sellers.index') }}">البائعين</a>
+            <a class="btn btn-sm btn-light" href="{{ route('companies.index') }}">الشركات</a>
             <a class="btn btn-sm btn-light" href="{{ route('customers.index') }}">العملاء</a>
             <a class="btn btn-sm btn-light" href="{{ route('invoices.index') }}">الفواتير</a>
         </div>

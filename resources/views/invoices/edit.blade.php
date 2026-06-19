@@ -1,1 +1,0 @@
-@extends('layouts.app') @section('content')<h1>تعديل فاتورة</h1><form method="post" action="{{ route('invoices.update',$invoice) }}" class="card card-body">@method('PUT') @include('invoices._form')</form>@endsection
