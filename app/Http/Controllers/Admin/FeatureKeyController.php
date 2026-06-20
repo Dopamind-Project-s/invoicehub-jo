@@ -9,6 +9,8 @@ class FeatureKeyController extends Controller
 {
     public function index()
     {
-        return view('admin.feature-keys.index', ['features' => FeatureKey::orderBy('code')->get()]);
+        return view('admin.feature-keys.index', [
+            'features' => FeatureKey::withCount(['companies', 'plans'])->orderBy('category')->orderBy('code')->paginate(50),
+        ]);
     }
 }

@@ -17,7 +17,7 @@ class SuperAdminCompanyManagementTest extends TestCase
 
     public function test_new_admin_routes_are_protected_by_super_admin_role(): void
     {
-        $this->get(route('admin.dashboard'))->assertForbidden();
+        $this->get(route('admin.dashboard'))->assertRedirect(route('login'));
 
         $user = User::factory()->create(['role' => 'user']);
         $this->actingAs($user)->get(route('admin.dashboard'))->assertForbidden();

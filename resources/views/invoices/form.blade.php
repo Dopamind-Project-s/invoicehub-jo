@@ -6,7 +6,7 @@
         @csrf
         @if($invoice->exists) @method('PUT') @endif
         <div class="row g-3">
-            <div class="col-md-4"><label class="form-label">الشركة</label><select name="supplier_id" class="form-select" required>@foreach($companies as $company)<option value="{{ $company->id }}" @selected(old('supplier_id', $invoice->supplier_id) == $company->id)>{{ $company->legal_name_ar }}</option>@endforeach</select></div>
+            <div class="col-md-4"><label class="form-label">المنشأة</label><select name="supplier_id" class="form-select" required>@foreach($companies as $company)<option value="{{ $company->id }}" @selected(old('supplier_id', $invoice->supplier_id) == $company->id)>{{ $company->legal_name_ar }}</option>@endforeach</select></div>
             <div class="col-md-4"><label class="form-label">العميل</label><select name="customer_id" class="form-select"><option value="">عميل نقدي</option>@foreach($customers as $customer)<option value="{{ $customer->id }}" @selected(old('customer_id', $invoice->customer_id) == $customer->id)>{{ $customer->name }}</option>@endforeach</select></div>
             <div class="col-md-2"><label class="form-label">تاريخ الإصدار</label><input type="date" name="issue_date" class="form-control" value="{{ old('issue_date', $invoice->issue_date?->format('Y-m-d') ?: now()->toDateString()) }}" required></div>
             <div class="col-md-2"><label class="form-label">وقت الإصدار</label><input type="time" step="1" name="issue_time" class="form-control ltr" value="{{ old('issue_time', $invoice->issue_time ?: now()->format('H:i:s')) }}" required></div>

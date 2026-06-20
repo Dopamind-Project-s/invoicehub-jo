@@ -19,6 +19,12 @@ class InvoiceExperienceLayerTest extends TestCase
 
     protected bool $seed = true;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed();
+    }
+
     public function test_company_user_seeded_with_owner_role(): void
     {
         $company = Company::where('tax_number', '9578331')->firstOrFail();

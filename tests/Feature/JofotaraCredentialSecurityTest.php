@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\User;
 use App\Services\Jofotara\JoFotaraCredentialValidator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -41,7 +42,9 @@ class JofotaraCredentialSecurityTest extends TestCase
             'jofotara_secret_key' => 'another-super-secret-key',
         ]);
 
-        $this->get(route('companies.edit', $company))
+        $admin = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
+
+        $this->actingAs($admin)->get(route('admin.companies.edit', $company))
             ->assertOk()
             ->assertDontSee('client-id-456', false)
             ->assertDontSee('another-super-secret-key', false)

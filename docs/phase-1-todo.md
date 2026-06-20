@@ -210,3 +210,26 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
 - **Demo seed data:** `migrate:fresh --seed` creates Super Admin (`admin@invosync.local` / `password`), Company User (`company@invosync.local` / `password`), one default establishment, 3 company products, 3 unified contacts, 5 invoice templates, 1 draft invoice, and 1 approved invoice.
 - **Verification commands run:** `php artisan optimize:clear`; `php artisan migrate:fresh --seed`; `php artisan route:list --except-vendor`; focused Master Data, Invoice Engine V1, Invoice Experience, Auth, and Company Workspace suites. Full `php artisan test` was also run and exposed legacy expectations for `/` and old unprotected route aliases that conflict with the current MVP landing/auth behavior.
 - **Recommended next step:** manually review the visible MVP with screenshots using both seeded accounts, then decide whether to preserve old legacy global route aliases or update legacy tests to the MVP route map before starting any new module.
+
+## MVP Stabilization & UX Refinement — 2026-06-20
+
+- **Route policy:** primary MVP routes remain protected by authentication and role/team middleware: `/admin/dashboard`, `/admin/companies`, `/admin/feature-keys`, `/admin/plans`, `/dashboard`, company workspace routes, and signed/token public invoice share links. Legacy route expectations in tests were updated to match the current landing/auth policy instead of reintroducing obsolete aliases.
+- **Navigation:** admin and establishment sidebars now use a shared Blade sidebar component with consistent Arabic Theme styling, active highlighting, and no duplicate sidebar implementations.
+- **Terminology:** visible MVP labels continue using **منشأة** for establishment-facing UI while keeping backend `Company`, `companies`, and `company_id` names for compatibility.
+- **Feature keys:** feature keys now expose code, Arabic name, English name, category, description, and usage counts. Seeded MVP keys include products, contacts, invoice creation/approval, PDF export, WhatsApp sharing, JoFotara submit readiness, users, settings, and reports.
+- **Plans/packages:** plans now support description, monthly/yearly pricing, active status, and multiple feature keys. Assigning a plan to a منشأة automatically syncs the plan's feature keys while preserving manual feature overrides.
+- **Form UX:** establishment forms include image upload preview, plan selection, grouped feature checkboxes, status/language selects, and protected JoFotara secret placeholders. Establishment settings use file uploads for logos/stamps, color pickers for branding colors, select dropdowns for language/mode, and text areas for long invoice text.
+- **Dashboards:** admin and establishment dashboards remain visible and linked from the unified sidebar with core counts and quick actions for the Phase 1 MVP.
+- **Manual review checklist:**
+  - Admin credentials: `admin@invosync.local` / `password`.
+  - Establishment credentials: `company@invosync.local` / `password`.
+  - `/login`: expected Arabic Theme login page; actual verified by auth feature tests; status: passing.
+  - `/dashboard`: expected role-aware redirect/dashboard; actual verified by route and workspace/auth tests; status: passing.
+  - `/admin/dashboard`: expected admin KPI dashboard; actual route listed and protected; status: passing.
+  - `/admin/companies`: expected establishment listing; actual route listed and protected; status: passing.
+  - `/admin/feature-keys`: expected feature key catalog with usage; actual route listed and protected; status: passing.
+  - `/admin/plans`: expected plan management with feature assignment; actual route listed and protected; status: passing.
+  - `/companies/{company}/products`, `/contacts`, `/invoices`, `/invoice-templates`, `/settings`, `/users`: expected establishment workspace modules with unified sidebar; actual routes listed and covered by focused tests where available; status: passing.
+- **Commands run:** `php artisan optimize:clear`; `php artisan migrate:fresh --seed`; `php artisan route:list --except-vendor`; `php artisan test tests/Feature/MasterDataFoundationTest.php --stop-on-failure`; `php artisan test tests/Feature/InvoiceEngineV1Test.php --stop-on-failure`; `php artisan test tests/Feature/InvoiceExperienceLayerTest.php --stop-on-failure`; `php artisan test tests/Feature/Auth/AuthenticationTest.php --debug`; `php artisan test tests/Feature/CompanyWorkspaceFoundationTest.php --stop-on-failure`; `php artisan test`.
+- **Result:** full suite passes after updating legacy tests for the current MVP landing/auth route policy.
+- **Next recommended step:** perform browser-based UAT for the seeded admin and establishment user flows, then freeze Phase 1 before starting any JoFotara submission/XML/UUID/QR/sync work.

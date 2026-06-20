@@ -9,9 +9,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class FeatureKey extends Model
 {
-    protected $fillable = ['code', 'name', 'description', 'is_active'];
+    protected $fillable = ['code', 'name', 'name_ar', 'name_en', 'description', 'category', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
+
+    public function plans(): BelongsToMany
+    {
+        return $this->belongsToMany(Plan::class)->withTimestamps();
+    }
 
     public function companies(): BelongsToMany
     {

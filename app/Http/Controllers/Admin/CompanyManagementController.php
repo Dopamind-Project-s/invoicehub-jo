@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\FeatureKey;
+use App\Models\Plan;
+use App\Models\Subscription;
 use App\Services\Audit\AuditLogger;
 use App\Services\Company\CompanyRoleSeeder;
 use Illuminate\Http\RedirectResponse;
@@ -29,8 +31,10 @@ class CompanyManagementController extends Controller
     {
         return view('admin.companies.create', [
             'company' => new Company(['status' => 'active', 'is_active' => true, 'default_language' => 'ar', 'default_currency' => 'JOD', 'country_code' => 'JO', 'icv_prefix' => 'INV']),
-            'features' => FeatureKey::where('is_active', true)->orderBy('code')->get(),
+            'features' => FeatureKey::where('is_active', true)->orderBy('category')->orderBy('code')->get(),
+            'plans' => Plan::where('is_active', true)->with('featureKeys')->orderBy('name')->get(),
             'enabledFeatureIds' => [],
+            'selectedPlanId' => null,
         ]);
     }
 
@@ -38,20 +42,21 @@ class CompanyManagementController extends Controller
     {
         $data = $this->validated($request);
         $features = $data['feature_keys'] ?? [];
-        unset($data['feature_keys']);
+        $planId = $data['plan_id'] ?? null;
+        unset($data['feature_keys'], $data['plan_id']);
 
         $company = Company::create($this->payload($data, $request));
-        $company->featureKeys()->sync($features);
+        $this->syncPlanAndFeatures($company, $planId ? (int) $planId : null, $features);
         $this->roles->seed($company);
         $this->audit->record('admin.company.created', $company, [], $this->auditSnapshot($company), $request);
         $this->audit->record('admin.company.features.synced', $company, [], ['feature_key_ids' => $features], $request);
 
-        return redirect()->route('admin.companies.show', $company)->with('success', 'تم إنشاء الشركة.');
+        return redirect()->route('admin.companies.show', $company)->with('success', 'تم إنشاء المنشأة.');
     }
 
     public function show(Company $company)
     {
-        $company->load(['featureKeys', 'activeSubscription.plan']);
+        $company->load(['featureKeys', 'activeSubscription.plan.featureKeys']);
 
         return view('admin.companies.show', compact('company'));
     }
@@ -59,9 +64,11 @@ class CompanyManagementController extends Controller
     public function edit(Company $company)
     {
         return view('admin.companies.edit', [
-            'company' => $company->load('featureKeys'),
-            'features' => FeatureKey::where('is_active', true)->orderBy('code')->get(),
+            'company' => $company->load(['featureKeys', 'activeSubscription.plan.featureKeys']),
+            'features' => FeatureKey::where('is_active', true)->orderBy('category')->orderBy('code')->get(),
+            'plans' => Plan::where('is_active', true)->with('featureKeys')->orderBy('name')->get(),
             'enabledFeatureIds' => $company->featureKeys->pluck('id')->all(),
+            'selectedPlanId' => $company->activeSubscription?->plan_id,
         ]);
     }
 
@@ -70,11 +77,12 @@ class CompanyManagementController extends Controller
         $before = $this->auditSnapshot($company->fresh());
         $data = $this->validated($request, $company);
         $features = $data['feature_keys'] ?? [];
-        unset($data['feature_keys']);
+        $planId = $data['plan_id'] ?? null;
+        unset($data['feature_keys'], $data['plan_id']);
 
         $company->update($this->payload($data, $request, $company));
         $oldFeatures = $company->featureKeys()->pluck('feature_keys.id')->all();
-        $company->featureKeys()->sync($features);
+        $this->syncPlanAndFeatures($company, $planId ? (int) $planId : null, $features);
         $company->refresh();
 
         $this->audit->record('admin.company.updated', $company, $before, $this->auditSnapshot($company), $request);
@@ -82,7 +90,7 @@ class CompanyManagementController extends Controller
             $this->audit->record('admin.company.features.synced', $company, ['feature_key_ids' => $oldFeatures], ['feature_key_ids' => $features], $request);
         }
 
-        return redirect()->route('admin.companies.show', $company)->with('success', 'تم تحديث الشركة.');
+        return redirect()->route('admin.companies.show', $company)->with('success', 'تم تحديث المنشأة.');
     }
 
     public function activate(Request $request, Company $company): RedirectResponse
@@ -91,7 +99,7 @@ class CompanyManagementController extends Controller
         $company->forceFill(['status' => 'active', 'is_active' => true])->save();
         $this->audit->record('admin.company.activated', $company, $before, $this->auditSnapshot($company), $request);
 
-        return back()->with('success', 'تم تفعيل الشركة.');
+        return back()->with('success', 'تم تفعيل المنشأة.');
     }
 
     public function suspend(Request $request, Company $company): RedirectResponse
@@ -100,7 +108,7 @@ class CompanyManagementController extends Controller
         $company->forceFill(['status' => 'suspended', 'is_active' => false])->save();
         $this->audit->record('admin.company.suspended', $company, $before, $this->auditSnapshot($company), $request);
 
-        return back()->with('success', 'تم تعليق الشركة.');
+        return back()->with('success', 'تم تعطيل المنشأة.');
     }
 
     private function validated(Request $request, ?Company $company = null): array
@@ -119,9 +127,28 @@ class CompanyManagementController extends Controller
             'jofotara_secret_key' => ['nullable', 'string'],
             'default_language' => ['required', Rule::in(['ar', 'en'])],
             'default_currency' => ['required', 'string', 'size:3'],
+            'plan_id' => ['nullable', 'integer', 'exists:plans,id'],
             'feature_keys' => ['array'],
             'feature_keys.*' => ['integer', 'exists:feature_keys,id'],
         ]);
+    }
+
+    private function syncPlanAndFeatures(Company $company, ?int $planId, array $manualFeatureIds): void
+    {
+        $featureIds = array_map('intval', $manualFeatureIds);
+
+        if ($planId) {
+            $plan = Plan::with('featureKeys')->findOrFail($planId);
+            Subscription::where('company_id', $company->id)->where('status', 'active')->where('plan_id', '!=', $planId)->update(['status' => 'cancelled', 'expires_at' => now()]);
+            Subscription::updateOrCreate(
+                ['company_id' => $company->id, 'status' => 'active'],
+                ['plan_id' => $plan->id, 'starts_at' => now(), 'expires_at' => null]
+            );
+
+            $featureIds = array_values(array_unique(array_merge($featureIds, $plan->featureKeys->pluck('id')->map(fn ($id) => (int) $id)->all())));
+        }
+
+        $company->featureKeys()->sync($featureIds);
     }
 
     private function payload(array $data, Request $request, ?Company $company = null): array

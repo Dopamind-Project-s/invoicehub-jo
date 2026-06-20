@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ asset('css/bootstrap-rtl-lite.css') }}">
     <link rel="stylesheet" href="{{ asset('css/Theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/Style.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/phase1-layout.css') }}">
 </head>
 <body class="dir-rtl">
 <div class="layout-shell">
@@ -32,8 +33,8 @@
                 <div class="row g-4 align-items-center">
                     <div class="col-lg-7">
                         <span class="badge bg-primary-subtle text-primary border mb-3">Arabic-first SaaS invoicing</span>
-                        <h1 class="h1 mb-3">منصة موحدة لإدارة الفوترة الإلكترونية للشركات الأردنية</h1>
-                        <p class="text-muted mb-4">واجهة عربية RTL مبنية على أصول الثيم العامة، بدون Vite أو manifest، ومتصلة بلوحات الإدارة ومساحات الشركات الحالية.</p>
+                        <h1 class="h1 mb-3">منصة موحدة لإدارة الفوترة الإلكترونية للمنشآت الأردنية</h1>
+                        <p class="text-muted mb-4">واجهة عربية RTL مبنية على أصول الثيم العامة، بدون Vite أو manifest، ومتصلة بلوحات الإدارة ومساحات المنشآت الحالية.</p>
                         <div class="d-flex gap-2 flex-wrap">
                             @auth
                                 <a class="btn btn-primary btn-lg" href="{{ route('dashboard') }}">الانتقال للوحة التحكم</a>
@@ -49,7 +50,7 @@
                 </div>
             </section>
             <section id="features" class="row g-3 mb-4">
-                <div class="col-md-4"><div class="stat-card"><div class="stat-icon">🏢</div><div><span>إدارة الشركات</span><strong>Super Admin</strong></div></div></div>
+                <div class="col-md-4"><div class="stat-card"><div class="stat-icon">🏢</div><div><span>إدارة المنشآت</span><strong>Super Admin</strong></div></div></div>
                 <div class="col-md-4"><div class="stat-card"><div class="stat-icon">🔐</div><div><span>صلاحيات معزولة</span><strong>Spatie Teams</strong></div></div></div>
                 <div class="col-md-4"><div class="stat-card"><div class="stat-icon">🧾</div><div><span>محرك الفواتير</span><strong>V1</strong></div></div></div>
             </section>

@@ -9,7 +9,7 @@
     </x-slot>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-4"><div class="stat-card"><div class="stat-icon">🏢</div><div><span>الشركة</span><strong>{{ auth()->user()->company_id ? 'مرتبطة' : 'غير محددة' }}</strong></div></div></div>
+        <div class="col-md-4"><div class="stat-card"><div class="stat-icon">🏢</div><div><span>المنشأة</span><strong>{{ auth()->user()->company_id ? 'مرتبطة' : 'غير محددة' }}</strong></div></div></div>
         <div class="col-md-4"><div class="stat-card"><div class="stat-icon">🔐</div><div><span>الحساب</span><strong>{{ auth()->user()->status ?? 'active' }}</strong></div></div></div>
         <div class="col-md-4"><div class="stat-card"><div class="stat-icon">✅</div><div><span>الجلسة</span><strong>نشطة</strong></div></div></div>
     </div>

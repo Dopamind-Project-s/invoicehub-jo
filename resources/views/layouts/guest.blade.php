@@ -19,7 +19,7 @@
                     <div class="col-lg-5 d-none d-lg-flex auth-cover">
                         <div>
                             <h2 class="h4 mb-3">InvoSync Jo</h2>
-                            <p class="mb-0">منصة فوترة إلكترونية عربية متوافقة مع متطلبات الشركات الأردنية.</p>
+                            <p class="mb-0">منصة فوترة إلكترونية عربية متوافقة مع متطلبات المنشآت الأردنية.</p>
                         </div>
                     </div>
                     <div class="col-lg-7">

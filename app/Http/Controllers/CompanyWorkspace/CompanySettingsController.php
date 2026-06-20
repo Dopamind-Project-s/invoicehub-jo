@@ -24,28 +24,42 @@ class CompanySettingsController extends Controller
 
     public function update(Request $request, Company $company): RedirectResponse
     {
-        $data = $request->validate(['settings' => ['array'], 'settings.*' => ['nullable', 'string', 'max:2000']]);
+        $data = $request->validate([
+            'settings' => ['array'],
+            'settings.*' => ['nullable', 'string', 'max:2000'],
+            'company_logo_file' => ['nullable', 'image', 'max:2048'],
+            'invoice_logo_file' => ['nullable', 'image', 'max:2048'],
+            'invoice_stamp_image_file' => ['nullable', 'image', 'max:2048'],
+        ]);
+
+        foreach (['company_logo_file' => 'company_logo', 'invoice_logo_file' => 'invoice_logo', 'invoice_stamp_image_file' => 'invoice_stamp_image'] as $input => $key) {
+            if ($request->hasFile($input)) {
+                $data['settings'][$key] = $request->file($input)->store('invoice-branding', 'public');
+            }
+        }
+
         $before = $company->settings()->pluck('value', 'key')->all();
         foreach ($this->definitions() as $category => $keys) {
             foreach ($keys as $key => $label) {
-                CompanySetting::updateOrCreate(['company_id' => $company->id, 'key' => $key], ['category' => $category, 'value' => $data['settings'][$key] ?? null]);
+                $value = $data['settings'][$key] ?? ($before[$key] ?? null);
+                CompanySetting::updateOrCreate(['company_id' => $company->id, 'key' => $key], ['category' => $category, 'value' => $value]);
             }
         }
         $after = $company->settings()->pluck('value', 'key')->all();
         $this->audit->record('company.settings.updated', $company, $before, $after, $request);
 
-        return back()->with('success', 'تم حفظ الإعدادات.');
+        return back()->with('success', 'تم حفظ إعدادات المنشأة.');
     }
 
     private function definitions(): array
     {
         return [
-            'General' => ['company_logo' => 'Company logo'],
-            'Branding' => ['brand_color' => 'Brand color'],
-            'Localization' => ['default_language' => 'Default language', 'default_currency' => 'Default currency'],
-            'Invoice Defaults' => ['invoice_template_id' => 'Invoice template ID', 'invoice_prefix' => 'Invoice prefix'],
-            'Invoice Branding' => ['invoice_logo' => 'Invoice logo path', 'invoice_primary_color' => 'Primary color', 'invoice_secondary_color' => 'Secondary color', 'invoice_footer_text' => 'Footer text', 'invoice_terms_and_conditions' => 'Terms and conditions', 'invoice_signature_block' => 'Signature block', 'invoice_stamp_image' => 'Stamp image path'],
-            'JoFotara Settings' => ['jofotara_mode' => 'JoFotara mode'],
+            'عام' => ['company_logo' => 'شعار المنشأة'],
+            'الهوية' => ['brand_color' => 'لون الهوية'],
+            'اللغة والعملات' => ['default_language' => 'اللغة الافتراضية', 'default_currency' => 'العملة الافتراضية'],
+            'إعدادات الفواتير' => ['invoice_template_id' => 'قالب الفاتورة الافتراضي', 'invoice_prefix' => 'بادئة الفاتورة'],
+            'هوية الفاتورة' => ['invoice_logo' => 'شعار الفاتورة', 'invoice_primary_color' => 'اللون الأساسي', 'invoice_secondary_color' => 'اللون الثانوي', 'invoice_footer_text' => 'نص التذييل', 'invoice_terms_and_conditions' => 'الشروط والأحكام', 'invoice_signature_block' => 'كتلة التوقيع', 'invoice_stamp_image' => 'صورة الختم'],
+            'إعدادات جوفوتارا' => ['jofotara_mode' => 'وضع جوفوتارا'],
         ];
     }
 }
