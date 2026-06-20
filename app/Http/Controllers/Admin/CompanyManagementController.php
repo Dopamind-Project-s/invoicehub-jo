@@ -82,7 +82,8 @@ class CompanyManagementController extends Controller
 
         $company->update($this->payload($data, $request, $company));
         $oldFeatures = $company->featureKeys()->pluck('feature_keys.id')->all();
-        $this->syncPlanAndFeatures($company, $planId ? (int) $planId : null, $features);
+        $oldPlanId = $company->activeSubscription?->plan_id;
+        $this->syncPlanAndFeatures($company, $planId ? (int) $planId : null, $features, $oldPlanId ? (int) $oldPlanId : null);
         $company->refresh();
 
         $this->audit->record('admin.company.updated', $company, $before, $this->auditSnapshot($company), $request);
@@ -133,9 +134,14 @@ class CompanyManagementController extends Controller
         ]);
     }
 
-    private function syncPlanAndFeatures(Company $company, ?int $planId, array $manualFeatureIds): void
+    private function syncPlanAndFeatures(Company $company, ?int $planId, array $manualFeatureIds, ?int $oldPlanId = null): void
     {
         $featureIds = array_map('intval', $manualFeatureIds);
+
+        if ($oldPlanId && $oldPlanId !== $planId) {
+            $oldPlanFeatureIds = Plan::find($oldPlanId)?->featureKeys()->pluck('feature_keys.id')->map(fn ($id) => (int) $id)->all() ?? [];
+            $featureIds = array_values(array_diff($featureIds, $oldPlanFeatureIds));
+        }
 
         if ($planId) {
             $plan = Plan::with('featureKeys')->findOrFail($planId);

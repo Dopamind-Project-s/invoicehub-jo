@@ -61,13 +61,20 @@ class JoFotaraApiService
             'submitted_at' => now(),
         ]);
 
+        $safeResponse = json_encode(['body' => $parsed['raw_response'] !== '' ? $parsed['raw_response'] : $parsed['body'], 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE);
+
         $preparedInvoice->forceFill([
-            'status' => $status,
             'submission_uuid' => $submissionUuid,
-            'submission_response' => json_encode(['body' => $parsed['raw_response'] !== '' ? $parsed['raw_response'] : $parsed['body'], 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE),
+            'submission_response' => $safeResponse,
             'qr_code' => $parsed['qr'] ?: $preparedInvoice->qr_code,
             'submitted_at' => now(),
             'accepted_at' => $status === 'ACCEPTED' ? now() : null,
+            'jofotara_status' => $status,
+            'jofotara_uuid' => $submissionUuid,
+            'jofotara_qr' => $parsed['qr'] ?: $preparedInvoice->jofotara_qr,
+            'jofotara_response' => $safeResponse,
+            'jofotara_submitted_at' => now(),
+            'jofotara_error_message' => $status === 'ACCEPTED' ? null : (is_scalar($parsed['errors']) ? (string) $parsed['errors'] : json_encode($parsed['errors'], JSON_UNESCAPED_UNICODE)),
         ])->save();
 
         return [

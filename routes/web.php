@@ -11,6 +11,7 @@ use App\Http\Controllers\CompanyWorkspace\CompanyUserController;
 use App\Http\Controllers\CompanyWorkspace\InvoiceEngineController;
 use App\Http\Controllers\CompanyWorkspace\InvoiceShareController;
 use App\Http\Controllers\CompanyWorkspace\InvoiceTemplateController;
+use App\Http\Controllers\CompanyWorkspace\JofotaraImportController;
 use App\Http\Controllers\CompanyWorkspace\WorkspaceDashboardController;
 use App\Http\Controllers\PublicInvoiceShareController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ContactController;
@@ -37,6 +38,9 @@ Route::get('/dashboard', function () {
             'invoiceCount' => \App\Models\Invoice::where('company_id', $company->id)->count(),
             'pendingInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_PENDING)->count(),
             'approvedInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_APPROVED)->count(),
+            'jofotaraSubmittedCount' => \App\Models\Invoice::where('company_id', $company->id)->whereNotNull('jofotara_submitted_at')->count(),
+            'pendingJofotaraCount' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_APPROVED)->whereNull('jofotara_status')->count(),
+            'importedInvoiceCount' => \App\Models\Invoice::where('company_id', $company->id)->where('source', 'jofotara_import')->count(),
             'recentInvoices' => \App\Models\Invoice::where('company_id', $company->id)->latest()->limit(5)->get(),
         ]);
     }
@@ -78,27 +82,31 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
 
     Route::get('settings', [CompanySettingsController::class, 'edit'])->middleware('permission:settings.manage')->name('settings.edit');
     Route::get('invoice-templates', [InvoiceTemplateController::class, 'index'])->middleware('permission:settings.manage')->name('invoice-templates.index');
+    Route::get('invoice-templates/{template}/preview', [InvoiceTemplateController::class, 'preview'])->middleware('permission:settings.manage')->whereNumber('template')->name('invoice-templates.preview');
     Route::put('invoice-templates', [InvoiceTemplateController::class, 'update'])->middleware('permission:settings.manage')->name('invoice-templates.update');
     Route::put('settings', [CompanySettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
 
     Route::get('activity', [ActivityController::class, 'index'])->middleware('permission:reports.view')->name('activity.index');
 
 
-    Route::middleware('permission:invoices.view')->group(function (): void {
-        Route::get('invoices', [InvoiceEngineController::class, 'index'])->name('invoices.index');
-        Route::get('invoices/{invoice}', [InvoiceEngineController::class, 'show'])->name('invoices.show');
-        Route::get('invoices/{invoice}/printable', [InvoiceEngineController::class, 'printable'])->name('invoices.printable');
-        Route::post('invoices/{invoice}/shares', [InvoiceShareController::class, 'store'])->name('invoices.shares.store');
-    });
     Route::middleware('permission:invoices.create')->group(function (): void {
         Route::get('invoices/create', [InvoiceEngineController::class, 'create'])->name('invoices.create');
         Route::post('invoices', [InvoiceEngineController::class, 'store'])->name('invoices.store');
-        Route::get('invoices/{invoice}/edit', [InvoiceEngineController::class, 'edit'])->name('invoices.edit');
-        Route::put('invoices/{invoice}', [InvoiceEngineController::class, 'update'])->name('invoices.update');
-        Route::post('invoices/{invoice}/submit', [InvoiceEngineController::class, 'submit'])->name('invoices.submit');
-        Route::post('invoices/{invoice}/cancel', [InvoiceEngineController::class, 'cancel'])->name('invoices.cancel');
+        Route::get('invoices/{invoice}/edit', [InvoiceEngineController::class, 'edit'])->whereNumber('invoice')->name('invoices.edit');
+        Route::put('invoices/{invoice}', [InvoiceEngineController::class, 'update'])->whereNumber('invoice')->name('invoices.update');
+        Route::post('invoices/{invoice}/submit', [InvoiceEngineController::class, 'submit'])->whereNumber('invoice')->name('invoices.submit');
+        Route::post('invoices/{invoice}/cancel', [InvoiceEngineController::class, 'cancel'])->whereNumber('invoice')->name('invoices.cancel');
     });
-    Route::post('invoices/{invoice}/approve', [InvoiceEngineController::class, 'approve'])->middleware('permission:invoices.approve')->name('invoices.approve');
+    Route::middleware('permission:invoices.view')->group(function (): void {
+        Route::get('invoices', [InvoiceEngineController::class, 'index'])->name('invoices.index');
+        Route::get('invoices/import', [JofotaraImportController::class, 'index'])->name('invoices.import.index');
+        Route::post('invoices/import', [JofotaraImportController::class, 'store'])->name('invoices.import.store');
+        Route::get('invoices/{invoice}', [InvoiceEngineController::class, 'show'])->whereNumber('invoice')->name('invoices.show');
+        Route::get('invoices/{invoice}/printable', [InvoiceEngineController::class, 'printable'])->whereNumber('invoice')->name('invoices.printable');
+        Route::post('invoices/{invoice}/shares', [InvoiceShareController::class, 'store'])->whereNumber('invoice')->name('invoices.shares.store');
+    });
+    Route::post('invoices/{invoice}/approve', [InvoiceEngineController::class, 'approve'])->middleware('permission:invoices.approve')->whereNumber('invoice')->name('invoices.approve');
+    Route::post('invoices/{invoice}/jofotara-submit', [InvoiceEngineController::class, 'submitToJofotara'])->middleware('permission:invoices.submit')->whereNumber('invoice')->name('invoices.jofotara.submit');
 
 
     Route::middleware('permission:products.manage')->group(function (): void {

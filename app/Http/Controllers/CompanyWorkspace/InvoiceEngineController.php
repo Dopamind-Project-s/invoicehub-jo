@@ -14,6 +14,8 @@ use App\Services\Invoices\InvoiceCalculator;
 use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceBrandingService;
 use App\Services\Invoices\InvoiceNotificationService;
+use App\Services\Jofotara\JoFotaraApiService;
+use RuntimeException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -30,6 +32,7 @@ class InvoiceEngineController extends Controller
             ->when($request->filled('search'), fn ($q) => $q->where(fn ($s) => $s->where('invoice_number', 'like', '%'.$request->search.'%')->orWhereHas('contact', fn ($c) => $c->where('name_ar', 'like', '%'.$request->search.'%')->orWhere('tax_number', 'like', '%'.$request->search.'%'))))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('invoice_type'), fn ($q) => $q->where('invoice_type', $request->invoice_type))
+            ->when($request->filled('source'), fn ($q) => $q->where('source', $request->source))
             ->latest()->paginate(15)->withQueryString();
 
         return view('company.invoices.index', compact('company', 'invoices'));
@@ -63,7 +66,7 @@ class InvoiceEngineController extends Controller
     public function show(Company $company, Invoice $invoice)
     {
         $this->authorizeCompany($company, $invoice);
-        return view('company.invoices.show', ['company' => $company, 'invoice' => $invoice->load(['contact', 'items.product'])]);
+        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice->load(['contact', 'items.product', 'submissionLogs'])]);
     }
 
     public function edit(Company $company, Invoice $invoice)
@@ -122,6 +125,28 @@ class InvoiceEngineController extends Controller
         return back()->with('status', 'تم إلغاء الفاتورة.');
     }
 
+    public function submitToJofotara(Request $request, Company $company, Invoice $invoice, JoFotaraApiService $api)
+    {
+        $this->authorizeCompany($company, $invoice);
+        abort_unless($this->canSubmitToJofotara($company, $invoice), 403, 'شروط الإرسال إلى جوفوتارا غير مكتملة.');
+
+        $before = $invoice->only('jofotara_status', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message');
+
+        try {
+            $result = $api->submit($invoice);
+            $invoice->refresh();
+            $this->audit->record('invoice.jofotara.submitted', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message'), $request);
+            $this->notifications->record($invoice, 'submitted', Auth::id());
+
+            return back()->with('status', 'تم إرسال الفاتورة إلى جوفوتارا. الحالة: '.$result['status']);
+        } catch (RuntimeException $exception) {
+            $invoice->forceFill(['jofotara_status' => 'ERROR', 'jofotara_error_message' => $exception->getMessage(), 'jofotara_submitted_at' => now()])->save();
+            $this->audit->record('invoice.jofotara.failed', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_error_message'), $request);
+
+            return back()->withErrors(['jofotara' => $exception->getMessage()]);
+        }
+    }
+
     public function printable(Company $company, Invoice $invoice, InvoicePdfService $pdf)
     {
         $this->authorizeCompany($company, $invoice);
@@ -169,6 +194,18 @@ class InvoiceEngineController extends Controller
         foreach ($totals['items'] as $line) {
             $invoice->items()->create($line);
         }
+    }
+
+    private function canSubmitToJofotara(Company $company, Invoice $invoice): bool
+    {
+        $company->loadMissing('featureKeys');
+
+        return $company->featureKeys->contains('code', 'JOFOTARA_SUBMIT')
+            && $company->hasJofotaraClientId()
+            && $company->hasJofotaraSecretKey()
+            && filled($company->jofotara_source_id)
+            && $invoice->status === Invoice::STATUS_APPROVED
+            && ! in_array($invoice->jofotara_status, ['ACCEPTED', 'SUBMITTED'], true);
     }
 
     private function authorizeCompany(Company $company, Invoice $invoice): void

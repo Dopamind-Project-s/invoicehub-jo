@@ -15,7 +15,7 @@ class PlanSeeder extends Seeder
     public function run(): void
     {
         $starterCodes = ['PRODUCTS_MANAGEMENT', 'CONTACTS_MANAGEMENT', 'INVOICES_CREATE', 'PDF_EXPORT', 'SETTINGS_MANAGEMENT'];
-        $professionalCodes = array_merge($starterCodes, ['INVOICES_APPROVE', 'WHATSAPP_SHARE', 'USERS_MANAGEMENT', 'REPORTS_VIEW']);
+        $professionalCodes = array_merge($starterCodes, ['INVOICES_APPROVE', 'WHATSAPP_SHARE', 'USERS_MANAGEMENT', 'REPORTS_VIEW', 'JOFOTARA_SUBMIT', 'JOFOTARA_SYNC']);
 
         $starter = $this->plan('starter', 'باقة البداية', 'باقة مناسبة لتجربة إدارة المنشأة والفواتير الأساسية.', 15, 150, $starterCodes);
         $this->plan('professional', 'باقة الأعمال', 'باقة أوسع لإدارة المستخدمين والمشاركة والاعتماد.', 35, 350, $professionalCodes);

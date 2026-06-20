@@ -20,6 +20,9 @@ class WorkspaceDashboardController extends Controller
             'invoiceCount' => Invoice::where('company_id', $company->id)->count(),
             'pendingInvoices' => Invoice::where('company_id', $company->id)->where('status', Invoice::STATUS_PENDING)->count(),
             'approvedInvoices' => Invoice::where('company_id', $company->id)->where('status', Invoice::STATUS_APPROVED)->count(),
+            'jofotaraSubmittedCount' => Invoice::where('company_id', $company->id)->whereNotNull('jofotara_submitted_at')->count(),
+            'pendingJofotaraCount' => Invoice::where('company_id', $company->id)->where('status', Invoice::STATUS_APPROVED)->whereNull('jofotara_status')->count(),
+            'importedInvoiceCount' => Invoice::where('company_id', $company->id)->where('source', 'jofotara_import')->count(),
             'recentInvoices' => Invoice::where('company_id', $company->id)->latest()->limit(5)->get(),
         ]);
     }
