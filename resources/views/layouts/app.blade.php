@@ -26,15 +26,23 @@
             @auth
                 @if(auth()->user()->isSuperAdmin())
                     <li class="side-item {{ request()->routeIs('admin.dashboard') ? 'selected' : '' }}"><a href="{{ route('admin.dashboard') }}"><span>📊</span><span>لوحة المدير العام</span></a></li>
-                    <li class="side-item {{ request()->routeIs('admin.companies.*') ? 'selected' : '' }}"><a href="{{ route('admin.companies.index') }}"><span>🏢</span><span>الشركات</span></a></li>
+                    <li class="side-item {{ request()->routeIs('admin.companies.*') ? 'selected' : '' }}"><a href="{{ route('admin.companies.index') }}"><span>🏢</span><span>المنشآت</span></a></li>
+                    <li class="side-item {{ request()->routeIs('admin.feature-keys.*') ? 'selected' : '' }}"><a href="{{ route('admin.feature-keys.index') }}"><span>🧩</span><span>مفاتيح المزايا</span></a></li>
+                    <li class="side-item {{ request()->routeIs('admin.plans.*') ? 'selected' : '' }}"><a href="{{ route('admin.plans.index') }}"><span>💳</span><span>الباقات</span></a></li>
                 @endif
             @endauth
             @if(request()->route('company'))
                 @php($layoutCompany = request()->route('company'))
                 <li class="side-item {{ request()->routeIs('company.users.*') ? 'selected' : '' }}"><a href="{{ route('company.users.index', $layoutCompany) }}"><span>👥</span><span>المستخدمون</span></a></li>
                 <li class="side-item {{ request()->routeIs('company.roles.*') ? 'selected' : '' }}"><a href="{{ route('company.roles.index', $layoutCompany) }}"><span>🔐</span><span>الأدوار</span></a></li>
-                <li class="side-item {{ request()->routeIs('company.product-categories.*', 'company.units.*', 'company.tax-profiles.*', 'company.products.*', 'company.contacts.*') ? 'selected' : '' }}"><a href="{{ route('company.products.index', $layoutCompany) }}"><span>📚</span><span>البيانات الأساسية</span></a></li>
+                <li class="side-item {{ request()->routeIs('company.dashboard') ? 'selected' : '' }}"><a href="{{ route('company.dashboard', $layoutCompany) }}"><span>🏠</span><span>لوحة المنشأة</span></a></li>
+                <li class="side-item {{ request()->routeIs('company.products.*') ? 'selected' : '' }}"><a href="{{ route('company.products.index', $layoutCompany) }}"><span>📦</span><span>المنتجات</span></a></li>
+                <li class="side-item {{ request()->routeIs('company.product-categories.*') ? 'selected' : '' }}"><a href="{{ route('company.product-categories.index', $layoutCompany) }}"><span>🗂</span><span>التصنيفات</span></a></li>
+                <li class="side-item {{ request()->routeIs('company.units.*') ? 'selected' : '' }}"><a href="{{ route('company.units.index', $layoutCompany) }}"><span>📏</span><span>الوحدات</span></a></li>
+                <li class="side-item {{ request()->routeIs('company.tax-profiles.*') ? 'selected' : '' }}"><a href="{{ route('company.tax-profiles.index', $layoutCompany) }}"><span>🧮</span><span>الضرائب</span></a></li>
+                <li class="side-item {{ request()->routeIs('company.contacts.*') ? 'selected' : '' }}"><a href="{{ route('company.contacts.index', $layoutCompany) }}"><span>🤝</span><span>العملاء والموردون</span></a></li>
                 <li class="side-item {{ request()->routeIs('company.invoices.*') ? 'selected' : '' }}"><a href="{{ route('company.invoices.index', $layoutCompany) }}"><span>🧾</span><span>الفواتير</span></a></li>
+                <li class="side-item {{ request()->routeIs('company.invoice-templates.*') ? 'selected' : '' }}"><a href="{{ route('company.invoice-templates.index', $layoutCompany) }}"><span>🧾</span><span>قوالب الفواتير</span></a></li>
                 <li class="side-item {{ request()->routeIs('company.settings.*') ? 'selected' : '' }}"><a href="{{ route('company.settings.edit', $layoutCompany) }}"><span>⚙️</span><span>الإعدادات</span></a></li>
                 <li class="side-item {{ request()->routeIs('company.activity.*') ? 'selected' : '' }}"><a href="{{ route('company.activity.index', $layoutCompany) }}"><span>📝</span><span>النشاط</span></a></li>
             @endif

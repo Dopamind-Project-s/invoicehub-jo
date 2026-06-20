@@ -39,6 +39,7 @@ class User extends Authenticatable
         }
 
         setPermissionsTeamId($companyId);
+        $this->unsetRelation('roles')->unsetRelation('permissions');
 
         return $this->hasPermissionTo($permission, 'web');
     }

@@ -2,12 +2,16 @@
 
 use App\Http\Controllers\Admin\CompanyManagementController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\FeatureKeyController;
+use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\CompanyWorkspace\ActivityController;
 use App\Http\Controllers\CompanyWorkspace\CompanyRoleController;
 use App\Http\Controllers\CompanyWorkspace\CompanySettingsController;
 use App\Http\Controllers\CompanyWorkspace\CompanyUserController;
 use App\Http\Controllers\CompanyWorkspace\InvoiceEngineController;
 use App\Http\Controllers\CompanyWorkspace\InvoiceShareController;
+use App\Http\Controllers\CompanyWorkspace\InvoiceTemplateController;
+use App\Http\Controllers\CompanyWorkspace\WorkspaceDashboardController;
 use App\Http\Controllers\PublicInvoiceShareController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ContactController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductCategoryController;
@@ -23,6 +27,19 @@ Route::get('/', function () {
 Route::get('/shared/invoices/{token}', PublicInvoiceShareController::class)->name('invoices.shared.show');
 
 Route::get('/dashboard', function () {
+    $user = auth()->user();
+    if ($user?->isSuperAdmin()) { return redirect()->route('admin.dashboard.show'); }
+    if ($user?->company_id && ($company = \App\Models\Company::with('featureKeys')->find($user->company_id))) {
+        return view('company.dashboard', [
+            'company' => $company,
+            'productCount' => \App\Models\Product::where('company_id', $company->id)->count(),
+            'contactCount' => \App\Models\Contact::where('company_id', $company->id)->count(),
+            'invoiceCount' => \App\Models\Invoice::where('company_id', $company->id)->count(),
+            'pendingInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_PENDING)->count(),
+            'approvedInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_APPROVED)->count(),
+            'recentInvoices' => \App\Models\Invoice::where('company_id', $company->id)->latest()->limit(5)->get(),
+        ]);
+    }
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -36,9 +53,16 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::get('/', AdminDashboardController::class)->name('dashboard');
     Route::get('dashboard', AdminDashboardController::class)->name('dashboard.show');
     Route::resource('companies', CompanyManagementController::class);
+    Route::post('companies/{company}/activate', [CompanyManagementController::class, 'activate'])->name('companies.activate');
+    Route::post('companies/{company}/suspend', [CompanyManagementController::class, 'suspend'])->name('companies.suspend');
+    Route::get('feature-keys', [FeatureKeyController::class, 'index'])->name('feature-keys.index');
+    Route::resource('plans', PlanController::class)->except(['show', 'destroy']);
+    Route::post('plans/{plan}/activate', [PlanController::class, 'activate'])->name('plans.activate');
+    Route::post('plans/{plan}/deactivate', [PlanController::class, 'deactivate'])->name('plans.deactivate');
 });
 
 Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->name('company.')->group(function (): void {
+    Route::get('/', WorkspaceDashboardController::class)->name('dashboard');
     Route::get('users', [CompanyUserController::class, 'index'])->middleware('permission:users.manage')->name('users.index');
     Route::get('users/create', [CompanyUserController::class, 'create'])->middleware('permission:users.manage')->name('users.create');
     Route::post('users', [CompanyUserController::class, 'store'])->middleware('permission:users.manage')->name('users.store');
@@ -53,6 +77,8 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
     Route::put('roles/{role}', [CompanyRoleController::class, 'update'])->middleware('permission:settings.manage')->name('roles.update');
 
     Route::get('settings', [CompanySettingsController::class, 'edit'])->middleware('permission:settings.manage')->name('settings.edit');
+    Route::get('invoice-templates', [InvoiceTemplateController::class, 'index'])->middleware('permission:settings.manage')->name('invoice-templates.index');
+    Route::put('invoice-templates', [InvoiceTemplateController::class, 'update'])->middleware('permission:settings.manage')->name('invoice-templates.update');
     Route::put('settings', [CompanySettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
 
     Route::get('activity', [ActivityController::class, 'index'])->middleware('permission:reports.view')->name('activity.index');
@@ -95,6 +121,10 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
         Route::post('contacts/{contact}/activate', [ContactController::class, 'activate'])->name('contacts.activate');
         Route::post('contacts/{contact}/deactivate', [ContactController::class, 'deactivate'])->name('contacts.deactivate');
     });
+});
+
+Route::middleware(['auth', 'permission.team'])->prefix('workspace/companies/{company}')->name('workspace.companies.')->group(function (): void {
+    Route::get('/', WorkspaceDashboardController::class)->name('show');
 });
 
 require __DIR__.'/auth.php';

@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             CompanyUserSeeder::class,
             InvoiceTemplateSeeder::class,
             CustomerSeeder::class,
+            ContactSeeder::class,
             ProductSeeder::class,
             InvoiceSeeder::class,
         ]);
