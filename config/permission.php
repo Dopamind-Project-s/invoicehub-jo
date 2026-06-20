@@ -24,7 +24,6 @@ return [
     'register_permission_check_method' => true,
     'register_octane_reset_listener' => false,
     'teams' => true,
-    'team_foreign_key' => 'company_id',
     'display_permission_in_exception' => false,
     'display_role_in_exception' => false,
     'enable_wildcard_permission' => false,

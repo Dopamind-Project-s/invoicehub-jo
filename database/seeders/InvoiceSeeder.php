@@ -31,7 +31,7 @@ class InvoiceSeeder extends Seeder
                 'invoice_scope' => 'local',
                 'payment_type' => 'receivable',
                 'taxpayer_type' => 'income',
-                'issue_date' => now()+1->toDateString(),
+                'issue_date' => now()->addDay()->toDateString(),
                 'issue_time' => now()->format('H:i:s'),
                 'currency_code' => 'JOD',
                 'exchange_rate' => '1.000000',

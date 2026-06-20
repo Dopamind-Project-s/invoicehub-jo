@@ -115,7 +115,7 @@ class CompanyManagementController extends Controller
             'status' => ['required', Rule::in(['active', 'suspended'])],
             'logo' => ['nullable', 'image', 'max:2048'],
             'jofotara_source_id' => ['nullable', 'string', 'max:50'],
-            'jofotara_client_id' => ['nullable', 'string', 'max:100'],
+            'jofotara_client_id' => ['nullable', 'string'],
             'jofotara_secret_key' => ['nullable', 'string'],
             'default_language' => ['required', Rule::in(['ar', 'en'])],
             'default_currency' => ['required', 'string', 'size:3'],

@@ -85,7 +85,7 @@ return new class extends Migration
             $table->string('economic_activity')->nullable();
             $table->string('default_currency', 3)->default('JOD');
             $table->string('icv_prefix')->default('INV');
-            $table->string('jofotara_client_id', 100)->nullable();
+            $table->text('jofotara_client_id')->nullable();
             $table->longText('jofotara_secret_key')->nullable();
             $table->string('jofotara_source_id', 50)->nullable();
             $table->unsignedBigInteger('last_icv')->default(0);
