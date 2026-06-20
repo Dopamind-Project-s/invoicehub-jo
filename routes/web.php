@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
+    Route::get('dashboard', AdminDashboardController::class)->name('dashboard.show');
     Route::resource('companies', CompanyManagementController::class);
 });
 
