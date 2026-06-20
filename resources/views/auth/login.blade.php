@@ -1,47 +1,37 @@
 <x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    <div class="text-center mb-4">
+        <h1 class="h4 fw-bold mb-2">تسجيل الدخول</h1>
+        <p class="text-muted mb-0">مرحباً بك في منصة InvoSync Jo</p>
+    </div>
 
-    <form method="POST" action="{{ route('login') }}">
+    <x-auth-session-status class="alert alert-success" :status="session('status')" />
+
+    <form method="POST" action="{{ route('login') }}" class="d-grid gap-3" dir="rtl">
         @csrf
 
-        <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <label for="email" class="form-label">البريد الإلكتروني</label>
+            <input id="email" class="form-control text-start" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username">
+            <x-input-error :messages="$errors->get('email')" class="text-danger small mt-2" />
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        <div>
+            <label for="password" class="form-label">كلمة المرور</label>
+            <input id="password" class="form-control text-start" type="password" name="password" required autocomplete="current-password">
+            <x-input-error :messages="$errors->get('password')" class="text-danger small mt-2" />
         </div>
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
+        <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+            <label for="remember_me" class="form-check m-0">
+                <input id="remember_me" type="checkbox" class="form-check-input" name="remember">
+                <span class="form-check-label">تذكرني</span>
             </label>
-        </div>
 
-        <div class="flex items-center justify-end mt-4">
             @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
+                <a class="text-decoration-none" href="{{ route('password.request') }}">نسيت كلمة المرور؟</a>
             @endif
-
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
         </div>
+
+        <button type="submit" class="btn btn-primary w-100">دخول</button>
     </form>
 </x-guest-layout>

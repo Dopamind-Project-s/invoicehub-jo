@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             TaxCategorySeeder::class,
             PaymentMethodSeeder::class,
             CompanySeeder::class,
+            SuperAdminSeeder::class,
             CustomerSeeder::class,
             ProductSeeder::class,
             InvoiceSeeder::class,
