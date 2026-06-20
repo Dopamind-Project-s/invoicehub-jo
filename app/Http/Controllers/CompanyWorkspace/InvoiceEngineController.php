@@ -12,6 +12,8 @@ use App\Models\Product;
 use App\Services\Audit\AuditLogger;
 use App\Services\Invoices\InvoiceCalculator;
 use App\Services\Invoices\InvoicePdfService;
+use App\Services\Invoices\InvoiceBrandingService;
+use App\Services\Invoices\InvoiceNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +22,7 @@ use Illuminate\Validation\Rule;
 
 class InvoiceEngineController extends Controller
 {
-    public function __construct(private readonly InvoiceCalculator $calculator, private readonly AuditLogger $audit) {}
+    public function __construct(private readonly InvoiceCalculator $calculator, private readonly AuditLogger $audit, private readonly InvoiceNotificationService $notifications, private readonly InvoiceBrandingService $branding) {}
 
     public function index(Request $request, Company $company)
     {
@@ -91,6 +93,7 @@ class InvoiceEngineController extends Controller
         $before = $invoice->only('status');
         $invoice->update(['status' => Invoice::STATUS_PENDING]);
         $this->audit->record('invoice.submitted', $invoice, $before, $invoice->only('status'), $request);
+        $this->notifications->record($invoice, 'submitted', Auth::id());
 
         return back()->with('status', 'تم إرسال الفاتورة للاعتماد.');
     }
@@ -102,6 +105,7 @@ class InvoiceEngineController extends Controller
         $before = $invoice->only('status', 'approved_by', 'approved_at');
         $invoice->update(['status' => Invoice::STATUS_APPROVED, 'approved_by' => Auth::id(), 'approved_at' => now()]);
         $this->audit->record('invoice.approved', $invoice, $before, $invoice->only('status', 'approved_by', 'approved_at'), $request);
+        $this->notifications->record($invoice, 'approved', Auth::id());
 
         return back()->with('status', 'تم اعتماد الفاتورة وأصبحت للقراءة فقط.');
     }
@@ -113,6 +117,7 @@ class InvoiceEngineController extends Controller
         $before = $invoice->only('status');
         $invoice->update(['status' => Invoice::STATUS_CANCELLED]);
         $this->audit->record('invoice.cancelled', $invoice, $before, $invoice->only('status'), $request);
+        $this->notifications->record($invoice, 'cancelled', Auth::id());
 
         return back()->with('status', 'تم إلغاء الفاتورة.');
     }
@@ -183,7 +188,7 @@ class InvoiceEngineController extends Controller
 
     private function formData(Company $company, Invoice $invoice): array
     {
-        return ['company' => $company, 'invoice' => $invoice, 'contacts' => Contact::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'products' => Product::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get()];
+        return ['company' => $company, 'invoice' => $invoice, 'contacts' => Contact::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'products' => Product::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'branding' => $this->branding->settings($company), 'templates' => \App\Models\InvoiceTemplate::query()->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $company->id))->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get()];
     }
 
     private function validated(Request $request, Company $company, ?Invoice $invoice = null): array

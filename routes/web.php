@@ -7,6 +7,8 @@ use App\Http\Controllers\CompanyWorkspace\CompanyRoleController;
 use App\Http\Controllers\CompanyWorkspace\CompanySettingsController;
 use App\Http\Controllers\CompanyWorkspace\CompanyUserController;
 use App\Http\Controllers\CompanyWorkspace\InvoiceEngineController;
+use App\Http\Controllers\CompanyWorkspace\InvoiceShareController;
+use App\Http\Controllers\PublicInvoiceShareController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ContactController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductCategoryController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductController;
@@ -18,6 +20,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::get('/shared/invoices/{token}', PublicInvoiceShareController::class)->name('invoices.shared.show');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -59,6 +62,7 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
         Route::get('invoices', [InvoiceEngineController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}', [InvoiceEngineController::class, 'show'])->name('invoices.show');
         Route::get('invoices/{invoice}/printable', [InvoiceEngineController::class, 'printable'])->name('invoices.printable');
+        Route::post('invoices/{invoice}/shares', [InvoiceShareController::class, 'store'])->name('invoices.shares.store');
     });
     Route::middleware('permission:invoices.create')->group(function (): void {
         Route::get('invoices/create', [InvoiceEngineController::class, 'create'])->name('invoices.create');

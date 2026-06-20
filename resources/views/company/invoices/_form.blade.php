@@ -5,7 +5,8 @@
     <div class="col-md-2"><label class="form-label">تاريخ الإصدار</label><input name="issue_date" type="date" class="form-control" value="{{ old('issue_date', optional($invoice->issue_date)->format('Y-m-d') ?: now()->format('Y-m-d')) }}" required></div>
     <div class="col-md-2"><label class="form-label">تاريخ الاستحقاق</label><input name="due_date" type="date" class="form-control" value="{{ old('due_date', optional($invoice->due_date)->format('Y-m-d')) }}"></div>
     <div class="col-md-2"><label class="form-label">العملة</label><input name="currency" class="form-control" value="{{ old('currency', $invoice->currency ?: 'JOD') }}" maxlength="3" required></div>
-    <div class="col-md-10"><label class="form-label">ملاحظات</label><input name="notes" class="form-control" value="{{ old('notes', $invoice->notes) }}"></div>
+    <div class="col-md-6"><label class="form-label">ملاحظات</label><input name="notes" class="form-control" value="{{ old('notes', $invoice->notes) }}"></div>
+    <div class="col-md-4"><label class="form-label">قالب الطباعة الافتراضي</label><select class="form-select" disabled>@foreach($templates ?? [] as $template)<option @selected(($branding['template']?->id ?? null)===$template->id)>{{ $template->name }}</option>@endforeach</select><small class="text-muted">يتم اختيار القالب من إعدادات الشركة.</small></div>
 </div>
 <hr>
 <h2 class="h5">بنود الفاتورة</h2>

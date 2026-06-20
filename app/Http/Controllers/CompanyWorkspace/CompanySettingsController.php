@@ -43,7 +43,8 @@ class CompanySettingsController extends Controller
             'General' => ['company_logo' => 'Company logo'],
             'Branding' => ['brand_color' => 'Brand color'],
             'Localization' => ['default_language' => 'Default language', 'default_currency' => 'Default currency'],
-            'Invoice Defaults' => ['invoice_template' => 'Invoice template', 'invoice_prefix' => 'Invoice prefix'],
+            'Invoice Defaults' => ['invoice_template_id' => 'Invoice template ID', 'invoice_prefix' => 'Invoice prefix'],
+            'Invoice Branding' => ['invoice_logo' => 'Invoice logo path', 'invoice_primary_color' => 'Primary color', 'invoice_secondary_color' => 'Secondary color', 'invoice_footer_text' => 'Footer text', 'invoice_terms_and_conditions' => 'Terms and conditions', 'invoice_signature_block' => 'Signature block', 'invoice_stamp_image' => 'Stamp image path'],
             'JoFotara Settings' => ['jofotara_mode' => 'JoFotara mode'],
         ];
     }

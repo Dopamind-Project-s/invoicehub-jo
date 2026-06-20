@@ -64,6 +64,11 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
+    public function shares(): HasMany
+    {
+        return $this->hasMany(InvoiceShare::class);
+    }
+
     public function xmlLogs(): HasMany
     {
         return $this->hasMany(InvoiceXmlLog::class);
