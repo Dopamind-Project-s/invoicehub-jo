@@ -36,10 +36,10 @@ Route::get('/dashboard', function () {
             'productCount' => \App\Models\Product::where('company_id', $company->id)->count(),
             'contactCount' => \App\Models\Contact::where('company_id', $company->id)->count(),
             'invoiceCount' => \App\Models\Invoice::where('company_id', $company->id)->count(),
-            'pendingInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_PENDING)->count(),
-            'approvedInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_APPROVED)->count(),
+            'pendingInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_READY)->count(),
+            'approvedInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_SUBMITTED)->count(),
             'jofotaraSubmittedCount' => \App\Models\Invoice::where('company_id', $company->id)->whereNotNull('jofotara_submitted_at')->count(),
-            'pendingJofotaraCount' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_APPROVED)->whereNull('jofotara_status')->count(),
+            'pendingJofotaraCount' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_READY)->whereNull('jofotara_status')->count(),
             'importedInvoiceCount' => \App\Models\Invoice::where('company_id', $company->id)->where('source', 'jofotara_import')->count(),
             'recentInvoices' => \App\Models\Invoice::where('company_id', $company->id)->latest()->limit(5)->get(),
         ]);
@@ -96,6 +96,7 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
         Route::put('invoices/{invoice}', [InvoiceEngineController::class, 'update'])->whereNumber('invoice')->name('invoices.update');
         Route::post('invoices/{invoice}/submit', [InvoiceEngineController::class, 'submit'])->whereNumber('invoice')->name('invoices.submit');
         Route::post('invoices/{invoice}/cancel', [InvoiceEngineController::class, 'cancel'])->whereNumber('invoice')->name('invoices.cancel');
+        Route::post('invoices/{invoice}/draft', [InvoiceEngineController::class, 'returnToDraft'])->whereNumber('invoice')->name('invoices.draft');
     });
     Route::middleware('permission:invoices.view')->group(function (): void {
         Route::get('invoices', [InvoiceEngineController::class, 'index'])->name('invoices.index');

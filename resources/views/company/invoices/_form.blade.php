@@ -12,5 +12,9 @@
 <h2 class="h5">بنود الفاتورة</h2>
 @php($rows = old('items', $invoice->items?->toArray() ?: [['description'=>'','quantity'=>'1','unit_price'=>'0','discount_amount'=>'0','tax_percent'=>'0']]))
 <div class="table-responsive"><table class="table"><tr><th>المنتج</th><th>الوصف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الضريبة %</th></tr>@foreach($rows as $i => $row)<tr><td><select name="items[{{ $i }}][product_id]" class="form-select"><option value="">بدون</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((string)($row['product_id'] ?? '')===(string)$product->id)>{{ $product->name_ar }}</option>@endforeach</select></td><td><input name="items[{{ $i }}][description]" class="form-control" value="{{ $row['description'] ?? '' }}" required></td><td><input name="items[{{ $i }}][quantity]" type="number" step="0.000001" class="form-control" value="{{ $row['quantity'] ?? 1 }}" required></td><td><input name="items[{{ $i }}][unit_price]" type="number" step="0.000001" class="form-control" value="{{ $row['unit_price'] ?? 0 }}" required></td><td><input name="items[{{ $i }}][discount_amount]" type="number" step="0.000001" class="form-control" value="{{ $row['discount_amount'] ?? $row['discount'] ?? 0 }}"></td><td><input name="items[{{ $i }}][tax_percent]" type="number" step="0.000001" class="form-control" value="{{ $row['tax_percent'] ?? 0 }}"></td></tr>@endforeach</table></div>
-<p class="text-muted">يمكن إضافة بنود إضافية لاحقاً؛ هذه نسخة V1 مركزة على المحرك الداخلي والحسابات المخزنة.</p>
-<button class="btn btn-primary mt-3">حفظ</button>
+<p class="text-muted">احفظ كمسودة لمتابعة التعديل، أو جهّز الفاتورة عندما تصبح جاهزة للإرسال إلى نظام الفوترة الوطني.</p>
+<div class="d-flex gap-2 mt-3">
+    <button class="btn btn-outline-primary" name="save_action" value="draft">حفظ كمسودة</button>
+    <button class="btn btn-primary" name="save_action" value="ready">حفظ وتجهيز للإرسال</button>
+    <a class="btn btn-outline-secondary" href="{{ route('company.invoices.index', $company) }}">إلغاء</a>
+</div>

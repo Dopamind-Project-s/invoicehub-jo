@@ -22,7 +22,7 @@ class InvoiceSeeder extends Seeder
             ['description' => 'توصيل', 'quantity' => '1.000000000', 'unit_price' => '1.000000000', 'discount' => '0.000000000', 'tax_category' => 'Z', 'tax_percent' => '0.000000000'],
         ];
         $this->seedInvoice('INV_2026_00001', Invoice::STATUS_DRAFT, 1, $company, $customer->id, $contact?->id, $items);
-        $this->seedInvoice('INV_2026_00002', Invoice::STATUS_APPROVED, 2, $company, $customer->id, $contact?->id, $items);
+        $this->seedInvoice('INV_2026_00002', Invoice::STATUS_READY, 2, $company, $customer->id, $contact?->id, $items);
         $company->forceFill(['last_icv' => max((int) $company->last_icv, 2)])->save();
     }
 
@@ -54,7 +54,7 @@ class InvoiceSeeder extends Seeder
                 'tax_total' => $totals['tax_amount'],
                 'discount_total' => $totals['discount_amount'],
                 'grand_total' => $totals['payable_amount'],
-                'approved_at' => $status === Invoice::STATUS_APPROVED ? now() : null,
+                'approved_at' => null,
             ])
         );
         $invoice->items()->delete();

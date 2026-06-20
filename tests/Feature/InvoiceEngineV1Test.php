@@ -50,10 +50,10 @@ class InvoiceEngineV1Test extends TestCase
         $this->assertSame('110.200000', $created->grand_total);
         $this->assertDatabaseHas('invoice_items', ['invoice_id' => $created->id, 'discount_amount' => '5', 'tax_amount' => '15.2', 'line_total' => '110.2']);
         $this->assertDatabaseHas('audit_logs', ['action' => 'invoice.created', 'auditable_id' => $created->id]);
-        $this->assertSame('تم إنشاء مسودة الفاتورة.', $invoice);
+        $this->assertSame('تم حفظ الفاتورة كمسودة.', $invoice);
     }
 
-    public function test_workflow_transitions_and_approval_read_only_rule(): void
+    public function test_invoice_can_be_marked_ready_and_submitted_invoices_are_read_only(): void
     {
         [$company, $contact, $product] = $this->foundation();
         app(InvoiceEngineController::class)->store($this->request($contact, $product), $company);
@@ -61,20 +61,18 @@ class InvoiceEngineV1Test extends TestCase
         $controller = app(InvoiceEngineController::class);
 
         $controller->submit(Request::create('/submit', 'POST'), $company, $invoice);
-        $this->assertSame(Invoice::STATUS_PENDING, $invoice->refresh()->status);
+        $this->assertSame(Invoice::STATUS_READY, $invoice->refresh()->status);
+        $this->assertFalse($invoice->isReadOnly());
+        $this->assertDatabaseHas('audit_logs', ['action' => 'invoice.ready']);
 
-        $controller->approve(Request::create('/approve', 'POST'), $company, $invoice);
-        $this->assertSame(Invoice::STATUS_APPROVED, $invoice->refresh()->status);
-        $this->assertNotNull($invoice->approved_at);
-        $this->assertTrue($invoice->isReadOnly());
-        $this->assertDatabaseHas('audit_logs', ['action' => 'invoice.submitted']);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'invoice.approved']);
+        $invoice->forceFill(['status' => Invoice::STATUS_SUBMITTED])->save();
+        $this->assertTrue($invoice->refresh()->isReadOnly());
 
         $this->expectException(HttpException::class);
         $controller->edit($company, $invoice);
     }
 
-    public function test_pending_invoice_can_be_cancelled_and_company_isolation_is_enforced(): void
+    public function test_ready_invoice_can_be_cancelled_and_company_isolation_is_enforced(): void
     {
         [$company, $contact, $product] = $this->foundation();
         $other = Company::create(['legal_name_ar' => 'شركة أخرى', 'tax_number' => '778899']);

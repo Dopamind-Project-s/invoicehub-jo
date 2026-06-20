@@ -50,7 +50,7 @@ class InvoiceExperienceLayerTest extends TestCase
         $invoice = $this->makeInvoice();
         $html = app(InvoicePdfService::class)->html($invoice);
         $this->assertStringContainsString($invoice->invoice_number, $html);
-        $this->assertStringContainsString('QR / UUID placeholder', $html);
+        $this->assertStringContainsString('سيظهر QR / UUID بعد الإرسال', $html);
         $this->assertStringContainsString('Arabic Classic', $html);
     }
 

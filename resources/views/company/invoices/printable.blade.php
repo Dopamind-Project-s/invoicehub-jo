@@ -28,7 +28,15 @@
     <table><thead><tr><th>الوصف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr></thead><tbody>@foreach($invoice->items as $item)<tr><td>{{ $item->description }}</td><td>{{ $item->quantity }}</td><td>{{ $item->unit_price }}</td><td>{{ $item->discount_amount }}</td><td>{{ $item->tax_amount }}</td><td>{{ $item->line_total }}</td></tr>@endforeach</tbody></table>
     <table class="totals"><tr><th>المجموع</th><td>{{ $invoice->subtotal }}</td></tr><tr><th>الخصم</th><td>{{ $invoice->discount_total }}</td></tr><tr><th>الضريبة</th><td>{{ $invoice->tax_total }}</td></tr><tr><th>الإجمالي</th><td>{{ $invoice->grand_total }} {{ $invoice->currency }}</td></tr></table>
     <div class="grid">
-        <div class="placeholder">QR / UUID placeholder only — لا يتم توليد QR أو UUID هنا.</div>
+        <div class="card">
+            <strong>QR / Barcode</strong>
+            @if($invoice->jofotara_qr || $invoice->qr_code || $invoice->jofotara_uuid || $invoice->submission_uuid)
+                <p class="muted">UUID: {{ $invoice->jofotara_uuid ?: $invoice->submission_uuid ?: '—' }}</p>
+                <div style="word-break:break-all">{{ $invoice->jofotara_qr ?: $invoice->qr_code ?: '—' }}</div>
+            @else
+                <p class="muted">سيظهر QR / UUID بعد الإرسال إلى نظام الفوترة الوطني.</p>
+            @endif
+        </div>
         <div class="card"><strong>{{ $branding['signature_block'] }}</strong><br>@if($branding['stamp_image'])<img class="logo" src="{{ asset($branding['stamp_image']) }}" alt="stamp">@endif</div>
     </div>
     <div class="footer"><p>{{ $branding['terms_and_conditions'] }}</p><p class="muted">{{ $branding['footer_text'] }}</p></div>

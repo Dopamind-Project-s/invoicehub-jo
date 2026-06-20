@@ -114,16 +114,41 @@ class JofotaraMvpIntegrationTest extends TestCase
         $this->assertDatabaseHas('subscriptions', ['company_id' => $company->id, 'plan_id' => $professional->id, 'status' => 'active']);
     }
 
-    public function test_approved_invoice_can_be_submitted_to_jofotara_with_mocked_http_response(): void
+
+    public function test_jofotara_submit_action_visibility_rules_are_clear(): void
+    {
+        [$company, $user] = $this->companyUser();
+        $invoice = Invoice::where('company_id', $company->id)->where('status', Invoice::STATUS_DRAFT)->firstOrFail();
+
+        $this->actingAs($user)->get(route('company.invoices.show', [$company, $invoice]))
+            ->assertOk()
+            ->assertDontSee('إرسال إلى نظام الفوترة الوطني')
+            ->assertDontSee('إرسال للاعتماد');
+
+        $invoice->forceFill(['status' => Invoice::STATUS_READY])->save();
+        $company->featureKeys()->detach(FeatureKey::where('code', 'JOFOTARA_SUBMIT')->firstOrFail()->id);
+        $this->actingAs($user)->get(route('company.invoices.show', [$company, $invoice]))
+            ->assertOk()
+            ->assertSee('هذه المنشأة لا تملك ميزة الإرسال للفوترة', false)
+            ->assertDontSee('إرسال إلى نظام الفوترة الوطني');
+
+        $company->featureKeys()->syncWithoutDetaching([FeatureKey::where('code', 'JOFOTARA_SUBMIT')->firstOrFail()->id]);
+        $company->forceFill(['jofotara_client_id' => null, 'jofotara_secret_key' => null])->save();
+        $this->actingAs($user)->get(route('company.invoices.show', [$company, $invoice]))
+            ->assertOk()
+            ->assertSee('بيانات الربط مع نظام الفوترة غير مكتملة', false);
+    }
+
+    public function test_ready_invoice_can_be_submitted_to_jofotara_with_mocked_http_response(): void
     {
         config(['services.jofotara.initial_pih' => 'INITIAL-PIH']);
         [$company, $user] = $this->companyUser();
         $company->update(['jofotara_client_id' => 'client', 'jofotara_secret_key' => 'secret-key-value', 'jofotara_source_id' => 'SRC-1']);
         $company->featureKeys()->syncWithoutDetaching([FeatureKey::where('code', 'JOFOTARA_SUBMIT')->firstOrFail()->id]);
         $invoice = Invoice::where('company_id', $company->id)->orderBy('icv')->firstOrFail();
-        $invoice->forceFill(['status' => Invoice::STATUS_APPROVED, 'icv' => 1, 'jofotara_status' => null])->save();
+        $invoice->forceFill(['status' => Invoice::STATUS_READY, 'icv' => 1, 'jofotara_status' => null])->save();
 
-        Http::fake(['*' => Http::response(['EINV_NUM' => 'JF-UUID-1', 'EINV_QR' => 'QR-CODE-1', 'EINV_STATUS' => 'ACCEPTED'], 200)]);
+        Http::fake(['*' => Http::response(['EINV_INV_UUID' => 'JF-UUID-1', 'EINV_QR' => 'QR-CODE-1', 'EINV_STATUS' => 'ACCEPTED', 'EINV_RESULTS' => 'PASS', 'EINV_MESSAGE' => 'Accepted'], 200)]);
 
         $this->actingAs($user)->post(route('company.invoices.jofotara.submit', [$company, $invoice]))->assertRedirect();
 
@@ -131,7 +156,7 @@ class JofotaraMvpIntegrationTest extends TestCase
         $this->assertSame('ACCEPTED', $invoice->jofotara_status);
         $this->assertSame('JF-UUID-1', $invoice->jofotara_uuid);
         $this->assertSame('QR-CODE-1', $invoice->jofotara_qr);
-        $this->assertSame(Invoice::STATUS_APPROVED, $invoice->status);
+        $this->assertSame(Invoice::STATUS_SUBMITTED, $invoice->status);
         $this->assertDatabaseHas('invoice_submission_logs', ['invoice_id' => $invoice->id, 'status' => 'ACCEPTED']);
     }
 

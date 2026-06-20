@@ -60,7 +60,7 @@ class InvoiceEngineController extends Controller
             return $invoice;
         });
 
-        return redirect()->route('company.invoices.show', [$company, $invoice])->with('status', 'تم إنشاء مسودة الفاتورة.');
+        return redirect()->route('company.invoices.show', [$company, $invoice])->with('status', $invoice->status === Invoice::STATUS_READY ? 'تم حفظ الفاتورة وتجهيزها للإرسال.' : 'تم حفظ الفاتورة كمسودة.');
     }
 
     public function show(Company $company, Invoice $invoice)
@@ -72,57 +72,67 @@ class InvoiceEngineController extends Controller
     public function edit(Company $company, Invoice $invoice)
     {
         $this->authorizeCompany($company, $invoice);
-        abort_if($invoice->isReadOnly() || $invoice->status !== Invoice::STATUS_DRAFT, 403, 'يمكن تعديل المسودات فقط.');
+        abort_if($invoice->isReadOnly() || ! in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_READY], true), 403, 'يمكن تعديل المسودات والفواتير الجاهزة فقط.');
         return view('company.invoices.edit', $this->formData($company, $invoice->load('items')));
     }
 
     public function update(Request $request, Company $company, Invoice $invoice)
     {
         $this->authorizeCompany($company, $invoice);
-        abort_if($invoice->isReadOnly() || $invoice->status !== Invoice::STATUS_DRAFT, 403, 'يمكن تعديل المسودات فقط.');
+        abort_if($invoice->isReadOnly() || ! in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_READY], true), 403, 'يمكن تعديل المسودات والفواتير الجاهزة فقط.');
         DB::transaction(function () use ($request, $company, $invoice): void {
             $before = $invoice->load('items')->toArray();
             $this->fillAndSave($invoice, $company, $this->validated($request, $company, $invoice));
             $this->audit->record('invoice.edited', $invoice, $before, $invoice->load('items')->toArray(), $request);
         });
 
-        return redirect()->route('company.invoices.show', [$company, $invoice])->with('status', 'تم تحديث الفاتورة.');
+        return redirect()->route('company.invoices.show', [$company, $invoice])->with('status', $invoice->status === Invoice::STATUS_READY ? 'تم تحديث الفاتورة وتجهيزها للإرسال.' : 'تم تحديث الفاتورة كمسودة.');
     }
 
     public function submit(Request $request, Company $company, Invoice $invoice)
     {
         $this->authorizeCompany($company, $invoice);
-        abort_unless($invoice->status === Invoice::STATUS_DRAFT, 403, 'يمكن إرسال المسودات فقط للاعتماد.');
+        abort_unless($invoice->status === Invoice::STATUS_DRAFT, 403, 'يمكن تجهيز المسودات فقط للإرسال.');
         $before = $invoice->only('status');
-        $invoice->update(['status' => Invoice::STATUS_PENDING]);
-        $this->audit->record('invoice.submitted', $invoice, $before, $invoice->only('status'), $request);
-        $this->notifications->record($invoice, 'submitted', Auth::id());
+        $invoice->update(['status' => Invoice::STATUS_READY]);
+        $this->audit->record('invoice.ready', $invoice, $before, $invoice->only('status'), $request);
 
-        return back()->with('status', 'تم إرسال الفاتورة للاعتماد.');
+        return back()->with('status', 'تم تجهيز الفاتورة للإرسال إلى نظام الفوترة الوطني.');
     }
 
     public function approve(Request $request, Company $company, Invoice $invoice)
     {
         $this->authorizeCompany($company, $invoice);
-        abort_unless($invoice->status === Invoice::STATUS_PENDING, 403, 'يمكن اعتماد الفواتير قيد الاعتماد فقط.');
+        abort_unless($invoice->status === Invoice::STATUS_PENDING, 403, 'المراجعة الداخلية غير متاحة لهذه الفاتورة.');
         $before = $invoice->only('status', 'approved_by', 'approved_at');
-        $invoice->update(['status' => Invoice::STATUS_APPROVED, 'approved_by' => Auth::id(), 'approved_at' => now()]);
+        $invoice->update(['status' => Invoice::STATUS_READY, 'approved_by' => Auth::id(), 'approved_at' => now()]);
         $this->audit->record('invoice.approved', $invoice, $before, $invoice->only('status', 'approved_by', 'approved_at'), $request);
         $this->notifications->record($invoice, 'approved', Auth::id());
 
-        return back()->with('status', 'تم اعتماد الفاتورة وأصبحت للقراءة فقط.');
+        return back()->with('status', 'تمت المراجعة الداخلية وأصبحت الفاتورة جاهزة للإرسال.');
     }
 
     public function cancel(Request $request, Company $company, Invoice $invoice)
     {
         $this->authorizeCompany($company, $invoice);
-        abort_unless($invoice->status === Invoice::STATUS_PENDING, 403, 'يمكن إلغاء الفواتير قيد الاعتماد فقط.');
+        abort_unless(in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_READY, Invoice::STATUS_PENDING], true), 403, 'لا يمكن إلغاء هذه الفاتورة.');
         $before = $invoice->only('status');
         $invoice->update(['status' => Invoice::STATUS_CANCELLED]);
         $this->audit->record('invoice.cancelled', $invoice, $before, $invoice->only('status'), $request);
         $this->notifications->record($invoice, 'cancelled', Auth::id());
 
         return back()->with('status', 'تم إلغاء الفاتورة.');
+    }
+
+    public function returnToDraft(Request $request, Company $company, Invoice $invoice)
+    {
+        $this->authorizeCompany($company, $invoice);
+        abort_unless($invoice->status === Invoice::STATUS_READY && blank($invoice->jofotara_status), 403, 'لا يمكن إرجاع هذه الفاتورة إلى مسودة.');
+        $before = $invoice->only('status');
+        $invoice->update(['status' => Invoice::STATUS_DRAFT]);
+        $this->audit->record('invoice.returned_to_draft', $invoice, $before, $invoice->only('status'), $request);
+
+        return back()->with('status', 'تم إرجاع الفاتورة إلى مسودة.');
     }
 
     public function submitToJofotara(Request $request, Company $company, Invoice $invoice, JoFotaraApiService $api)
@@ -135,6 +145,7 @@ class InvoiceEngineController extends Controller
         try {
             $result = $api->submit($invoice);
             $invoice->refresh();
+            $invoice->forceFill(['status' => Invoice::STATUS_SUBMITTED])->save();
             $this->audit->record('invoice.jofotara.submitted', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message'), $request);
             $this->notifications->record($invoice, 'submitted', Auth::id());
 
@@ -170,7 +181,7 @@ class InvoiceEngineController extends Controller
             'invoice_scope' => 'local',
             'payment_type' => 'receivable',
             'taxpayer_type' => 'income',
-            'status' => $invoice->status ?: Invoice::STATUS_DRAFT,
+            'status' => ($data['save_action'] ?? 'draft') === 'ready' ? Invoice::STATUS_READY : ($invoice->status ?: Invoice::STATUS_DRAFT),
             'issue_date' => $data['issue_date'],
             'issue_time' => $invoice->issue_time ?: now()->format('H:i:s'),
             'due_date' => $data['due_date'] ?? null,
@@ -204,7 +215,9 @@ class InvoiceEngineController extends Controller
             && $company->hasJofotaraClientId()
             && $company->hasJofotaraSecretKey()
             && filled($company->jofotara_source_id)
-            && $invoice->status === Invoice::STATUS_APPROVED
+            && ($company->is_active ?? true)
+            && Auth::user()?->can('invoices.submit')
+            && $invoice->status === Invoice::STATUS_READY
             && ! in_array($invoice->jofotara_status, ['ACCEPTED', 'SUBMITTED'], true);
     }
 
@@ -234,6 +247,7 @@ class InvoiceEngineController extends Controller
             'contact_id' => ['required', Rule::exists('contacts', 'id')->where('company_id', $company->id)],
             'invoice_type' => ['required', Rule::in([Invoice::TYPE_TAX_INVOICE, Invoice::TYPE_SIMPLIFIED_INVOICE, Invoice::TYPE_CREDIT_NOTE, Invoice::TYPE_DEBIT_NOTE])],
             'issue_date' => ['required', 'date'], 'due_date' => ['nullable', 'date', 'after_or_equal:issue_date'], 'currency' => ['required', 'size:3'], 'notes' => ['nullable', 'string'],
+            'save_action' => ['nullable', Rule::in(['draft', 'ready'])],
             'items' => ['required', 'array', 'min:1'], 'items.*.product_id' => ['nullable', Rule::exists('products', 'id')->where('company_id', $company->id)], 'items.*.description' => ['required', 'string'], 'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price' => ['required', 'numeric', 'min:0'], 'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'], 'items.*.tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
     }

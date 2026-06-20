@@ -13,10 +13,14 @@ class JoFotaraResponseParser
         $raw = $response->body();
         $json = $response->json();
         $body = is_array($json) ? $json : ['raw' => $raw];
-        $uuid = $this->first($body, ['uuid', 'invoice_uuid', 'EINV_NUM', 'submission_uuid']);
+        $uuid = $this->first($body, ['uuid', 'invoice_uuid', 'EINV_INV_UUID', 'EINV_NUM', 'submission_uuid', 'data.EINV_INV_UUID']);
         $qr = $this->first($body, ['qr', 'qr_code', 'EINV_QR', 'invoiceQr', 'QR', 'data.qr', 'data.qr_code', 'data.EINV_QR']);
-        $errors = $this->first($body, ['errors', 'message', 'validationErrors', 'ErrorMessage']);
-        $accepted = $response->successful() && $raw !== '' && ! $errors;
+        $status = $this->first($body, ['EINV_STATUS', 'status', 'data.EINV_STATUS']);
+        $results = $this->first($body, ['EINV_RESULTS', 'results', 'data.EINV_RESULTS']);
+        $message = $this->first($body, ['EINV_MESSAGE', 'message', 'data.EINV_MESSAGE']);
+        $errors = $this->first($body, ['errors', 'validationErrors', 'ErrorMessage']) ?: ($response->failed() ? $message : null);
+        $statusText = strtoupper((string) $status);
+        $accepted = $response->successful() && $raw !== '' && ! $errors && (blank($status) || (! str_contains($statusText, 'REJECT') && ! str_contains($statusText, 'ERROR') && ! str_contains($statusText, 'FAIL')));
 
         return [
             'accepted' => $accepted,
@@ -24,6 +28,9 @@ class JoFotaraResponseParser
             'uuid' => $uuid,
             'qr' => $qr,
             'errors' => $errors,
+            'status' => $status,
+            'results' => $results,
+            'message' => $message,
             'body' => $body,
             'raw_response' => $raw,
             'warnings' => $accepted && blank($qr) ? ['Accepted but QR was not found in response.'] : [],

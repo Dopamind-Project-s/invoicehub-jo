@@ -11,9 +11,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Invoice extends Model
 {
     public const STATUS_DRAFT = 'draft';
+    public const STATUS_READY = 'ready';
+    public const STATUS_SUBMITTED = 'submitted';
+    public const STATUS_CANCELLED = 'cancelled';
+
     public const STATUS_PENDING = 'pending';
     public const STATUS_APPROVED = 'approved';
-    public const STATUS_CANCELLED = 'cancelled';
 
     public const TYPE_TAX_INVOICE = 'tax_invoice';
     public const TYPE_SIMPLIFIED_INVOICE = 'simplified_invoice';
@@ -56,7 +59,7 @@ class Invoice extends Model
 
     public function isReadOnly(): bool
     {
-        return $this->status === self::STATUS_APPROVED;
+        return in_array($this->status, [self::STATUS_SUBMITTED, self::STATUS_CANCELLED, self::STATUS_APPROVED], true);
     }
 
     public function supplier(): BelongsTo

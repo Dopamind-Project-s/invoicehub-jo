@@ -54,7 +54,7 @@ class JofotaraImportController extends Controller
                 'invoice_scope' => 'local',
                 'payment_type' => 'receivable',
                 'taxpayer_type' => 'income',
-                'status' => Invoice::STATUS_APPROVED,
+                'status' => Invoice::STATUS_SUBMITTED,
                 'source' => 'jofotara_import',
                 'issue_date' => $row['issue_date'] ?? now()->toDateString(),
                 'issue_time' => $row['issue_time'] ?? now()->format('H:i:s'),

@@ -262,3 +262,31 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
 - **Result:** full suite passes with 64 tests and 248 assertions.
 - **Remaining risk:** the migration uses explicit MySQL `ALTER TABLE ... MODIFY ... VARCHAR(50)` statements; this is intentional to avoid DBAL, but it should be reviewed against any production custom indexes/triggers before deployment.
 - **Next recommended step:** run the migration on a staging MySQL copy and create one invoice from the UI before deploying to production.
+
+## Invoice Flow Correction — 2026-06-20
+
+### هدف التصحيح
+- تبسيط رحلة الفاتورة لتكون واضحة: `draft` → `ready` → `submitted` أو `cancelled`.
+- جعل الإجراء الأساسي هو الإرسال إلى نظام الفوترة الوطني/جوفوتارا بدل مسار اعتماد داخلي مربك.
+- إبقاء حالات المراجعة الداخلية القديمة للتوافق فقط، وعدم جعلها المسار الافتراضي في واجهة Phase 1.
+
+### تجربة المستخدم المطلوبة
+- صفحة إنشاء/تعديل الفاتورة تعرض أزرارًا واضحة:
+  - حفظ كمسودة.
+  - حفظ وتجهيز للإرسال.
+  - إلغاء.
+- صفحة تفاصيل الفاتورة تعرض زر **إرسال إلى نظام الفوترة الوطني** فقط عند اكتمال الشروط:
+  - الفاتورة جاهزة للإرسال.
+  - المنشأة فعالة.
+  - بيانات الربط مع جوفوتارا مكتملة.
+  - ميزة `JOFOTARA_SUBMIT` مفعلة للمنشأة.
+  - المستخدم يملك صلاحية `invoices.submit`.
+- بعد الإرسال الناجح تصبح الفاتورة `submitted` وتُعرض بيانات جوفوتارا: الحالة، UUID، QR/Barcode، تاريخ الإرسال، رسالة ونتيجة النظام.
+- صفحة الاستيراد/المزامنة توضح أن السحب الآلي التاريخي يحتاج endpoint/صلاحية رسمية، وتدعم حالياً backfill عبر JSON/CSV.
+
+### تحقق سريع
+- تسجيل الدخول كمستخدم منشأة: `company@invosync.local` / `password`.
+- إنشاء فاتورة وحفظها كمسودة.
+- تجهيز الفاتورة للإرسال.
+- التأكد من ظهور زر الإرسال إلى نظام الفوترة الوطني عند اكتمال الصلاحيات والبيانات.
+- التأكد من عدم ظهور Secret Key في أي واجهة أو استجابة.
