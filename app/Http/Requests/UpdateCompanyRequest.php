@@ -24,7 +24,7 @@ class UpdateCompanyRequest extends FormRequest
             'trade_name' => ['nullable', 'string', 'max:255'],
             'tax_number' => ['required', 'string', 'max:50', Rule::unique('companies', 'tax_number')->ignore($company)],
             'jofotara_source_id' => ['nullable', 'string', 'max:50'],
-            'jofotara_client_id' => ['nullable', 'string', 'max:100'],
+            'jofotara_client_id' => ['nullable', 'string'],
             'jofotara_secret_key' => ['nullable', 'string'],
             'phone' => ['nullable', 'string', 'max:50'],
             'country_code' => ['required', 'string', 'size:2'],

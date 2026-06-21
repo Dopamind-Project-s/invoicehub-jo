@@ -1,0 +1,7 @@
+@extends('layouts.app')
+@section('title', 'ملفات الضريبة')
+@section('content')
+<x-layout.page-header :title="'ملفات الضريبة - '.($company->name_ar ?? $company->legal_name_ar)" subtitle="إدارة بيانات أساسية عربية أولاً ومعزولة حسب المنشأة."><x-slot:actions><a class="btn btn-primary" href="{{ route('company.tax-profiles.create', $company) }}">إضافة</a></x-slot:actions></x-layout.page-header>
+<form class="card card-body mb-3"><div class="row g-2"><div class="col-md-5"><input name="search" class="form-control" placeholder="بحث" value="{{ request('search') }}"></div><div class="col-md-3"><select name="status" class="form-select"><option value="">كل الحالات</option><option value="active" @selected(request('status')==='active')>نشط</option><option value="inactive" @selected(request('status')==='inactive')>غير نشط</option></select></div><div class="col-md-2"><button class="btn btn-primary w-100">تصفية</button></div></div></form>
+<div class="card"><table class="table mb-0"><tr><th>الاسم</th><th>النوع</th><th>النسبة</th><th>افتراضي</th><th>الحالة</th><th></th></tr>@foreach($taxProfiles as $taxProfile)<tr><td>{{ $taxProfile->name }}</td><td>{{ $taxProfile->tax_type }}</td><td>{{ $taxProfile->tax_percent }}%</td><td>{{ $taxProfile->is_default ? 'نعم' : 'لا' }}</td><td>{{ $taxProfile->is_active ? 'نشط' : 'غير نشط' }}</td><td>@if($taxProfile->company_id)<a href="{{ route('company.tax-profiles.edit', [$company, $taxProfile]) }}">تعديل</a>@else عام@endif</td></tr>@endforeach</table></div>{{ $taxProfiles->links() }}
+@endsection

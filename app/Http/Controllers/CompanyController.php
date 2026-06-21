@@ -48,11 +48,13 @@ class CompanyController extends Controller
     private function payload(array $data, ?Company $company = null): array
     {
         $data['is_active'] = (bool) ($data['is_active'] ?? false);
-        if (blank($data['jofotara_secret_key'] ?? null)) {
-            unset($data['jofotara_secret_key']);
-        }
-        if ($company && ! array_key_exists('jofotara_secret_key', $data)) {
-            $data['jofotara_secret_key'] = $company->jofotara_secret_key;
+        foreach (['jofotara_client_id', 'jofotara_secret_key'] as $credential) {
+            if (blank($data[$credential] ?? null)) {
+                unset($data[$credential]);
+            }
+            if ($company && ! array_key_exists($credential, $data)) {
+                $data[$credential] = $company->{$credential};
+            }
         }
 
         return $data;

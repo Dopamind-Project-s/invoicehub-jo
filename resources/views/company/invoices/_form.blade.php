@@ -1,0 +1,20 @@
+@csrf
+<div class="row g-3" dir="rtl">
+    <div class="col-md-4"><label class="form-label">جهة الاتصال</label><select name="contact_id" class="form-select" required><option value="">اختر</option>@foreach($contacts as $contact)<option value="{{ $contact->id }}" @selected((string) old('contact_id', $invoice->contact_id)===(string) $contact->id)>{{ $contact->name_ar }}</option>@endforeach</select></div>
+    <div class="col-md-4"><label class="form-label">نوع الفاتورة</label><select name="invoice_type" class="form-select">@foreach(['tax_invoice'=>'فاتورة ضريبية','simplified_invoice'=>'فاتورة مبسطة','credit_note'=>'إشعار دائن','debit_note'=>'إشعار مدين'] as $value => $label)<option value="{{ $value }}" @selected(old('invoice_type', $invoice->invoice_type)===$value)>{{ $label }}</option>@endforeach</select></div>
+    <div class="col-md-2"><label class="form-label">تاريخ الإصدار</label><input name="issue_date" type="date" class="form-control" value="{{ old('issue_date', optional($invoice->issue_date)->format('Y-m-d') ?: now()->format('Y-m-d')) }}" required></div>
+    <div class="col-md-2"><label class="form-label">تاريخ الاستحقاق</label><input name="due_date" type="date" class="form-control" value="{{ old('due_date', optional($invoice->due_date)->format('Y-m-d')) }}"></div>
+    <div class="col-md-2"><label class="form-label">العملة</label><input name="currency" class="form-control" value="{{ old('currency', $invoice->currency ?: 'JOD') }}" maxlength="3" required></div>
+    <div class="col-md-6"><label class="form-label">ملاحظات</label><input name="notes" class="form-control" value="{{ old('notes', $invoice->notes) }}"></div>
+    <div class="col-md-4"><label class="form-label">قالب الطباعة الافتراضي</label><select class="form-select" disabled>@foreach($templates ?? [] as $template)<option @selected(($branding['template']?->id ?? null)===$template->id)>{{ $template->name }}</option>@endforeach</select><small class="text-muted">يتم اختيار القالب من إعدادات المنشأة.</small></div>
+</div>
+<hr>
+<h2 class="h5">بنود الفاتورة</h2>
+@php($rows = old('items', $invoice->items?->toArray() ?: [['description'=>'','quantity'=>'1','unit_price'=>'0','discount_amount'=>'0','tax_percent'=>'0']]))
+<div class="table-responsive"><table class="table"><tr><th>المنتج</th><th>الوصف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الضريبة %</th></tr>@foreach($rows as $i => $row)<tr><td><select name="items[{{ $i }}][product_id]" class="form-select"><option value="">بدون</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((string)($row['product_id'] ?? '')===(string)$product->id)>{{ $product->name_ar }}</option>@endforeach</select></td><td><input name="items[{{ $i }}][description]" class="form-control" value="{{ $row['description'] ?? '' }}" required></td><td><input name="items[{{ $i }}][quantity]" type="number" step="0.000001" class="form-control" value="{{ $row['quantity'] ?? 1 }}" required></td><td><input name="items[{{ $i }}][unit_price]" type="number" step="0.000001" class="form-control" value="{{ $row['unit_price'] ?? 0 }}" required></td><td><input name="items[{{ $i }}][discount_amount]" type="number" step="0.000001" class="form-control" value="{{ $row['discount_amount'] ?? $row['discount'] ?? 0 }}"></td><td><input name="items[{{ $i }}][tax_percent]" type="number" step="0.000001" class="form-control" value="{{ $row['tax_percent'] ?? 0 }}"></td></tr>@endforeach</table></div>
+<p class="text-muted">احفظ كمسودة لمتابعة التعديل، أو جهّز الفاتورة عندما تصبح جاهزة للإرسال إلى نظام الفوترة الوطني.</p>
+<div class="d-flex gap-2 mt-3">
+    <button class="btn btn-outline-primary" name="save_action" value="draft">حفظ كمسودة</button>
+    <button class="btn btn-primary" name="save_action" value="ready">حفظ وتجهيز للإرسال</button>
+    <a class="btn btn-outline-secondary" href="{{ route('company.invoices.index', $company) }}">إلغاء</a>
+</div>

@@ -15,7 +15,6 @@ class CompanySeeder extends Seeder
             'trade_name' => 'مطبخ ومشاوي جوهرة الجبيهة',
             'tax_number' => '9578331',
             'jofotara_source_id' => '18412122',
-            'jofotara_client_id' => env('JOFOTARA_CLIENT_ID'),
             'phone' => '799021616',
             'country_code' => 'JO',
             'city' => 'Jordan',
@@ -24,9 +23,18 @@ class CompanySeeder extends Seeder
             'icv_prefix' => 'INV',
             'is_active' => true,
         ];
+        if (filled(env('JOFOTARA_CLIENT_ID'))) {
+            $data['jofotara_client_id'] = env('JOFOTARA_CLIENT_ID');
+        }
+
         if (filled(env('JOFOTARA_SECRET_KEY'))) {
             $data['jofotara_secret_key'] = env('JOFOTARA_SECRET_KEY');
         }
-        Company::updateOrCreate(['tax_number' => '9578331'], $data);
+        $company = Company::updateOrCreate(['tax_number' => '9578331'], $data);
+
+        $featureIds = \App\Models\FeatureKey::query()->where('is_active', true)->pluck('id')->all();
+        if ($featureIds !== []) {
+            $company->featureKeys()->sync($featureIds);
+        }
     }
 }

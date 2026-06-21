@@ -95,17 +95,13 @@ class JoFotaraPreparationService
             ];
         }
 
-        $previous = Invoice::query()
-            ->where('supplier_id', $invoice->supplier_id)
-            ->where('icv', $icv - 1)
-            ->where('status', 'ACCEPTED')
-            ->first();
+        $previous = $this->icv->previousAccepted($invoice->supplier, $icv);
 
         if (! $previous) {
-            throw new RuntimeException('PIH is missing: previous ACCEPTED invoice with ICV '.($icv - 1).' was not found for this company. Reset local failed attempts or accept the previous invoice first.');
+            throw new RuntimeException('PIH is missing: previous accepted JoFotara invoice with ICV '.($icv - 1).' was not found for this company. Local, draft, ready, cancelled, failed, and unsubmitted invoices are ignored.');
         }
         if (blank($previous->xml_hash)) {
-            throw new RuntimeException('PIH is missing: previous ACCEPTED invoice '.$previous->invoice_number.' has no xml_hash.');
+            throw new RuntimeException('PIH is missing: previous accepted JoFotara invoice '.$previous->invoice_number.' has no xml_hash.');
         }
 
         return [
@@ -115,6 +111,41 @@ class JoFotaraPreparationService
             'previous_invoice_id' => $previous->id,
             'previous_invoice_number' => $previous->invoice_number,
             'warning' => null,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    public function diagnostics(Invoice $invoice): array
+    {
+        $invoice->loadMissing('supplier');
+        $lastAccepted = $this->icv->lastAccepted($invoice->supplier);
+        $recommendedIcv = $invoice->jofotara_status === 'ACCEPTED' ? (int) $invoice->icv : $this->icv->nextForSubmission($invoice->supplier);
+        $previous = $recommendedIcv > 1 ? $this->icv->previousAccepted($invoice->supplier, $recommendedIcv) : null;
+
+        $pihStatus = match (true) {
+            $recommendedIcv === 1 => 'initial',
+            $previous !== null && filled($previous->xml_hash) => 'ready',
+            default => 'missing_previous',
+        };
+
+        $nextAction = match ($pihStatus) {
+            'initial' => 'هذه أول فاتورة يتم إرسالها إلى نظام الفوترة الوطني.',
+            'ready' => 'السلسلة جاهزة للإرسال.',
+            default => 'الفاتورة السابقة المطلوبة غير موجودة.',
+        };
+
+        return [
+            'current_invoice_number' => $invoice->invoice_number,
+            'current_status' => $invoice->status,
+            'jofotara_status' => $invoice->jofotara_status ?: 'غير مرسلة',
+            'current_icv' => $recommendedIcv,
+            'previous_invoice_number' => $previous?->invoice_number,
+            'previous_uuid' => $previous?->jofotara_uuid ?: $previous?->submission_uuid,
+            'previous_icv' => $previous?->icv,
+            'last_accepted_invoice_number' => $lastAccepted?->invoice_number,
+            'last_accepted_icv' => $lastAccepted?->icv,
+            'pih_status' => $pihStatus,
+            'next_action' => $nextAction,
         ];
     }
 
@@ -128,9 +159,10 @@ class JoFotaraPreparationService
         if (blank($invoice->uuid)) {
             $updates['uuid'] = (string) Str::uuid();
         }
-        if (blank($invoice->icv) || (int) $invoice->icv === 0) {
-            $invoice->loadMissing('supplier');
-            $updates['icv'] = $this->icv->next($invoice->supplier);
+        $invoice->loadMissing('supplier');
+        $recommendedIcv = $this->icv->nextForSubmission($invoice->supplier);
+        if ((int) $invoice->icv !== $recommendedIcv && $invoice->jofotara_status !== 'ACCEPTED') {
+            $updates['icv'] = $recommendedIcv;
         }
         if ($updates !== []) {
             $invoice->forceFill($updates)->save();

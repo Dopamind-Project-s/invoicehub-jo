@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceSubmissionLog;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -47,7 +48,9 @@ class JoFotaraApiService
 
         $parsed = $this->parser->parse($response);
         $status = $this->statusFrom($response->status(), $parsed);
-        $submissionUuid = filled($parsed['uuid']) ? (string) $parsed['uuid'] : (string) Str::uuid();
+        $officialUuid = filled($parsed['uuid']) ? (string) $parsed['uuid'] : null;
+        $submissionUuid = $officialUuid ?: (string) Str::uuid();
+        $successfulSubmission = $this->isSuccessfulSubmission($status, $parsed);
 
         InvoiceSubmissionLog::create([
             'invoice_id' => $preparedInvoice->id,
@@ -56,25 +59,38 @@ class JoFotaraApiService
             'http_status' => $response->status(),
             'request_payload' => ['invoice_base64_length' => strlen($payload['invoice'])],
             'response_body' => $parsed['raw_response'],
-            'error_message' => is_scalar($parsed['errors']) ? (string) $parsed['errors'] : json_encode(['errors' => $parsed['errors'], 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE),
+            'error_message' => $parsed['error_summary'] ?? (is_scalar($parsed['errors']) ? (string) $parsed['errors'] : json_encode(['errors' => $parsed['errors'], 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE)),
             'attempt' => InvoiceSubmissionLog::where('invoice_id', $preparedInvoice->id)->count() + 1,
             'submitted_at' => now(),
         ]);
 
+        $safeResponse = json_encode(['body' => $parsed['raw_response'] !== '' ? $parsed['raw_response'] : $parsed['body'], 'status' => $parsed['status'] ?? null, 'validation_result' => $parsed['validation_result'] ?? null, 'results' => $parsed['results'] ?? null, 'message' => $parsed['message'] ?? null, 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE);
+
         $preparedInvoice->forceFill([
-            'status' => $status,
             'submission_uuid' => $submissionUuid,
-            'submission_response' => json_encode(['body' => $parsed['raw_response'] !== '' ? $parsed['raw_response'] : $parsed['body'], 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE),
+            'submission_response' => $safeResponse,
             'qr_code' => $parsed['qr'] ?: $preparedInvoice->qr_code,
             'submitted_at' => now(),
             'accepted_at' => $status === 'ACCEPTED' ? now() : null,
+            'jofotara_status' => $status,
+            'jofotara_validation_result' => $parsed['validation_result'] ?? null,
+            'jofotara_uuid' => $officialUuid,
+            'jofotara_qr' => $parsed['qr'] ?: null,
+            'jofotara_response' => $safeResponse,
+            'jofotara_submitted_at' => now(),
+            'jofotara_error_message' => $successfulSubmission ? ($parsed['message'] ?? null) : ($parsed['error_summary'] ?? (is_scalar($parsed['errors']) ? (string) $parsed['errors'] : json_encode($parsed['errors'], JSON_UNESCAPED_UNICODE))),
         ])->save();
+
+        if ($status === 'ACCEPTED' && $preparedInvoice->supplier && (int) $preparedInvoice->supplier->last_icv < (int) $preparedInvoice->icv) {
+            $preparedInvoice->supplier->forceFill(['last_icv' => (int) $preparedInvoice->icv])->save();
+        }
 
         return [
             'prepared' => $prepared,
             'response' => $response,
             'parsed' => $parsed,
             'status' => $status,
+            'successful' => $successfulSubmission,
         ];
     }
 
@@ -82,6 +98,9 @@ class JoFotaraApiService
     {
         $invoice = $prepared['invoice'];
         $checks = $prepared['checks'];
+        if ($invoice->issue_date && $invoice->issue_date->toDateString() > Carbon::today()->toDateString()) {
+            throw new RuntimeException('لا يمكن إرسال فاتورة بتاريخ إصدار مستقبلي إلى نظام الفوترة الوطني.');
+        }
         if (($checks['invoice_type_code_name'] ?? null) !== '021') {
             throw new RuntimeException('Refusing submit: InvoiceTypeCode name must be 021 for income receivable local invoices.');
         }
@@ -116,6 +135,19 @@ class JoFotaraApiService
             return 'ERROR';
         }
 
-        return $parsed['accepted'] ? 'ACCEPTED' : 'REJECTED';
+        if (filled($parsed['status'] ?? null)) {
+            return strtoupper((string) $parsed['status']);
+        }
+
+        return $parsed['accepted'] ? 'SUBMITTED' : 'REJECTED';
+    }
+
+    private function isSuccessfulSubmission(string $status, array $parsed): bool
+    {
+        return in_array($status, ['ACCEPTED', 'SUBMITTED'], true)
+            && strtoupper((string) ($parsed['validation_result'] ?? '')) === 'PASS'
+            && filled($parsed['qr'] ?? null)
+            && filled($parsed['uuid'] ?? null)
+            && blank($parsed['error_summary'] ?? null);
     }
 }

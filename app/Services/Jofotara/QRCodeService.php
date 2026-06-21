@@ -10,16 +10,17 @@ class QRCodeService
 {
     public function raw(Invoice $invoice): string
     {
-        return (string) $invoice->qr_code;
+        return (string) ($invoice->jofotara_qr ?: $invoice->qr_code);
     }
 
     public function png(Invoice $invoice, int $scale = 6): ?string
     {
-        if ($invoice->status !== 'ACCEPTED' || blank($invoice->qr_code)) {
+        $value = $this->raw($invoice);
+        if (blank($value)) {
             return null;
         }
 
-        return $this->pngFromValue((string) $invoice->qr_code, $scale);
+        return $this->pngFromValue($value, $scale);
     }
 
     public function pngBase64(Invoice $invoice, int $scale = 6): ?string
