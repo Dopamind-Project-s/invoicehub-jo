@@ -77,6 +77,10 @@ class JoFotaraApiService
             'jofotara_error_message' => $status === 'ACCEPTED' ? ($parsed['message'] ?? null) : (is_scalar($parsed['errors']) ? (string) $parsed['errors'] : json_encode($parsed['errors'], JSON_UNESCAPED_UNICODE)),
         ])->save();
 
+        if ($status === 'ACCEPTED' && $preparedInvoice->supplier && (int) $preparedInvoice->supplier->last_icv < (int) $preparedInvoice->icv) {
+            $preparedInvoice->supplier->forceFill(['last_icv' => (int) $preparedInvoice->icv])->save();
+        }
+
         return [
             'prepared' => $prepared,
             'response' => $response,

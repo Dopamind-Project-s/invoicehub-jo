@@ -15,6 +15,7 @@ use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceBrandingService;
 use App\Services\Invoices\InvoiceNotificationService;
 use App\Services\Jofotara\JoFotaraApiService;
+use App\Services\Jofotara\JoFotaraPreparationService;
 use RuntimeException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -63,10 +64,39 @@ class InvoiceEngineController extends Controller
         return redirect()->route('company.invoices.show', [$company, $invoice])->with('status', $invoice->status === Invoice::STATUS_READY ? 'تم حفظ الفاتورة وتجهيزها للإرسال.' : 'تم حفظ الفاتورة كمسودة.');
     }
 
-    public function show(Company $company, Invoice $invoice)
+    public function show(Company $company, Invoice $invoice, JoFotaraPreparationService $preparer)
     {
         $this->authorizeCompany($company, $invoice);
-        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice->load(['contact', 'items.product', 'submissionLogs'])]);
+        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice->load(['contact', 'items.product', 'submissionLogs']), 'jofotaraDiagnostic' => $preparer->diagnostics($invoice)]);
+    }
+
+    public function jofotaraUat(Company $company, JoFotaraPreparationService $preparer)
+    {
+        abort_if(app()->environment('production'), 404);
+
+        $lastAccepted = Invoice::where('company_id', $company->id)
+            ->where('jofotara_status', 'ACCEPTED')
+            ->whereNotNull('jofotara_uuid')
+            ->whereNotNull('xml_hash')
+            ->orderByDesc('icv')
+            ->first();
+        $lastFailed = Invoice::where('company_id', $company->id)
+            ->whereIn('jofotara_status', ['ERROR', 'REJECTED'])
+            ->latest('jofotara_submitted_at')
+            ->first();
+        $nextEligible = Invoice::where('company_id', $company->id)
+            ->where('status', Invoice::STATUS_READY)
+            ->whereNull('jofotara_status')
+            ->orderBy('created_at')
+            ->first();
+
+        return view('company.invoices.jofotara-uat', [
+            'company' => $company,
+            'lastAccepted' => $lastAccepted,
+            'lastFailed' => $lastFailed,
+            'nextEligible' => $nextEligible,
+            'diagnostic' => $nextEligible ? $preparer->diagnostics($nextEligible) : null,
+        ]);
     }
 
     public function edit(Company $company, Invoice $invoice)

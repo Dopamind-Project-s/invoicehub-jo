@@ -183,6 +183,92 @@ class JofotaraMvpIntegrationTest extends TestCase
         $this->assertDatabaseHas('invoices', ['invoice_number' => 'EXT-100', 'source' => 'jofotara_import', 'jofotara_status' => 'ACCEPTED']);
     }
 
+    public function test_local_invoices_do_not_affect_first_jofotara_icv(): void
+    {
+        config(['services.jofotara.initial_pih' => 'INITIAL-PIH']);
+        [$company, $user] = $this->companyUser();
+        $company->update(['jofotara_client_id' => 'client', 'jofotara_secret_key' => 'secret-key-value', 'jofotara_source_id' => 'SRC-1']);
+        $company->featureKeys()->syncWithoutDetaching([FeatureKey::where('code', 'JOFOTARA_SUBMIT')->firstOrFail()->id]);
+
+        Invoice::where('company_id', $company->id)->update(['jofotara_status' => null, 'xml_hash' => null, 'jofotara_uuid' => null]);
+        $invoice = Invoice::where('company_id', $company->id)->where('status', Invoice::STATUS_READY)->firstOrFail();
+        $invoice->forceFill(['icv' => 99, 'jofotara_status' => null])->save();
+
+        Http::fake(['*' => Http::response(['EINV_INV_UUID' => 'FIRST-UUID', 'EINV_QR' => 'FIRST-QR', 'EINV_STATUS' => 'ACCEPTED'], 200)]);
+
+        $this->actingAs($user)->post(route('company.invoices.jofotara.submit', [$company, $invoice]))->assertRedirect();
+
+        $invoice->refresh();
+        $this->assertSame(1, (int) $invoice->icv);
+        $this->assertSame('ACCEPTED', $invoice->jofotara_status);
+        $this->assertSame(1, (int) $company->refresh()->last_icv);
+    }
+
+    public function test_accepted_jofotara_invoice_is_pih_source_and_failed_invoice_is_ignored(): void
+    {
+        [$company, $user] = $this->companyUser();
+        $company->update(['jofotara_client_id' => 'client', 'jofotara_secret_key' => 'secret-key-value', 'jofotara_source_id' => 'SRC-1']);
+        $company->featureKeys()->syncWithoutDetaching([FeatureKey::where('code', 'JOFOTARA_SUBMIT')->firstOrFail()->id]);
+
+        Invoice::where('company_id', $company->id)->delete();
+        $accepted = Invoice::create(array_merge($this->invoicePayload($company, Invoice::TYPE_TAX_INVOICE, 1), [
+            'invoice_number' => 'JF-ACCEPTED-1',
+            'icv' => 1,
+            'status' => Invoice::STATUS_SUBMITTED,
+            'jofotara_status' => 'ACCEPTED',
+            'jofotara_uuid' => 'ACCEPTED-UUID-1',
+            'xml_hash' => 'HASH-ACCEPTED-1',
+            'accepted_at' => now(),
+        ]));
+        Invoice::create(array_merge($this->invoicePayload($company, Invoice::TYPE_TAX_INVOICE, 2), [
+            'invoice_number' => 'JF-FAILED-2',
+            'icv' => 2,
+            'status' => Invoice::STATUS_READY,
+            'jofotara_status' => 'ERROR',
+            'xml_hash' => 'HASH-FAILED-2',
+            'jofotara_uuid' => 'FAILED-UUID-2',
+        ]));
+        $next = Invoice::create(array_merge($this->invoicePayload($company, Invoice::TYPE_TAX_INVOICE, 3), [
+            'invoice_number' => 'JF-NEXT',
+            'icv' => 77,
+            'status' => Invoice::STATUS_READY,
+            'jofotara_status' => null,
+        ]));
+
+        Http::fake(['*' => Http::response(['EINV_INV_UUID' => 'SECOND-UUID', 'EINV_QR' => 'SECOND-QR', 'EINV_STATUS' => 'ACCEPTED'], 200)]);
+
+        $this->actingAs($user)->post(route('company.invoices.jofotara.submit', [$company, $next]))->assertRedirect();
+
+        $next->refresh();
+        $this->assertSame(2, (int) $next->icv);
+        $this->assertSame($accepted->xml_hash, $next->previous_invoice_hash);
+        $this->assertSame('ACCEPTED', $next->jofotara_status);
+    }
+
+    public function test_jofotara_diagnostic_panel_and_uat_page_are_visible_outside_production(): void
+    {
+        [$company, $user] = $this->companyUser();
+        $invoice = Invoice::where('company_id', $company->id)->where('status', Invoice::STATUS_READY)->firstOrFail();
+
+        $this->actingAs($user)->get(route('company.invoices.show', [$company, $invoice]))
+            ->assertOk()
+            ->assertSee('تشخيص سلسلة جوفوتارا', false)
+            ->assertSee('هذه أول فاتورة يتم إرسالها إلى نظام الفوترة الوطني', false);
+
+        $this->actingAs($user)->get(route('company.invoices.jofotara.uat', $company))
+            ->assertOk()
+            ->assertSee('JoFotara UAT Status')
+            ->assertSee('حالة السلسلة', false);
+    }
+
+    public function test_jofotara_uat_page_is_unavailable_in_production(): void
+    {
+        [$company, $user] = $this->companyUser();
+        app()->detectEnvironment(fn () => 'production');
+
+        $this->actingAs($user)->get(route('company.invoices.jofotara.uat', $company))->assertNotFound();
+    }
+
 
     /** @return array<string,mixed> */
     private function invoicePayload(Company $company, string $type, int $index): array

@@ -31,5 +31,20 @@
     <div class="col-md-6"><div class="card card-body"><h2 class="h5">الإجماليات</h2><dl class="row"><dt class="col-4">المجموع</dt><dd class="col-8">{{ $invoice->subtotal }}</dd><dt class="col-4">الخصم</dt><dd class="col-8">{{ $invoice->discount_total }}</dd><dt class="col-4">الضريبة</dt><dd class="col-8">{{ $invoice->tax_total }}</dd><dt class="col-4">الإجمالي</dt><dd class="col-8">{{ $invoice->grand_total }} {{ $invoice->currency }}</dd></dl></div></div>
 </div>
 <div class="card card-body mt-3"><h2 class="h5">حالة الفوترة الوطنية / جوفوتارا</h2><dl class="row"><dt class="col-md-3">حالة الإرسال</dt><dd class="col-md-9">{{ $invoice->jofotara_status ?: 'غير مرسلة' }}</dd><dt class="col-md-3">رقم UUID من نظام الفوترة</dt><dd class="col-md-9">{{ $invoice->jofotara_uuid ?: $invoice->submission_uuid ?: '—' }}</dd><dt class="col-md-3">تاريخ الإرسال</dt><dd class="col-md-9">{{ $invoice->jofotara_submitted_at?->format('Y-m-d H:i') ?: '—' }}</dd><dt class="col-md-3">رسالة النظام</dt><dd class="col-md-9">{{ $invoice->jofotara_error_message ?: '—' }}</dd><dt class="col-md-3">نتيجة النظام</dt><dd class="col-md-9"><code class="text-break">{{ $invoice->jofotara_response ? Str::limit($invoice->jofotara_response, 500) : '—' }}</code></dd></dl>@if($invoice->jofotara_qr || $invoice->qr_code)<div class="alert alert-info"><strong>QR / Barcode:</strong><div class="text-break">{{ $invoice->jofotara_qr ?: $invoice->qr_code }}</div></div>@endif</div>
+
+<div class="card card-body mt-3">
+    <h2 class="h5">تشخيص سلسلة جوفوتارا PIH / ICV</h2>
+    <dl class="row mb-0">
+        <dt class="col-md-3">رقم الفاتورة الحالي</dt><dd class="col-md-9">{{ $jofotaraDiagnostic['current_invoice_number'] ?? $invoice->invoice_number }}</dd>
+        <dt class="col-md-3">حالة الفاتورة</dt><dd class="col-md-9">{{ $jofotaraDiagnostic['current_status'] ?? $invoice->status }}</dd>
+        <dt class="col-md-3">حالة جوفوتارا</dt><dd class="col-md-9">{{ $jofotaraDiagnostic['jofotara_status'] ?? ($invoice->jofotara_status ?: 'غير مرسلة') }}</dd>
+        <dt class="col-md-3">ICV الحالي للإرسال</dt><dd class="col-md-9">{{ $jofotaraDiagnostic['current_icv'] ?? $invoice->icv }}</dd>
+        <dt class="col-md-3">آخر فاتورة مقبولة</dt><dd class="col-md-9">{{ $jofotaraDiagnostic['last_accepted_invoice_number'] ?? '—' }} @if(!empty($jofotaraDiagnostic['last_accepted_icv']))(ICV {{ $jofotaraDiagnostic['last_accepted_icv'] }})@endif</dd>
+        <dt class="col-md-3">الفاتورة السابقة المطلوبة</dt><dd class="col-md-9">{{ $jofotaraDiagnostic['previous_invoice_number'] ?? '—' }}</dd>
+        <dt class="col-md-3">UUID السابق</dt><dd class="col-md-9">{{ $jofotaraDiagnostic['previous_uuid'] ?? '—' }}</dd>
+        <dt class="col-md-3">حالة PIH</dt><dd class="col-md-9">{{ $jofotaraDiagnostic['pih_status'] ?? '—' }}</dd>
+        <dt class="col-md-3">الإجراء المقترح</dt><dd class="col-md-9">{{ $jofotaraDiagnostic['next_action'] ?? '—' }}</dd>
+    </dl>
+</div>
 <div class="card mt-3"><table class="table mb-0"><tr><th>الوصف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr>@foreach($invoice->items as $item)<tr><td>{{ $item->description }}</td><td>{{ $item->quantity }}</td><td>{{ $item->unit_price }}</td><td>{{ $item->discount_amount }}</td><td>{{ $item->tax_amount }}</td><td>{{ $item->line_total }}</td></tr>@endforeach</table></div>
 @endsection

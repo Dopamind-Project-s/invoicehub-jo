@@ -101,6 +101,7 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
     Route::middleware('permission:invoices.view')->group(function (): void {
         Route::get('invoices', [InvoiceEngineController::class, 'index'])->name('invoices.index');
         Route::get('invoices/import', [JofotaraImportController::class, 'index'])->name('invoices.import.index');
+        Route::get('invoices/jofotara-uat', [InvoiceEngineController::class, 'jofotaraUat'])->name('invoices.jofotara.uat');
         Route::post('invoices/import', [JofotaraImportController::class, 'store'])->name('invoices.import.store');
         Route::get('invoices/{invoice}', [InvoiceEngineController::class, 'show'])->whereNumber('invoice')->name('invoices.show');
         Route::get('invoices/{invoice}/printable', [InvoiceEngineController::class, 'printable'])->whereNumber('invoice')->name('invoices.printable');

@@ -290,3 +290,26 @@ These PDFs are the official Phase 1 reference set and must be checked before cha
 - تجهيز الفاتورة للإرسال.
 - التأكد من ظهور زر الإرسال إلى نظام الفوترة الوطني عند اكتمال الصلاحيات والبيانات.
 - التأكد من عدم ظهور Secret Key في أي واجهة أو استجابة.
+
+## JoFotara PIH / ICV Chain Stabilization — 2026-06-21
+
+### Root cause
+- The live UAT error occurred because local MVP invoices and JoFotara-submitted invoices shared the same `icv` sequence assumptions.
+- The previous PIH lookup searched by `status = ACCEPTED` and `icv - 1`, which could ignore the new `jofotara_status = ACCEPTED` fields and could be blocked by local/failed/unsubmitted invoices consuming local ICV values.
+
+### Stabilized behavior
+- Local invoices may retain local/internal ICV values for compatibility, but they no longer define the official JoFotara chain.
+- The JoFotara chain is based only on accepted JoFotara invoices for the same establishment with a valid UUID/submission UUID and XML hash.
+- First JoFotara invoice uses ICV `1` and the configured initial PIH behavior already present in the JoFotara preparation service.
+- Failed/rejected submissions are retryable and are ignored as PIH sources.
+- On accepted submission, the establishment `last_icv` is updated to the accepted JoFotara ICV.
+
+### UI / UAT diagnostics
+- Invoice details now show a PIH / ICV diagnostic panel with current invoice status, JoFotara status, recommended ICV, previous accepted invoice, previous UUID, PIH status, and next recommended action.
+- A non-production-only `JoFotara UAT Status` page shows establishment credentials status, last accepted invoice, last failed invoice, next eligible invoice, and current sequence state.
+
+### Verification commands
+- `php artisan optimize:clear`
+- `php artisan migrate:fresh --seed`
+- `php artisan test tests/Feature/JofotaraMvpIntegrationTest.php --stop-on-failure`
+- `php artisan test`
