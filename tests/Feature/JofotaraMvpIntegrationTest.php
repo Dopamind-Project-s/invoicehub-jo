@@ -139,6 +139,86 @@ class JofotaraMvpIntegrationTest extends TestCase
             ->assertSee('بيانات الربط مع نظام الفوترة غير مكتملة', false);
     }
 
+
+    public function test_future_issue_date_blocks_before_http_call(): void
+    {
+        [$company, $user] = $this->companyUser();
+        $company->update(['jofotara_client_id' => 'client', 'jofotara_secret_key' => 'secret-key-value', 'jofotara_source_id' => 'SRC-1']);
+        $company->featureKeys()->syncWithoutDetaching([FeatureKey::where('code', 'JOFOTARA_SUBMIT')->firstOrFail()->id]);
+        $invoice = Invoice::where('company_id', $company->id)->firstOrFail();
+        $invoice->forceFill(['status' => Invoice::STATUS_READY, 'issue_date' => now()->addDay()->toDateString(), 'jofotara_status' => null])->save();
+
+        Http::fake(['*' => Http::response(['unexpected' => true], 200)]);
+
+        $this->actingAs($user)->post(route('company.invoices.jofotara.submit', [$company, $invoice]))
+            ->assertRedirect()
+            ->assertSessionHasErrors(['jofotara' => 'لا يمكن إرسال فاتورة بتاريخ إصدار مستقبلي إلى نظام الفوترة الوطني.']);
+
+        Http::assertNothingSent();
+        $this->assertSame(Invoice::STATUS_READY, $invoice->refresh()->status);
+    }
+
+    public function test_not_submitted_response_keeps_invoice_ready_and_prioritizes_errors(): void
+    {
+        [$company, $user] = $this->companyUser();
+        $company->update(['jofotara_client_id' => 'client', 'jofotara_secret_key' => 'secret-key-value', 'jofotara_source_id' => 'SRC-1']);
+        $company->featureKeys()->syncWithoutDetaching([FeatureKey::where('code', 'JOFOTARA_SUBMIT')->firstOrFail()->id]);
+        $invoice = Invoice::where('company_id', $company->id)->firstOrFail();
+        $invoice->forceFill(['status' => Invoice::STATUS_READY, 'issue_date' => now()->toDateString(), 'icv' => 1, 'jofotara_status' => null])->save();
+
+        Http::fake(['*' => Http::response([
+            'EINV_STATUS' => 'NOT_SUBMITTED',
+            'EINV_RESULTS' => [
+                'status' => 'ERROR',
+                'INFO' => [['INFO_MESSAGE' => 'Complied with UBL 2.1 standards']],
+                'ERRORS' => [['ERROR_MESSAGE' => 'Issue date cannot be in the future']],
+            ],
+        ], 200)]);
+
+        $this->actingAs($user)->post(route('company.invoices.jofotara.submit', [$company, $invoice]))
+            ->assertRedirect()
+            ->assertSessionHasErrors(['jofotara' => 'Issue date cannot be in the future']);
+
+        $invoice->refresh();
+        $this->assertSame(Invoice::STATUS_READY, $invoice->status);
+        $this->assertSame('NOT_SUBMITTED', $invoice->jofotara_status);
+        $this->assertSame('ERROR', $invoice->jofotara_validation_result);
+        $this->assertNull($invoice->jofotara_uuid);
+        $this->assertNull($invoice->jofotara_qr);
+        $this->assertSame('Issue date cannot be in the future', $invoice->jofotara_error_message);
+        $this->assertStringContainsString('Complied with UBL 2.1 standards', $invoice->jofotara_response);
+
+        $this->actingAs($user)->get(route('company.invoices.show', [$company, $invoice]))
+            ->assertOk()
+            ->assertSee('فشل إرسال الفاتورة إلى نظام الفوترة الوطني', false)
+            ->assertSee('إعادة الإرسال إلى نظام الفوترة الوطني', false)
+            ->assertSee('تعديل', false)
+            ->assertDontSee('تم إرسال الفاتورة إلى نظام الفوترة الوطني بنجاح', false)
+            ->assertDontSee('src="'.route('company.invoices.qr', [$company, $invoice]).'"', false);
+    }
+
+    public function test_error_result_or_missing_qr_uuid_keeps_invoice_ready(): void
+    {
+        [$company, $user] = $this->companyUser();
+        $company->update(['jofotara_client_id' => 'client', 'jofotara_secret_key' => 'secret-key-value', 'jofotara_source_id' => 'SRC-1']);
+        $company->featureKeys()->syncWithoutDetaching([FeatureKey::where('code', 'JOFOTARA_SUBMIT')->firstOrFail()->id]);
+
+        foreach ([
+            ['EINV_INV_UUID' => 'UUID-ERROR', 'EINV_QR' => 'QR-ERROR', 'EINV_STATUS' => 'SUBMITTED', 'EINV_RESULTS' => ['status' => 'ERROR', 'ERRORS' => [['ERROR_MESSAGE' => 'Validation failed']]]],
+            ['EINV_INV_UUID' => 'UUID-NO-QR', 'EINV_STATUS' => 'SUBMITTED', 'EINV_RESULTS' => ['status' => 'PASS']],
+            ['EINV_QR' => 'QR-NO-UUID', 'EINV_STATUS' => 'SUBMITTED', 'EINV_RESULTS' => ['status' => 'PASS']],
+        ] as $index => $body) {
+            $invoice = Invoice::where('company_id', $company->id)->orderBy('id')->firstOrFail();
+            $invoice->forceFill(['status' => Invoice::STATUS_READY, 'issue_date' => now()->toDateString(), 'icv' => 1, 'jofotara_status' => null, 'jofotara_qr' => null, 'jofotara_uuid' => null])->save();
+            Http::fake(['*' => Http::response($body, 200)]);
+
+            $this->actingAs($user)->post(route('company.invoices.jofotara.submit', [$company, $invoice]))->assertRedirect();
+
+            $invoice->refresh();
+            $this->assertSame(Invoice::STATUS_READY, $invoice->status, 'Case '.$index.' should stay retryable.');
+        }
+    }
+
     public function test_ready_invoice_can_be_submitted_to_jofotara_with_mocked_http_response(): void
     {
         config(['services.jofotara.initial_pih' => 'INITIAL-PIH']);

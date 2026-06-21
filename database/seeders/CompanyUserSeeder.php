@@ -50,8 +50,10 @@ class CompanyUserSeeder extends Seeder
 
     private function ensureDefaultRoles(int $companyId): void
     {
+        $allPermissions = DB::table('permissions')->where('guard_name', 'web')->pluck('name')->all();
+
         $rolePermissions = [
-            'Owner' => ['users.manage', 'products.manage', 'contacts.manage', 'invoices.view', 'invoices.create', 'invoices.approve', 'invoices.submit', 'settings.manage', 'reports.view'],
+            'Owner' => $allPermissions,
             'Accountant' => ['contacts.manage', 'invoices.view', 'invoices.create', 'invoices.approve', 'invoices.submit', 'reports.view'],
             'Reviewer' => ['invoices.view', 'invoices.approve', 'reports.view'],
             'Sales' => ['contacts.manage', 'invoices.view', 'invoices.create'],

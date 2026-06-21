@@ -13,7 +13,7 @@
 </head>
 <body class="dir-rtl">
 <div class="layout-shell">
-    <x-layout.sidebar :company="request()->route('company')" />
+    <x-layout.sidebar :company="request()->route('company') ?: auth()->user()?->company" />
 
     <div class="content-shell">
         <header>

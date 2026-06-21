@@ -19,9 +19,11 @@ class JoFotaraResponseParser
         $results = $this->first($body, ['EINV_RESULTS', 'results', 'data.EINV_RESULTS']);
         $validationResult = is_array($results) ? $this->first($results, ['status', 'Status']) : $results;
         $message = $this->first($body, ['EINV_MESSAGE', 'message', 'data.EINV_MESSAGE']);
-        $errors = $this->first($body, ['errors', 'validationErrors', 'ErrorMessage']) ?: ($response->failed() ? $message : null);
+        $errors = $this->first($body, ['EINV_RESULTS.ERRORS', 'EINV_RESULTS.ERRORS.ERROR', 'ERRORS', 'ERRORS.ERROR', 'errors', 'validationErrors', 'ErrorMessage', 'data.EINV_RESULTS.ERRORS', 'data.ERRORS']);
+        $errorSummary = $this->summarize($errors) ?: ($response->failed() ? $this->summarize($message) : null);
         $statusText = strtoupper((string) $status);
-        $accepted = $response->successful() && $raw !== '' && ! $errors && (blank($status) || (! str_contains($statusText, 'REJECT') && ! str_contains($statusText, 'ERROR') && ! str_contains($statusText, 'FAIL')));
+        $validationText = strtoupper((string) $validationResult);
+        $accepted = $response->successful() && $raw !== '' && ! $errorSummary && filled($uuid) && filled($qr) && $validationText !== 'ERROR' && (blank($status) || (! str_contains($statusText, 'NOT_SUBMITTED') && ! str_contains($statusText, 'REJECT') && ! str_contains($statusText, 'ERROR') && ! str_contains($statusText, 'FAIL')));
 
         return [
             'accepted' => $accepted,
@@ -29,6 +31,7 @@ class JoFotaraResponseParser
             'uuid' => $uuid,
             'qr' => $qr,
             'errors' => $errors,
+            'error_summary' => $errorSummary,
             'status' => $status,
             'results' => $results,
             'validation_result' => $validationResult,
@@ -37,6 +40,40 @@ class JoFotaraResponseParser
             'raw_response' => $raw,
             'warnings' => $accepted && blank($qr) ? ['Accepted but QR was not found in response.'] : [],
         ];
+    }
+
+    private function summarize(mixed $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        if (is_scalar($value)) {
+            return trim((string) $value) ?: null;
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $messages = [];
+        foreach (['ERROR_MESSAGE', 'message', 'Message', 'error', 'ErrorMessage'] as $key) {
+            $found = data_get($value, $key);
+            if (is_scalar($found) && filled($found)) {
+                $messages[] = trim((string) $found);
+            }
+        }
+
+        foreach ($value as $item) {
+            $summary = $this->summarize($item);
+            if (filled($summary)) {
+                $messages[] = $summary;
+            }
+        }
+
+        $messages = array_values(array_unique(array_filter($messages)));
+
+        return $messages === [] ? null : implode(' | ', $messages);
     }
 
     private function first(array $body, array $keys): mixed

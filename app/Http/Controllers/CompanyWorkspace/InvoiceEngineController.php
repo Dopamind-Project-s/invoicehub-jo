@@ -19,6 +19,7 @@ use App\Services\Jofotara\JoFotaraPreparationService;
 use App\Services\Jofotara\QRCodeService;
 use RuntimeException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -171,18 +172,29 @@ class InvoiceEngineController extends Controller
         $this->authorizeCompany($company, $invoice);
         abort_unless($this->canSubmitToJofotara($company, $invoice), 403, 'شروط الإرسال إلى جوفوتارا غير مكتملة.');
 
+        if ($invoice->issue_date && $invoice->issue_date->toDateString() > Carbon::today()->toDateString()) {
+            return back()->withErrors(['jofotara' => 'لا يمكن إرسال فاتورة بتاريخ إصدار مستقبلي إلى نظام الفوترة الوطني.']);
+        }
+
         $before = $invoice->only('jofotara_status', 'jofotara_validation_result', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message');
 
         try {
             $result = $api->submit($invoice);
             $invoice->refresh();
-            $invoice->forceFill(['status' => Invoice::STATUS_SUBMITTED])->save();
-            $this->audit->record('invoice.jofotara.submitted', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_validation_result', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message'), $request);
-            $this->notifications->record($invoice, 'submitted', Auth::id());
+            if ($result['successful']) {
+                $invoice->forceFill(['status' => Invoice::STATUS_SUBMITTED])->save();
+                $this->notifications->record($invoice, 'submitted', Auth::id());
+                $this->audit->record('invoice.jofotara.submitted', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_validation_result', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message'), $request);
 
-            return back()->with('status', 'تم إرسال الفاتورة إلى نظام الفوترة الوطني بنجاح'.PHP_EOL.'حالة جوفوتارا: '.$invoice->jofotara_status.PHP_EOL.'نتيجة التحقق: '.($invoice->jofotara_validation_result ?: '—'));
+                return back()->with('status', 'تم إرسال الفاتورة إلى نظام الفوترة الوطني بنجاح'.PHP_EOL.'حالة جوفوتارا: '.$invoice->jofotara_status.PHP_EOL.'نتيجة التحقق: '.($invoice->jofotara_validation_result ?: '—'));
+            }
+
+            $invoice->forceFill(['status' => Invoice::STATUS_READY])->save();
+            $this->audit->record('invoice.jofotara.failed', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_validation_result', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message'), $request);
+
+            return back()->withErrors(['jofotara' => $invoice->jofotara_error_message ?: 'لم يتم إرسال الفاتورة إلى نظام الفوترة الوطني.']);
         } catch (RuntimeException $exception) {
-            $invoice->forceFill(['jofotara_status' => 'ERROR', 'jofotara_error_message' => $exception->getMessage(), 'jofotara_submitted_at' => now()])->save();
+            $invoice->forceFill(['status' => Invoice::STATUS_READY, 'jofotara_status' => 'ERROR', 'jofotara_error_message' => $exception->getMessage(), 'jofotara_submitted_at' => now()])->save();
             $this->audit->record('invoice.jofotara.failed', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_error_message'), $request);
 
             return back()->withErrors(['jofotara' => $exception->getMessage()]);
@@ -258,7 +270,10 @@ class InvoiceEngineController extends Controller
             && ($company->is_active ?? true)
             && Auth::user()?->can('invoices.submit')
             && $invoice->status === Invoice::STATUS_READY
-            && ! in_array($invoice->jofotara_status, ['ACCEPTED', 'SUBMITTED'], true);
+            && ! (
+                $invoice->jofotara_status === 'ACCEPTED'
+                || ($invoice->jofotara_status === 'SUBMITTED' && $invoice->jofotara_validation_result === 'PASS' && filled($invoice->jofotara_qr) && filled($invoice->jofotara_uuid))
+            );
     }
 
     private function authorizeCompany(Company $company, Invoice $invoice): void

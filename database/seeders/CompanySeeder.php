@@ -30,6 +30,11 @@ class CompanySeeder extends Seeder
         if (filled(env('JOFOTARA_SECRET_KEY'))) {
             $data['jofotara_secret_key'] = env('JOFOTARA_SECRET_KEY');
         }
-        Company::updateOrCreate(['tax_number' => '9578331'], $data);
+        $company = Company::updateOrCreate(['tax_number' => '9578331'], $data);
+
+        $featureIds = \App\Models\FeatureKey::query()->where('is_active', true)->pluck('id')->all();
+        if ($featureIds !== []) {
+            $company->featureKeys()->sync($featureIds);
+        }
     }
 }
