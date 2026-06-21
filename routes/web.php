@@ -105,6 +105,7 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
         Route::post('invoices/import', [JofotaraImportController::class, 'store'])->name('invoices.import.store');
         Route::get('invoices/{invoice}', [InvoiceEngineController::class, 'show'])->whereNumber('invoice')->name('invoices.show');
         Route::get('invoices/{invoice}/printable', [InvoiceEngineController::class, 'printable'])->whereNumber('invoice')->name('invoices.printable');
+        Route::get('invoices/{invoice}/qr', [InvoiceEngineController::class, 'qr'])->whereNumber('invoice')->name('invoices.qr');
         Route::post('invoices/{invoice}/shares', [InvoiceShareController::class, 'store'])->whereNumber('invoice')->name('invoices.shares.store');
     });
     Route::post('invoices/{invoice}/approve', [InvoiceEngineController::class, 'approve'])->middleware('permission:invoices.approve')->whereNumber('invoice')->name('invoices.approve');

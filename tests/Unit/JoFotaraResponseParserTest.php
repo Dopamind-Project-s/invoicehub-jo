@@ -11,6 +11,17 @@ use PHPUnit\Framework\TestCase;
 
 class JoFotaraResponseParserTest extends TestCase
 {
+    public function test_pass_validation_and_submitted_status_are_separate_from_accepted(): void
+    {
+        $response = new Response(new PsrResponse(200, [], json_encode(['EINV_INV_UUID' => 'UUID-1', 'EINV_QR' => 'QR-1', 'EINV_STATUS' => 'SUBMITTED', 'EINV_RESULTS' => ['status' => 'PASS']])));
+        $parsed = (new JoFotaraResponseParser)->parse($response);
+
+        $this->assertSame('SUBMITTED', $parsed['status']);
+        $this->assertSame('PASS', $parsed['validation_result']);
+        $this->assertNotSame('ACCEPTED', $parsed['status']);
+        $this->assertNotSame('ACCEPTED', $parsed['validation_result']);
+    }
+
     public function test_it_reads_known_qr_and_uuid_variations(): void
     {
         $response = new Response(new PsrResponse(200, [], json_encode(['EINV_NUM' => 'SUB-1', 'EINV_QR' => 'QR-VALUE'])));

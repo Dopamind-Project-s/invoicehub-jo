@@ -17,6 +17,7 @@ class JoFotaraResponseParser
         $qr = $this->first($body, ['qr', 'qr_code', 'EINV_QR', 'invoiceQr', 'QR', 'data.qr', 'data.qr_code', 'data.EINV_QR']);
         $status = $this->first($body, ['EINV_STATUS', 'status', 'data.EINV_STATUS']);
         $results = $this->first($body, ['EINV_RESULTS', 'results', 'data.EINV_RESULTS']);
+        $validationResult = is_array($results) ? $this->first($results, ['status', 'Status']) : $results;
         $message = $this->first($body, ['EINV_MESSAGE', 'message', 'data.EINV_MESSAGE']);
         $errors = $this->first($body, ['errors', 'validationErrors', 'ErrorMessage']) ?: ($response->failed() ? $message : null);
         $statusText = strtoupper((string) $status);
@@ -30,6 +31,7 @@ class JoFotaraResponseParser
             'errors' => $errors,
             'status' => $status,
             'results' => $results,
+            'validation_result' => $validationResult,
             'message' => $message,
             'body' => $body,
             'raw_response' => $raw,

@@ -30,7 +30,28 @@
     <div class="col-md-6"><div class="card card-body"><h2 class="h5">البيانات</h2><dl class="row"><dt class="col-4">جهة الاتصال</dt><dd class="col-8">{{ $invoice->contact?->name_ar }}</dd><dt class="col-4">النوع</dt><dd class="col-8">{{ $invoice->invoice_type }}</dd><dt class="col-4">المصدر</dt><dd class="col-8">{{ $invoice->source === 'jofotara_import' ? 'استيراد جوفوتارا' : 'محلي' }}</dd><dt class="col-4">الإصدار</dt><dd class="col-8">{{ $invoice->issue_date?->format('Y-m-d') }}</dd><dt class="col-4">الاستحقاق</dt><dd class="col-8">{{ $invoice->due_date?->format('Y-m-d') ?: '—' }}</dd></dl></div></div>
     <div class="col-md-6"><div class="card card-body"><h2 class="h5">الإجماليات</h2><dl class="row"><dt class="col-4">المجموع</dt><dd class="col-8">{{ $invoice->subtotal }}</dd><dt class="col-4">الخصم</dt><dd class="col-8">{{ $invoice->discount_total }}</dd><dt class="col-4">الضريبة</dt><dd class="col-8">{{ $invoice->tax_total }}</dd><dt class="col-4">الإجمالي</dt><dd class="col-8">{{ $invoice->grand_total }} {{ $invoice->currency }}</dd></dl></div></div>
 </div>
-<div class="card card-body mt-3"><h2 class="h5">حالة الفوترة الوطنية / جوفوتارا</h2><dl class="row"><dt class="col-md-3">حالة الإرسال</dt><dd class="col-md-9">{{ $invoice->jofotara_status ?: 'غير مرسلة' }}</dd><dt class="col-md-3">رقم UUID من نظام الفوترة</dt><dd class="col-md-9">{{ $invoice->jofotara_uuid ?: $invoice->submission_uuid ?: '—' }}</dd><dt class="col-md-3">تاريخ الإرسال</dt><dd class="col-md-9">{{ $invoice->jofotara_submitted_at?->format('Y-m-d H:i') ?: '—' }}</dd><dt class="col-md-3">رسالة النظام</dt><dd class="col-md-9">{{ $invoice->jofotara_error_message ?: '—' }}</dd><dt class="col-md-3">نتيجة النظام</dt><dd class="col-md-9"><code class="text-break">{{ $invoice->jofotara_response ? Str::limit($invoice->jofotara_response, 500) : '—' }}</code></dd></dl>@if($invoice->jofotara_qr || $invoice->qr_code)<div class="alert alert-info"><strong>QR / Barcode:</strong><div class="text-break">{{ $invoice->jofotara_qr ?: $invoice->qr_code }}</div></div>@endif</div>
+<div class="card card-body mt-3">
+    <h2 class="h5">حالة الفوترة الوطنية / جوفوتارا</h2>
+    <dl class="row">
+        <dt class="col-md-3">حالة الفاتورة المحلية</dt><dd class="col-md-9">{{ $invoice->status }}</dd>
+        <dt class="col-md-3">حالة جوفوتارا</dt><dd class="col-md-9">{{ $invoice->jofotara_status ?: 'غير مرسلة' }}</dd>
+        <dt class="col-md-3">نتيجة التحقق</dt><dd class="col-md-9">{{ $invoice->jofotara_validation_result ?: '—' }}</dd>
+        <dt class="col-md-3">رقم UUID</dt><dd class="col-md-9">{{ $invoice->jofotara_uuid ?: $invoice->submission_uuid ?: '—' }}</dd>
+        <dt class="col-md-3">تاريخ الإرسال</dt><dd class="col-md-9">{{ $invoice->jofotara_submitted_at?->format('Y-m-d H:i') ?: '—' }}</dd>
+        <dt class="col-md-3">رسالة النظام</dt><dd class="col-md-9">{{ $invoice->jofotara_error_message ?: '—' }}</dd>
+    </dl>
+    @if($invoice->jofotara_qr || $invoice->qr_code)
+        <div class="alert alert-info">
+            <strong>رمز QR</strong>
+            <div class="mt-2"><img alt="رمز QR" src="{{ route('company.invoices.qr', [$company, $invoice]) }}" width="180" height="180"></div>
+            <details class="mt-2"><summary>التفاصيل التقنية الخام</summary><code class="text-break d-block mt-2">{{ $invoice->jofotara_qr ?: $invoice->qr_code }}</code></details>
+        </div>
+    @endif
+    <details>
+        <summary>استجابة جوفوتارا الخام</summary>
+        <code class="text-break d-block mt-2">{{ $invoice->jofotara_response ? Str::limit($invoice->jofotara_response, 2000) : '—' }}</code>
+    </details>
+</div>
 
 <div class="card card-body mt-3">
     <h2 class="h5">تشخيص سلسلة جوفوتارا PIH / ICV</h2>

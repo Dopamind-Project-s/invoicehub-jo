@@ -16,6 +16,7 @@ use App\Services\Invoices\InvoiceBrandingService;
 use App\Services\Invoices\InvoiceNotificationService;
 use App\Services\Jofotara\JoFotaraApiService;
 use App\Services\Jofotara\JoFotaraPreparationService;
+use App\Services\Jofotara\QRCodeService;
 use RuntimeException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -170,22 +171,31 @@ class InvoiceEngineController extends Controller
         $this->authorizeCompany($company, $invoice);
         abort_unless($this->canSubmitToJofotara($company, $invoice), 403, 'شروط الإرسال إلى جوفوتارا غير مكتملة.');
 
-        $before = $invoice->only('jofotara_status', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message');
+        $before = $invoice->only('jofotara_status', 'jofotara_validation_result', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message');
 
         try {
             $result = $api->submit($invoice);
             $invoice->refresh();
             $invoice->forceFill(['status' => Invoice::STATUS_SUBMITTED])->save();
-            $this->audit->record('invoice.jofotara.submitted', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message'), $request);
+            $this->audit->record('invoice.jofotara.submitted', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_validation_result', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message'), $request);
             $this->notifications->record($invoice, 'submitted', Auth::id());
 
-            return back()->with('status', 'تم إرسال الفاتورة إلى جوفوتارا. الحالة: '.$result['status']);
+            return back()->with('status', 'تم إرسال الفاتورة إلى نظام الفوترة الوطني بنجاح'.PHP_EOL.'حالة جوفوتارا: '.$invoice->jofotara_status.PHP_EOL.'نتيجة التحقق: '.($invoice->jofotara_validation_result ?: '—'));
         } catch (RuntimeException $exception) {
             $invoice->forceFill(['jofotara_status' => 'ERROR', 'jofotara_error_message' => $exception->getMessage(), 'jofotara_submitted_at' => now()])->save();
             $this->audit->record('invoice.jofotara.failed', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_error_message'), $request);
 
             return back()->withErrors(['jofotara' => $exception->getMessage()]);
         }
+    }
+
+    public function qr(Company $company, Invoice $invoice, QRCodeService $qr)
+    {
+        $this->authorizeCompany($company, $invoice);
+        $png = $qr->png($invoice);
+        abort_if($png === null, 404);
+
+        return response($png, 200)->header('Content-Type', 'image/png');
     }
 
     public function printable(Company $company, Invoice $invoice, InvoicePdfService $pdf)

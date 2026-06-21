@@ -37,6 +37,22 @@ class JofotaraSequenceTest extends TestCase
         $this->assertSame(1, app(ICVService::class)->nextForSubmission($company));
     }
 
+    public function test_submitted_jofotara_invoice_is_not_previous_pih_source(): void
+    {
+        $company = Company::where('tax_number', '9578331')->firstOrFail();
+        Invoice::where('company_id', $company->id)->delete();
+
+        Invoice::create($this->payload($company, 'JF-SUBMITTED-1', 1, [
+            'status' => Invoice::STATUS_SUBMITTED,
+            'jofotara_status' => 'SUBMITTED',
+            'jofotara_uuid' => 'UUID-SUBMITTED',
+            'xml_hash' => 'HASH-SUBMITTED',
+        ]));
+
+        $this->assertSame(1, app(ICVService::class)->nextForSubmission($company));
+        $this->assertNull(app(ICVService::class)->previousAccepted($company, 2));
+    }
+
     public function test_accepted_jofotara_invoice_becomes_previous_pih_source(): void
     {
         $company = Company::where('tax_number', '9578331')->firstOrFail();

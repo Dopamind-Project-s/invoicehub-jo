@@ -61,7 +61,7 @@ class JoFotaraApiService
             'submitted_at' => now(),
         ]);
 
-        $safeResponse = json_encode(['body' => $parsed['raw_response'] !== '' ? $parsed['raw_response'] : $parsed['body'], 'status' => $parsed['status'] ?? null, 'results' => $parsed['results'] ?? null, 'message' => $parsed['message'] ?? null, 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE);
+        $safeResponse = json_encode(['body' => $parsed['raw_response'] !== '' ? $parsed['raw_response'] : $parsed['body'], 'status' => $parsed['status'] ?? null, 'validation_result' => $parsed['validation_result'] ?? null, 'results' => $parsed['results'] ?? null, 'message' => $parsed['message'] ?? null, 'warnings' => $parsed['warnings'] ?? []], JSON_UNESCAPED_UNICODE);
 
         $preparedInvoice->forceFill([
             'submission_uuid' => $submissionUuid,
@@ -70,11 +70,12 @@ class JoFotaraApiService
             'submitted_at' => now(),
             'accepted_at' => $status === 'ACCEPTED' ? now() : null,
             'jofotara_status' => $status,
+            'jofotara_validation_result' => $parsed['validation_result'] ?? null,
             'jofotara_uuid' => $submissionUuid,
             'jofotara_qr' => $parsed['qr'] ?: $preparedInvoice->jofotara_qr,
             'jofotara_response' => $safeResponse,
             'jofotara_submitted_at' => now(),
-            'jofotara_error_message' => $status === 'ACCEPTED' ? ($parsed['message'] ?? null) : (is_scalar($parsed['errors']) ? (string) $parsed['errors'] : json_encode($parsed['errors'], JSON_UNESCAPED_UNICODE)),
+            'jofotara_error_message' => in_array($status, ['ACCEPTED', 'SUBMITTED'], true) ? ($parsed['message'] ?? null) : (is_scalar($parsed['errors']) ? (string) $parsed['errors'] : json_encode($parsed['errors'], JSON_UNESCAPED_UNICODE)),
         ])->save();
 
         if ($status === 'ACCEPTED' && $preparedInvoice->supplier && (int) $preparedInvoice->supplier->last_icv < (int) $preparedInvoice->icv) {
@@ -130,11 +131,25 @@ class JoFotaraApiService
         if (filled($parsed['status'] ?? null)) {
             $statusText = strtoupper((string) $parsed['status']);
 
-            if (str_contains($statusText, 'ACCEPT') || str_contains($statusText, 'SUBMIT')) {
+            if (str_contains($statusText, 'ACCEPT')) {
                 return 'ACCEPTED';
             }
+
+            if (str_contains($statusText, 'SUBMIT')) {
+                return 'SUBMITTED';
+            }
+
+            if (str_contains($statusText, 'REJECT')) {
+                return 'REJECTED';
+            }
+
+            if (str_contains($statusText, 'ERROR') || str_contains($statusText, 'FAIL')) {
+                return 'ERROR';
+            }
+
+            return $statusText;
         }
 
-        return $parsed['accepted'] ? 'ACCEPTED' : 'REJECTED';
+        return $parsed['accepted'] ? 'SUBMITTED' : 'REJECTED';
     }
 }

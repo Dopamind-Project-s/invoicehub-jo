@@ -148,16 +148,48 @@ class JofotaraMvpIntegrationTest extends TestCase
         $invoice = Invoice::where('company_id', $company->id)->orderBy('icv')->firstOrFail();
         $invoice->forceFill(['status' => Invoice::STATUS_READY, 'icv' => 1, 'jofotara_status' => null])->save();
 
-        Http::fake(['*' => Http::response(['EINV_INV_UUID' => 'JF-UUID-1', 'EINV_QR' => 'QR-CODE-1', 'EINV_STATUS' => 'ACCEPTED', 'EINV_RESULTS' => 'PASS', 'EINV_MESSAGE' => 'Accepted'], 200)]);
+        Http::fake(['*' => Http::response(['EINV_INV_UUID' => 'JF-UUID-1', 'EINV_QR' => 'QR-CODE-1', 'EINV_STATUS' => 'SUBMITTED', 'EINV_RESULTS' => ['status' => 'PASS'], 'EINV_MESSAGE' => 'Submitted'], 200)]);
 
         $this->actingAs($user)->post(route('company.invoices.jofotara.submit', [$company, $invoice]))->assertRedirect();
 
         $invoice->refresh();
-        $this->assertSame('ACCEPTED', $invoice->jofotara_status);
+        $this->assertSame('SUBMITTED', $invoice->jofotara_status);
+        $this->assertSame('PASS', $invoice->jofotara_validation_result);
         $this->assertSame('JF-UUID-1', $invoice->jofotara_uuid);
         $this->assertSame('QR-CODE-1', $invoice->jofotara_qr);
         $this->assertSame(Invoice::STATUS_SUBMITTED, $invoice->status);
-        $this->assertDatabaseHas('invoice_submission_logs', ['invoice_id' => $invoice->id, 'status' => 'ACCEPTED']);
+        $this->assertDatabaseHas('invoice_submission_logs', ['invoice_id' => $invoice->id, 'status' => 'SUBMITTED']);
+        Http::assertSent(function ($request) {
+            $payload = $request->data();
+
+            return $request->hasHeader('Client-Id', 'client')
+                && $request->hasHeader('Secret-Key', 'secret-key-value')
+                && $request->hasHeader('Content-Type', 'application/json')
+                && $request->hasHeader('Accept', '*/*')
+                && array_key_exists('invoice', $payload)
+                && count($payload) === 1
+                && base64_decode($payload['invoice'], true) !== false
+                && ! str_contains(json_encode($payload), 'secret-key-value');
+        });
+    }
+
+    public function test_invoice_details_show_qr_image_and_qr_route_returns_png_when_einv_qr_exists(): void
+    {
+        [$company, $user] = $this->companyUser();
+        $invoice = Invoice::where('company_id', $company->id)->firstOrFail();
+        $invoice->forceFill(['jofotara_status' => 'SUBMITTED', 'jofotara_validation_result' => 'PASS', 'jofotara_uuid' => 'UUID-QR', 'jofotara_qr' => 'QR-FROM-EINV'])->save();
+
+        $this->actingAs($user)->get(route('company.invoices.show', [$company, $invoice]))
+            ->assertOk()
+            ->assertSee('حالة الفاتورة المحلية', false)
+            ->assertSee('حالة جوفوتارا', false)
+            ->assertSee('نتيجة التحقق', false)
+            ->assertSee('رمز QR', false)
+            ->assertSee(route('company.invoices.qr', [$company, $invoice]), false);
+
+        $this->actingAs($user)->get(route('company.invoices.qr', [$company, $invoice]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/png');
     }
 
     public function test_jofotara_import_prevents_duplicate_external_invoices(): void
