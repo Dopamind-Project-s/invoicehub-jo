@@ -152,6 +152,49 @@ class MasterDataFoundationTest extends TestCase
         $this->get(route('company.products.edit', [$companyB, $product]))->assertNotFound();
     }
 
+    public function test_units_tax_profiles_and_activity_pages_render(): void
+    {
+        $company = Company::create(['legal_name_ar' => 'شركة تشغيل', 'tax_number' => (string) random_int(100000, 999999)]);
+        $user = \App\Models\User::factory()->create(['company_id' => $company->id, 'name' => 'مدير التشغيل']);
+        $globalUnit = Unit::create(['code' => 'KG'.random_int(100, 999), 'name' => 'Kilogram', 'name_ar' => 'كيلوغرام', 'symbol' => 'kg', 'is_active' => true]);
+        $unit = Unit::create(['company_id' => $company->id, 'code' => 'BOX'.random_int(100, 999), 'name' => 'Box', 'name_ar' => 'صندوق', 'symbol' => 'box', 'is_active' => true]);
+        $taxProfile = TaxProfile::create(['company_id' => $company->id, 'name' => 'ضريبة مبيعات', 'tax_type' => 'sales', 'tax_percent' => 16, 'jofotara_tax_code' => 'S', 'is_active' => true]);
+        AuditLog::create(['user_id' => $user->id, 'action' => 'master_data.unit.created', 'auditable_type' => Unit::class, 'auditable_id' => $unit->id]);
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+        $this->actingAs($user);
+
+        $this->get(route('company.units.index', $company))->assertOk()->assertSee('الوحدات')->assertSee('استخدم الوحدات لتحديد طريقة قياس المنتجات والخدمات.');
+        $this->get(route('company.units.create', $company))->assertOk()->assertSee('حفظ وإضافة أخرى');
+        $this->get(route('company.units.edit', [$company, $unit]))->assertOk()->assertSee('حفظ التعديلات');
+        $this->get(route('company.units.edit', [$company, $globalUnit]))->assertOk()->assertSee('وحدة عامة');
+
+        $this->get(route('company.tax-profiles.index', $company))->assertOk()->assertSee('إعدادات الضرائب')->assertSee('حدد نسب وأنواع الضرائب المستخدمة في الفواتير.');
+        $this->get(route('company.tax-profiles.create', $company))->assertOk()->assertSee('كود جوفوتارا');
+        $this->get(route('company.tax-profiles.edit', [$company, $taxProfile]))->assertOk()->assertSee('حفظ التعديلات');
+
+        $this->get(route('company.activity.index', $company))->assertOk()->assertSee('سجل النشاطات')->assertSee('master_data.unit.created');
+
+        foreach (array_merge(glob(resource_path('views/company/master-data/units/*.blade.php')) ?: [], glob(resource_path('views/company/master-data/tax-profiles/*.blade.php')) ?: [], [resource_path('views/company/activity/index.blade.php')]) as $file) {
+            $this->assertStringNotContainsString('@vite', file_get_contents($file), $file);
+        }
+    }
+
+    public function test_units_and_tax_profile_company_isolation_remains_valid(): void
+    {
+        $companyA = Company::create(['legal_name_ar' => 'شركة أ', 'tax_number' => (string) random_int(100000, 999999)]);
+        $companyB = Company::create(['legal_name_ar' => 'شركة ب', 'tax_number' => (string) random_int(100000, 999999)]);
+        $unit = Unit::create(['company_id' => $companyA->id, 'code' => 'A'.random_int(100, 999), 'name' => 'Unit A', 'name_ar' => 'وحدة أ', 'is_active' => true]);
+        $taxProfile = TaxProfile::create(['company_id' => $companyA->id, 'name' => 'ضريبة أ', 'tax_type' => 'sales', 'tax_percent' => 5, 'is_active' => true]);
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+        $this->actingAs(\App\Models\User::factory()->create(['company_id' => $companyA->id]));
+
+        $this->get(route('company.units.edit', [$companyA, $unit]))->assertOk();
+        $this->get(route('company.units.edit', [$companyB, $unit]))->assertNotFound();
+        $this->get(route('company.tax-profiles.edit', [$companyA, $taxProfile]))->assertOk();
+        $this->get(route('company.tax-profiles.edit', [$companyB, $taxProfile]))->assertNotFound();
+    }
+
+
     public function test_product_category_pages_render_icon_picker_and_do_not_use_vite(): void
     {
         $company = Company::create(['legal_name_ar' => 'شركة فئات', 'tax_number' => (string) random_int(100000, 999999)]);
