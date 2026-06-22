@@ -1,6 +1,10 @@
 # Phase 1 — Professional Invoice Templates, PDF Engine, and Product UX
 
 ## Completed in this pass
+- Improved company settings with professional tabs/cards for general data, visual identity, invoice settings, JoFotara status, language/currency, logo/stamp previews, color pickers, helper text, and Arabic frontend validation without exposing JoFotara secrets.
+- Improved `/companies/{company}` and company-user `/dashboard` with a professional profile/dashboard layout, quick actions, JoFotara connection status, subscription/features, last submitted invoice, last activity, recent invoices, and recent activities.
+- Added `CompanyDashboardStatsService` with company-scoped 10-minute cached stats for products, contacts, invoices by status, JoFotara errors, sales totals, tax totals, recent invoices, and recent activities.
+- Added dashboard cache invalidation after invoice create/update/status/Jofotara changes, product create/update, contact create/update, and JoFotara imports.
 - Improved `/companies/{company}/contacts` with Arabic theme styling, clear `العملاء والموردون` heading, helper copy, prominent add button, name/tax/type/status filters, improved table, actions, and professional empty state.
 - Improved contact create/edit screens with organized cards for basic information, communication data, tax data, address, status, placeholders, helper text, last-updated context, activate/deactivate action, and Arabic frontend validation.
 - Preserved contact duplicate-prevention behavior for tax/national numbers while adding safer backend validation for non-empty Arabic names, email format, phone characters, and save-and-add-another flow.
@@ -16,7 +20,7 @@
 - Added single product image support using `products.image_path`, public disk storage, server-side validation for JPG/JPEG/PNG/WEBP up to 2MB, current image display, and replacement handling on update.
 - Added client-side validation without Vite or external assets for required Arabic name/type/price, non-negative price/cost, and image type/size.
 - Reviewed backend validation for company-scoped category/unit/tax profile, company-unique SKU, safe active status handling, product/service type, numeric price/cost, and company isolation on edit/update/activate/deactivate.
-- Added/updated master-data tests for contacts create/update/duplicate prevention/company isolation, units/tax/activity page rendering, global unit edit behavior, category icon persistence, product image create/update, validation, and frontend-view no-`@vite` checks.
+- Added/updated tests for settings/profile/dashboard rendering, company-scoped cached stats, dashboard cache invalidation, secrets not exposed, contacts create/update/duplicate prevention/company isolation, units/tax/activity page rendering, global unit edit behavior, category icon persistence, product image create/update, validation, and frontend-view no-`@vite` checks.
 
 ## Previously completed
 - Built invoice template data preparation and rendering services.
@@ -24,6 +28,7 @@
 - Improved invoice listing, create/edit, and show pages with template-aware styling and cleaner actions.
 
 ## Remaining risks
+- Dashboard statistics are cached for 10 minutes; very high-write installations may later benefit from model observers or queued cache warming.
 - Contact phone validation is intentionally permissive for digits and common dialing symbols; stricter local phone normalization can be added later.
 - Global units can now be opened from a company workspace edit route; if stricter global-edit governance is required, add a dedicated clone-to-company workflow later.
 - Category icons are stored as simple emoji/text values; replacing them with a full icon library can be handled later if needed.
@@ -32,4 +37,4 @@
 - Full suite still depends on date-sensitive JoFotara test fixtures in this runtime.
 
 ## Recommended next step
-- Add a dedicated product detail page if the `عرض` action should become read-only instead of routing users to the edit screen.
+- Consider moving cache invalidation into model observers once the domain event structure is formalized.

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\CompanyWorkspace\InvoiceEngineController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ContactController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductCategoryController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductController;
 use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Invoice;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\TaxCategory;
@@ -18,6 +20,7 @@ use App\Models\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
@@ -151,6 +154,45 @@ class MasterDataFoundationTest extends TestCase
         $this->get(route('company.products.edit', [$companyA, $product]))->assertOk();
         $this->get(route('company.products.edit', [$companyB, $product]))->assertNotFound();
     }
+
+    public function test_company_settings_profile_and_dashboard_render_without_secrets(): void
+    {
+        $company = Company::create(['legal_name_ar' => 'شركة لوحة', 'name_ar' => 'شركة لوحة', 'tax_number' => '770001', 'phone' => '0790000000', 'city' => 'عمّان', 'jofotara_client_id' => 'client-secret-value', 'jofotara_secret_key' => 'super-secret-key', 'jofotara_source_id' => 'SRC-1']);
+        $user = \App\Models\User::factory()->create(['company_id' => $company->id]);
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+        $this->actingAs($user);
+
+        $this->get(route('company.settings.edit', $company))->assertOk()->assertSee('إعدادات المنشأة')->assertSee('حالة بيانات الربط')->assertSee('محفوظة ومكتملة')->assertDontSee('client-secret-value')->assertDontSee('super-secret-key');
+        $this->get(route('company.dashboard', $company))->assertOk()->assertSee('لوحة تحكم المنشأة')->assertSee('ملف المنشأة')->assertSee('إنشاء فاتورة');
+        $this->get(route('dashboard'))->assertOk()->assertSee('لوحة تحكم المنشأة')->assertDontSee('super-secret-key');
+    }
+
+    public function test_company_dashboard_stats_are_company_scoped_and_cache_invalidates(): void
+    {
+        $companyA = Company::create(['legal_name_ar' => 'شركة كاش أ', 'tax_number' => (string) random_int(100000, 999999), 'default_currency' => 'JOD']);
+        $companyB = Company::create(['legal_name_ar' => 'شركة كاش ب', 'tax_number' => (string) random_int(100000, 999999), 'default_currency' => 'JOD']);
+        $unit = Unit::create(['company_id' => $companyA->id, 'code' => 'DASH'.random_int(100,999), 'name' => 'قطعة', 'name_ar' => 'قطعة']);
+        $taxCategory = TaxCategory::first() ?: TaxCategory::create(['code' => 'Z', 'tax_rate' => 0, 'tax_code' => 'Z', 'description' => 'Zero']);
+        Product::create(['company_id' => $companyB->id, 'unit_id' => Unit::create(['company_id' => $companyB->id, 'code' => 'B'.random_int(100,999), 'name' => 'قطعة', 'name_ar' => 'قطعة'])->id, 'tax_category_id' => $taxCategory->id, 'type' => 'product', 'sku' => 'B-DASH', 'item_code' => 'B-DASH', 'name_ar' => 'منتج ب', 'price' => 3, 'default_price' => 3, 'is_active' => true]);
+        $service = app(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::class);
+
+        $this->assertSame(0, $service->get($companyA)['product_count']);
+        $this->assertSame(1, $service->get($companyB)['product_count']);
+
+        Cache::put(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::key($companyA), ['stale' => true], 600);
+        app(ProductController::class)->store($this->request(['type' => 'product', 'sku' => 'CACHE-1', 'name_ar' => 'منتج كاش', 'unit_id' => $unit->id, 'price' => '5', 'is_active' => '1']), $companyA);
+        $this->assertFalse(Cache::has(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::key($companyA)));
+
+        Cache::put(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::key($companyA), ['stale' => true], 600);
+        app(ContactController::class)->store($this->request(['type' => Contact::TYPE_CUSTOMER, 'name_ar' => 'عميل كاش', 'tax_number' => 'CACHE-C', 'country' => 'JO', 'is_active' => '1']), $companyA);
+        $this->assertFalse(Cache::has(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::key($companyA)));
+
+        $contact = Contact::where('company_id', $companyA->id)->firstOrFail();
+        Cache::put(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::key($companyA), ['stale' => true], 600);
+        app(InvoiceEngineController::class)->store($this->request(['contact_id' => $contact->id, 'invoice_type' => Invoice::TYPE_TAX_INVOICE, 'issue_date' => now()->toDateString(), 'due_date' => now()->addDay()->toDateString(), 'currency' => 'JOD', 'save_action' => 'draft', 'items' => [['description' => 'خدمة كاش', 'quantity' => 1, 'unit_price' => 10, 'discount_amount' => 0, 'tax_percent' => 0]]]), $companyA);
+        $this->assertFalse(Cache::has(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::key($companyA)));
+    }
+
 
     public function test_contact_pages_render_and_do_not_use_vite(): void
     {

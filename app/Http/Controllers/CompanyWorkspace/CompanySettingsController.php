@@ -27,9 +27,9 @@ class CompanySettingsController extends Controller
         $data = $request->validate([
             'settings' => ['array'],
             'settings.*' => ['nullable', 'string', 'max:2000'],
-            'company_logo_file' => ['nullable', 'image', 'max:2048'],
-            'invoice_logo_file' => ['nullable', 'image', 'max:2048'],
-            'invoice_stamp_image_file' => ['nullable', 'image', 'max:2048'],
+            'company_logo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'invoice_logo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'invoice_stamp_image_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ]);
 
         foreach (['company_logo_file' => 'company_logo', 'invoice_logo_file' => 'invoice_logo', 'invoice_stamp_image_file' => 'invoice_stamp_image'] as $input => $key) {
@@ -54,12 +54,11 @@ class CompanySettingsController extends Controller
     private function definitions(): array
     {
         return [
-            'عام' => ['company_logo' => 'شعار المنشأة'],
-            'الهوية' => ['brand_color' => 'لون الهوية'],
-            'اللغة والعملات' => ['default_language' => 'اللغة الافتراضية', 'default_currency' => 'العملة الافتراضية'],
-            'إعدادات الفواتير' => ['invoice_template_id' => 'قالب الفاتورة الافتراضي', 'invoice_prefix' => 'بادئة الفاتورة'],
-            'هوية الفاتورة' => ['invoice_logo' => 'شعار الفاتورة', 'invoice_primary_color' => 'اللون الأساسي', 'invoice_secondary_color' => 'اللون الثانوي', 'invoice_footer_text' => 'نص التذييل', 'invoice_terms_and_conditions' => 'الشروط والأحكام', 'invoice_signature_block' => 'كتلة التوقيع', 'invoice_stamp_image' => 'صورة الختم'],
+            'بيانات عامة' => ['company_logo' => 'شعار المنشأة'],
+            'الهوية البصرية' => ['brand_color' => 'لون الهوية', 'invoice_logo' => 'شعار الفاتورة', 'invoice_primary_color' => 'اللون الأساسي', 'invoice_secondary_color' => 'اللون الثانوي', 'invoice_stamp_image' => 'صورة الختم'],
+            'إعدادات الفواتير' => ['invoice_template_id' => 'قالب الفاتورة الافتراضي', 'invoice_prefix' => 'بادئة الفاتورة', 'invoice_footer_text' => 'نص التذييل', 'invoice_terms_and_conditions' => 'الشروط والأحكام', 'invoice_signature_block' => 'كتلة التوقيع'],
             'إعدادات جوفوتارا' => ['jofotara_mode' => 'وضع جوفوتارا'],
+            'اللغة والعملة' => ['default_language' => 'اللغة الافتراضية', 'default_currency' => 'العملة الافتراضية'],
         ];
     }
 }

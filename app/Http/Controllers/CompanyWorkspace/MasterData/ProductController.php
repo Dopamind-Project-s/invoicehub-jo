@@ -12,6 +12,7 @@ use App\Models\TaxCategory;
 use App\Models\TaxProfile;
 use App\Models\Unit;
 use App\Services\Audit\AuditLogger;
+use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -49,6 +50,8 @@ class ProductController extends Controller
         ]);
         $this->audit->record('master_data.product.created', $product, [], $product->toArray(), $request);
 
+        CompanyDashboardStatsService::forget($company);
+
         if ($request->input('save_action') === 'save_another') {
             return redirect()->route('company.products.create', $company)->with('status', 'تم حفظ المنتج، يمكنك إضافة منتج آخر.');
         }
@@ -73,6 +76,8 @@ class ProductController extends Controller
 
         $product->update($data + ['item_code' => $company->id.'-'.$data['sku'], 'default_price' => $data['price']]);
         $this->audit->record('master_data.product.updated', $product, $before, $product->toArray(), $request);
+        CompanyDashboardStatsService::forget($company);
+
         return redirect()->route('company.products.index', $company)->with('status', 'تم تحديث المنتج/الخدمة.');
     }
 

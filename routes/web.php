@@ -30,18 +30,20 @@ Route::get('/shared/invoices/{token}', PublicInvoiceShareController::class)->nam
 Route::get('/dashboard', function () {
     $user = auth()->user();
     if ($user?->isSuperAdmin()) { return redirect()->route('admin.dashboard.show'); }
-    if ($user?->company_id && ($company = \App\Models\Company::with('featureKeys')->find($user->company_id))) {
+    if ($user?->company_id && ($company = \App\Models\Company::with(['featureKeys', 'activeSubscription.plan'])->find($user->company_id))) {
+        $stats = app(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::class)->get($company);
         return view('company.dashboard', [
             'company' => $company,
-            'productCount' => \App\Models\Product::where('company_id', $company->id)->count(),
-            'contactCount' => \App\Models\Contact::where('company_id', $company->id)->count(),
-            'invoiceCount' => \App\Models\Invoice::where('company_id', $company->id)->count(),
-            'pendingInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_READY)->count(),
-            'approvedInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_SUBMITTED)->count(),
-            'jofotaraSubmittedCount' => \App\Models\Invoice::where('company_id', $company->id)->whereNotNull('jofotara_submitted_at')->count(),
-            'pendingJofotaraCount' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_READY)->whereNull('jofotara_status')->count(),
-            'importedInvoiceCount' => \App\Models\Invoice::where('company_id', $company->id)->where('source', 'jofotara_import')->count(),
-            'recentInvoices' => \App\Models\Invoice::where('company_id', $company->id)->latest()->limit(5)->get(),
+            'stats' => $stats,
+            'productCount' => $stats['product_count'],
+            'contactCount' => $stats['contact_count'],
+            'invoiceCount' => $stats['invoice_count'],
+            'pendingInvoices' => $stats['ready_invoices'],
+            'approvedInvoices' => $stats['submitted_invoices'],
+            'jofotaraSubmittedCount' => $stats['submitted_invoices'],
+            'pendingJofotaraCount' => $stats['ready_invoices'],
+            'importedInvoiceCount' => 0,
+            'recentInvoices' => $stats['recent_invoices'],
         ]);
     }
     return view('dashboard');

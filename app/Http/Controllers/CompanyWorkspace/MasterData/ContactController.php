@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Services\Audit\AuditLogger;
+use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -39,6 +40,8 @@ class ContactController extends Controller
             $contact = Contact::create($data + ['company_id' => $company->id]);
             $this->audit->record('master_data.contact.created', $contact, [], $contact->toArray(), $request);
         }
+        CompanyDashboardStatsService::forget($company);
+
         if ($request->input('save_action') === 'save_another') {
             return redirect()->route('company.contacts.create', $company)->with('status', 'تم حفظ جهة الاتصال، يمكنك إضافة جهة أخرى.');
         }
@@ -55,6 +58,8 @@ class ContactController extends Controller
         if ($duplicate) return back()->withErrors(['tax_number' => 'يوجد كيان قانوني بنفس الرقم الضريبي أو الوطني داخل الشركة.'])->withInput();
         $before = $contact->toArray(); $contact->update($data);
         $this->audit->record('master_data.contact.updated', $contact, $before, $contact->toArray(), $request);
+        CompanyDashboardStatsService::forget($company);
+
         return redirect()->route('company.contacts.index', $company)->with('status', 'تم تحديث جهة الاتصال.');
     }
 
