@@ -210,9 +210,13 @@ class InvoiceEngineController extends Controller
         return response($png, 200)->header('Content-Type', 'image/png');
     }
 
-    public function printable(Company $company, Invoice $invoice, InvoicePdfService $pdf)
+    public function printable(Request $request, Company $company, Invoice $invoice, InvoicePdfService $pdf)
     {
         $this->authorizeCompany($company, $invoice);
+        if ($request->boolean('preview')) {
+            return $pdf->preview($invoice);
+        }
+
         return $pdf->download($invoice);
     }
 

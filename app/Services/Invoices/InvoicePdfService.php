@@ -20,4 +20,9 @@ class InvoicePdfService
     {
         return $this->renderer->html($invoice);
     }
+
+    public function preview(Invoice $invoice): Response
+    {
+        return response($this->html($invoice), 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+    }
 }
