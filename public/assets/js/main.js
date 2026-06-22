@@ -218,8 +218,8 @@ function doLogout() {
     // reset chat UI
     document.getElementById('chatBody').innerHTML = `
     <div class="d-flex flex-column gap-1">
-      <div class="msg msg-ai">ðŸ‘‹ Hi! I'm your NexusAI assistant. I can help you with support analytics, agent configuration, automation workflows, and business insights. What would you like to know?</div>
-      <div class="msg-time" style="align-self:flex-start;padding-left:4px">NexusAI Â· Just now</div>
+      <div class="msg msg-ai">ðŸ‘‹ Hi! I'm your InvoSync Jo assistant. I can help you with support analytics, agent configuration, automation workflows, and business insights. What would you like to know?</div>
+      <div class="msg-time" style="align-self:flex-start;padding-left:4px">InvoSync Jo Â· Just now</div>
     </div>`;
 }
 
@@ -487,7 +487,7 @@ async function sendChat() {
             body: JSON.stringify({
                 model: 'claude-sonnet-4-20250514',
                 max_tokens: 1000,
-                system: `You are NexusAI, an intelligent AI assistant built into the NexusAI business automation platform. The user is ${currentUser?.name || 'a user'} on the ${currentUser?.plan || 'Pro'} plan. You help with: AI agent performance, support ticket analytics, workflow automation suggestions, business metrics insights, and platform usage. Current platform stats: 24.8K conversations today, 98.2% resolution rate, 1.4s avg response, $18.2K monthly savings, 4 active agents. Be concise, professional, and data-driven. Use emojis sparingly.`,
+                system: `You are InvoSync Jo, an intelligent AI assistant built into the InvoSync Jo business automation platform. The user is ${currentUser?.name || 'a user'} on the ${currentUser?.plan || 'Pro'} plan. You help with: AI agent performance, support ticket analytics, workflow automation suggestions, business metrics insights, and platform usage. Current platform stats: 24.8K conversations today, 98.2% resolution rate, 1.4s avg response, $18.2K monthly savings, 4 active agents. Be concise, professional, and data-driven. Use emojis sparingly.`,
                 messages: chatHistory
             })
         });
@@ -520,7 +520,7 @@ function appendMsg(text, role) {
     wrap.className = 'd-flex flex-column gap-1';
     wrap.innerHTML = `
     <div class="msg msg-${role}" style="animation:fadeIn .3s ease">${escapeHtml(text).replace(/\n/g,'<br>')}</div>
-    <div class="msg-time" style="align-self:${role==='ai'?'flex-start':'flex-end'};padding:0 4px">${role==='ai'?'NexusAI':'You'} Â· ${time}</div>`;
+    <div class="msg-time" style="align-self:${role==='ai'?'flex-start':'flex-end'};padding:0 4px">${role==='ai'?'InvoSync Jo':'You'} Â· ${time}</div>`;
     body.appendChild(wrap);
     body.scrollTop = body.scrollHeight;
 }
@@ -548,8 +548,8 @@ function clearChat() {
     chatHistory = [];
     document.getElementById('chatBody').innerHTML = `
     <div class="d-flex flex-column gap-1">
-      <div class="msg msg-ai">ðŸ‘‹ Hi! I'm your NexusAI assistant. I can help you with support analytics, agent configuration, automation workflows, and business insights. What would you like to know?</div>
-      <div class="msg-time" style="align-self:flex-start;padding-left:4px">NexusAI Â· Just now</div>
+      <div class="msg msg-ai">ðŸ‘‹ Hi! I'm your InvoSync Jo assistant. I can help you with support analytics, agent configuration, automation workflows, and business insights. What would you like to know?</div>
+      <div class="msg-time" style="align-self:flex-start;padding-left:4px">InvoSync Jo Â· Just now</div>
     </div>`;
 }
 
