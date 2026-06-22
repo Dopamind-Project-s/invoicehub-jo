@@ -152,6 +152,39 @@ class MasterDataFoundationTest extends TestCase
         $this->get(route('company.products.edit', [$companyB, $product]))->assertNotFound();
     }
 
+    public function test_product_category_pages_render_icon_picker_and_do_not_use_vite(): void
+    {
+        $company = Company::create(['legal_name_ar' => 'شركة فئات', 'tax_number' => (string) random_int(100000, 999999)]);
+        $category = ProductCategory::create(['company_id' => $company->id, 'name_ar' => 'مشروبات', 'name_en' => 'Drinks', 'code' => 'DRINKS', 'icon' => '☕', 'is_active' => true]);
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+        $this->actingAs(\App\Models\User::factory()->create(['company_id' => $company->id]));
+
+        $this->get(route('company.product-categories.index', $company))->assertOk()->assertSee('فئات المنتجات')->assertSee('استخدم الفئات لتنظيم المنتجات والخدمات.');
+        $this->get(route('company.product-categories.create', $company))->assertOk()->assertSee('حفظ وإضافة أخرى')->assertSee('🗂️');
+        $this->get(route('company.product-categories.edit', [$company, $category]))->assertOk()->assertSee('آخر تحديث')->assertSee('☕');
+
+        foreach (glob(resource_path('views/company/master-data/categories/*.blade.php')) ?: [] as $file) {
+            $this->assertStringNotContainsString('@vite', file_get_contents($file), $file);
+        }
+    }
+
+    public function test_product_category_icon_is_saved_and_empty_arabic_name_is_rejected(): void
+    {
+        $company = Company::create(['legal_name_ar' => 'شركة أيقونات', 'tax_number' => (string) random_int(100000, 999999)]);
+        $controller = app(ProductCategoryController::class);
+
+        $controller->store($this->request(['name_ar' => 'حلويات', 'name_en' => 'Desserts', 'code' => 'DESSERTS', 'description' => 'فئة الحلويات', 'icon' => '🍽️', 'is_active' => '1']), $company);
+        $this->assertDatabaseHas('product_categories', ['company_id' => $company->id, 'code' => 'DESSERTS', 'icon' => '🍽️']);
+
+        try {
+            $controller->store($this->request(['name_ar' => '   ', 'code' => 'EMPTY-NAME', 'icon' => '📦']), $company);
+            $this->fail('Empty Arabic category name should fail validation.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('name_ar', $exception->errors());
+        }
+    }
+
+
     public function test_contacts_avoid_duplicate_legal_entities_inside_company_and_audit_changes(): void
     {
         $company = Company::create(['legal_name_ar' => 'شركة', 'tax_number' => '9006']);
