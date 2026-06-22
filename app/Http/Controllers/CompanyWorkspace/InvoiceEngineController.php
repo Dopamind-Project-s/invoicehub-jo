@@ -38,7 +38,7 @@ class InvoiceEngineController extends Controller
             ->when($request->filled('source'), fn ($q) => $q->where('source', $request->source))
             ->latest()->paginate(15)->withQueryString();
 
-        return view('company.invoices.index', compact('company', 'invoices'));
+        return view('company.invoices.index', ['company' => $company, 'invoices' => $invoices, 'branding' => $this->branding->settings($company)]);
     }
 
     public function create(Company $company)
@@ -66,10 +66,10 @@ class InvoiceEngineController extends Controller
         return redirect()->route('company.invoices.show', [$company, $invoice])->with('status', $invoice->status === Invoice::STATUS_READY ? 'تم حفظ الفاتورة وتجهيزها للإرسال.' : 'تم حفظ الفاتورة كمسودة.');
     }
 
-    public function show(Company $company, Invoice $invoice, JoFotaraPreparationService $preparer)
+    public function show(Company $company, Invoice $invoice)
     {
         $this->authorizeCompany($company, $invoice);
-        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice->load(['contact', 'items.product', 'submissionLogs']), 'jofotaraDiagnostic' => $preparer->diagnostics($invoice)]);
+        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice->load(['contact', 'items.product', 'submissionLogs']), 'branding' => $this->branding->settings($company)]);
     }
 
     public function jofotaraUat(Company $company, JoFotaraPreparationService $preparer)

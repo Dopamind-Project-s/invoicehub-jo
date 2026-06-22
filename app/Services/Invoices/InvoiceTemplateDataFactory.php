@@ -18,7 +18,8 @@ class InvoiceTemplateDataFactory
         $invoice->loadMissing(['company.settings', 'contact', 'items.product']);
         $company = $invoice->company;
         $branding = $this->branding->settings($company);
-        $template ??= $branding['template'];
+        $template ??= $branding['template'] ?? InvoiceTemplate::query()->whereNull('company_id')->where('slug', 'arabic-classic')->first();
+        $template ??= new InvoiceTemplate(['name' => 'Arabic Classic', 'slug' => 'arabic-classic', 'language' => 'ar', 'layout_type' => 'classic', 'view_path' => 'company.invoice-templates.render.arabic-classic']);
         $branding['template'] = $template;
         $qrValue = (string) ($invoice->jofotara_qr ?: '');
 
