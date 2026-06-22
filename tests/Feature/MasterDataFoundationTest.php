@@ -17,6 +17,8 @@ use App\Models\TaxProfile;
 use App\Models\Unit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -81,6 +83,75 @@ class MasterDataFoundationTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'master_data.product.created']);
     }
 
+
+
+    public function test_product_pages_render_and_do_not_use_vite(): void
+    {
+        [$company, $product] = $this->productFixture();
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+        $this->actingAs(\App\Models\User::factory()->create(['company_id' => $company->id]));
+
+        $this->get(route('company.products.index', $company))->assertOk()->assertSee('المنتجات والخدمات');
+        $this->get(route('company.products.create', $company))->assertOk()->assertSee('حفظ المنتج');
+        $this->get(route('company.products.edit', [$company, $product]))->assertOk()->assertSee('حفظ التعديلات');
+
+        foreach (glob(resource_path('views/company/master-data/products/*.blade.php')) ?: [] as $file) {
+            $this->assertStringNotContainsString('@vite', file_get_contents($file), $file);
+        }
+    }
+
+    public function test_product_can_be_created_and_updated_with_image(): void
+    {
+        Storage::fake('public');
+        [$company, $product, $unit] = $this->productFixture();
+        $controller = app(ProductController::class);
+
+        $request = $this->request([
+            'type' => 'product', 'sku' => 'IMG-1', 'name_ar' => 'منتج بصورة', 'unit_id' => $unit->id, 'price' => '12.500', 'is_active' => '1',
+            'image' => UploadedFile::fake()->image('product.jpg', 600, 600)->size(250),
+        ]);
+        $controller->store($request, $company);
+        $created = Product::where('company_id', $company->id)->where('sku', 'IMG-1')->firstOrFail();
+        $this->assertNotNull($created->image_path);
+        Storage::disk('public')->assertExists($created->image_path);
+
+        $request = $this->request([
+            'type' => 'product', 'sku' => 'IMG-1', 'name_ar' => 'منتج بصورة محدث', 'unit_id' => $unit->id, 'price' => '15.000', 'is_active' => '1',
+            'image' => UploadedFile::fake()->image('updated.png', 600, 600)->size(250),
+        ]);
+        $controller->update($request, $company, $created);
+        $created->refresh();
+        $this->assertSame('منتج بصورة محدث', $created->name_ar);
+        $this->assertNotNull($created->image_path);
+        Storage::disk('public')->assertExists($created->image_path);
+    }
+
+    public function test_product_image_validation_rejects_invalid_type_and_large_file(): void
+    {
+        [$company, , $unit] = $this->productFixture();
+        $controller = app(ProductController::class);
+
+        foreach ([UploadedFile::fake()->create('bad.pdf', 100, 'application/pdf'), UploadedFile::fake()->image('large.jpg')->size(2500)] as $file) {
+            try {
+                $controller->store($this->request(['type' => 'product', 'sku' => 'BAD-'.uniqid(), 'name_ar' => 'سيء', 'unit_id' => $unit->id, 'price' => '1', 'image' => $file]), $company);
+                $this->fail('Invalid image should fail validation.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('image', $exception->errors());
+            }
+        }
+    }
+
+    public function test_product_company_isolation_is_enforced_on_edit(): void
+    {
+        [$companyA, $product] = $this->productFixture();
+        $companyB = Company::create(['legal_name_ar' => 'شركة ب', 'tax_number' => '9911']);
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+        $this->actingAs(\App\Models\User::factory()->create(['company_id' => $companyA->id]));
+
+        $this->get(route('company.products.edit', [$companyA, $product]))->assertOk();
+        $this->get(route('company.products.edit', [$companyB, $product]))->assertNotFound();
+    }
+
     public function test_contacts_avoid_duplicate_legal_entities_inside_company_and_audit_changes(): void
     {
         $company = Company::create(['legal_name_ar' => 'شركة', 'tax_number' => '9006']);
@@ -94,12 +165,26 @@ class MasterDataFoundationTest extends TestCase
         $this->assertDatabaseHas('contacts', ['company_id' => $company->id, 'tax_number' => '123456', 'email' => 'customer@example.com']);
         $this->assertTrue(AuditLog::whereIn('action', ['master_data.contact.created', 'master_data.contact.updated'])->count() >= 2);
     }
+
+
+    /** @return array{0: Company, 1: Product, 2: Unit} */
+    private function productFixture(): array
+    {
+        $company = Company::create(['legal_name_ar' => 'شركة منتجات', 'tax_number' => (string) random_int(100000, 999999)]);
+        $unit = Unit::create(['company_id' => $company->id, 'code' => 'PCS'.random_int(100,999), 'name' => 'قطعة', 'name_ar' => 'قطعة', 'symbol' => 'pc']);
+        $taxCategory = TaxCategory::first() ?: TaxCategory::create(['code' => 'Z', 'tax_rate' => 0, 'tax_code' => 'Z', 'description' => 'Zero']);
+        $product = Product::create(['company_id' => $company->id, 'unit_id' => $unit->id, 'tax_category_id' => $taxCategory->id, 'type' => 'product', 'sku' => 'SKU-'.uniqid(), 'item_code' => 'ITM-'.uniqid(), 'name_ar' => 'منتج تجريبي', 'price' => 10, 'default_price' => 10, 'is_active' => true]);
+
+        return [$company, $product, $unit];
+    }
+
     /**
      * @param array<string, mixed> $data
      */
     private function request(array $data): Request
     {
-        $request = Request::create('/master-data-test', 'POST', $data);
+        $request = Request::create('/master-data-test', 'POST', [], [], array_filter($data, fn ($value) => $value instanceof UploadedFile));
+        $request->merge(array_filter($data, fn ($value) => ! $value instanceof UploadedFile));
         return $request;
     }
 }

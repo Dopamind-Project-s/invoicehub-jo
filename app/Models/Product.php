@@ -12,7 +12,7 @@ class Product extends Model
     public const TYPE_PRODUCT = 'product';
     public const TYPE_SERVICE = 'service';
 
-    protected $fillable = ['company_id', 'category_id', 'unit_id', 'tax_category_id', 'tax_profile_id', 'type', 'sku', 'barcode', 'name_ar', 'name_en', 'description', 'item_code', 'default_price', 'price', 'cost', 'is_active'];
+    protected $fillable = ['company_id', 'category_id', 'unit_id', 'tax_category_id', 'tax_profile_id', 'type', 'sku', 'barcode', 'name_ar', 'name_en', 'description', 'image_path', 'item_code', 'default_price', 'price', 'cost', 'is_active'];
 
     protected $casts = ['default_price' => 'decimal:6', 'price' => 'decimal:6', 'cost' => 'decimal:6', 'is_active' => 'boolean'];
 

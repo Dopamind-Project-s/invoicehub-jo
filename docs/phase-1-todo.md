@@ -1,25 +1,22 @@
-# Phase 1 — Professional Invoice Templates & PDF Engine
+# Phase 1 — Professional Invoice Templates, PDF Engine, and Product UX
 
-## Completed
-- Inspected local public assets. Available fonts include Droid Arabic Kufi, Droid Arabic Naskh, Noto Kufi Arabic, Hasan Alquds, Castile, OpenSans webfonts, and other Arabic display fonts under `public/assets/fonts`. `public/assets/images` contained a `.gitkeep`; a local invoice placeholder logo SVG was added. `public/css` contains Theme, Style, Bootstrap RTL lite, and phase1 layout CSS. `public/vendor` contains a README. `public/assets/templates` was created for template preview placeholders.
-- Added `InvoiceTemplateData` and `InvoiceTemplateDataFactory` so Blade templates receive prepared invoice, company, customer, items, totals, branding, QR, JoFotara, language, and direction data without querying the database from views.
-- Added `InvoicePdfRenderer` with HTML preview rendering, Browsershot PDF attempt, and DomPDF fallback for production-like environments where Chrome/Node is unavailable.
-- Added five local-asset Blade invoice templates: Arabic Classic, Arabic Modern, Arabic/English Bilingual, Retail Receipt, and Corporate Tax Invoice.
-- Added QR rendering from the exact `jofotara_qr` value only. If no JoFotara QR exists, templates show: “QR Code will appear after submission to the National E-Invoicing System”.
-- Added template fields `preview_image` and `view_path`, and seeded five templates idempotently.
-- Improved `/companies/{company}/invoice-templates` with card selection UI, preview buttons, current-default state, language/type display, and Arabic theme-compatible styling.
-- Updated preview to return HTML with a real latest invoice or generated sample data when none exists.
-- Updated invoice PDF download to use company default template, falling back to Arabic Classic via branding settings.
+## Completed in this pass
+- Improved `/companies/{company}/products` with Arabic theme styling, clear title `المنتجات والخدمات`, helper text, prominent `إضافة منتج / خدمة جديدة` button, search/filter controls, image thumbnails, useful catalog columns, status badges, and clear actions.
+- Improved product create/edit screens with a professional RTL card form grouped into: basic information, category/unit/tax, pricing, description/image, and status.
+- Added single product image support using `products.image_path`, public disk storage, server-side validation for JPG/JPEG/PNG/WEBP up to 2MB, current image display, and replacement handling on update.
+- Added client-side validation without Vite or external assets for required Arabic name/type/price, non-negative price/cost, and image type/size.
+- Reviewed backend validation for company-scoped category/unit/tax profile, company-unique SKU, safe active status handling, product/service type, numeric price/cost, and company isolation on edit/update/activate/deactivate.
+- Added/updated product feature tests for list/create/edit page rendering, image create/update, invalid image validation, oversized image validation, company isolation, and no `@vite` in product views.
 
-## Safety
-- JoFotara XML generation and submission services were not edited.
-- JoFotara QR values are displayed exactly as stored and are not modified.
-- No `@vite`, CDN, or online fonts are used by invoice templates.
+## Previously completed
+- Built invoice template data preparation and rendering services.
+- Added five invoice templates, QR placeholder/exact QR handling, template preview/download, PDF rendering with Browsershot attempt and DomPDF fallback, and template selection UI.
+- Improved invoice listing, create/edit, and show pages with template-aware styling and cleaner actions.
 
 ## Remaining risks
-- Browsershot depends on the runtime Node/Chrome/Puppeteer setup. The renderer catches failures and falls back to DomPDF.
-- DomPDF Arabic shaping can be less accurate than Chromium; Browsershot remains preferred where available.
-- Preview image PNG files are placeholders; live preview is available through the preview route.
+- Product images are stored on the `public` disk and require the usual Laravel public storage link in deployed environments.
+- Product image support is intentionally single-image only; media gallery management is not included.
+- Full suite still depends on date-sensitive JoFotara test fixtures in this runtime.
 
 ## Recommended next step
-- Add real graphical preview thumbnails for the five templates and test Browsershot in the production container image with the deployed Node/Chrome version.
+- Add a dedicated product detail page if the `عرض` action should become read-only instead of routing users to the edit screen.
