@@ -39,7 +39,10 @@ class InvoiceExperienceLayerTest extends TestCase
     public function test_templates_and_branding_settings_are_seeded(): void
     {
         $company = Company::where('tax_number', '9578331')->firstOrFail();
-        $this->assertDatabaseHas('invoice_templates', ['slug' => 'arabic-classic', 'is_default' => true]);
+        $this->assertDatabaseHas('invoice_templates', ['slug' => 'arabic-classic', 'is_default' => true, 'view_path' => 'company.invoice-templates.render.arabic-classic']);
+        foreach (['arabic-classic', 'arabic-modern', 'bilingual-ar-en', 'retail-receipt', 'corporate-tax'] as $slug) {
+            $this->assertDatabaseHas('invoice_templates', ['slug' => $slug, 'is_active' => true]);
+        }
         $this->assertCount(5, InvoiceTemplate::whereNull('company_id')->get());
         $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_primary_color']);
         $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id']);
@@ -50,8 +53,35 @@ class InvoiceExperienceLayerTest extends TestCase
         $invoice = $this->makeInvoice();
         $html = app(InvoicePdfService::class)->html($invoice);
         $this->assertStringContainsString($invoice->invoice_number, $html);
-        $this->assertStringContainsString('سيظهر QR / UUID بعد الإرسال', $html);
-        $this->assertStringContainsString('Arabic Classic', $html);
+        $this->assertStringContainsString('QR Code will appear after submission to the National E-Invoicing System', $html);
+        $this->assertStringContainsString('فاتورة ضريبية', $html);
+        $this->assertStringNotContainsString('@vite', $html);
+    }
+
+
+    public function test_company_can_select_default_template_and_preview_qr_states(): void
+    {
+        $invoice = $this->makeInvoice();
+        $company = $invoice->company;
+        $template = InvoiceTemplate::where('slug', 'corporate-tax')->firstOrFail();
+
+        \App\Models\CompanySetting::updateOrCreate(['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id'], ['value' => (string) $template->id]);
+        $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id', 'value' => (string) $template->id]);
+
+        $html = app(\App\Services\Invoices\InvoicePdfRenderer::class)->html($invoice, $template);
+        $this->assertStringContainsString('QR Code will appear after submission to the National E-Invoicing System', $html);
+
+        $invoice->forceFill(['jofotara_qr' => 'QR-EXACT-VALUE', 'jofotara_uuid' => 'UUID-1'])->save();
+        $htmlWithQr = app(\App\Services\Invoices\InvoicePdfRenderer::class)->html($invoice->refresh(), $template);
+        $this->assertStringContainsString('QR-EXACT-VALUE', $htmlWithQr);
+        $this->assertSame('QR-EXACT-VALUE', $invoice->refresh()->jofotara_qr);
+    }
+
+    public function test_no_vite_is_used_in_invoice_templates(): void
+    {
+        foreach (glob(resource_path('views/company/invoice-templates/**/*.blade.php')) ?: [] as $file) {
+            $this->assertStringNotContainsString('@vite', file_get_contents($file), $file);
+        }
     }
 
     public function test_share_token_public_access_and_notification(): void
