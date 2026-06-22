@@ -1,6 +1,9 @@
 # Phase 1 — Professional Invoice Templates, PDF Engine, and Product UX
 
 ## Completed in this pass
+- Improved `/companies/{company}/contacts` with Arabic theme styling, clear `العملاء والموردون` heading, helper copy, prominent add button, name/tax/type/status filters, improved table, actions, and professional empty state.
+- Improved contact create/edit screens with organized cards for basic information, communication data, tax data, address, status, placeholders, helper text, last-updated context, activate/deactivate action, and Arabic frontend validation.
+- Preserved contact duplicate-prevention behavior for tax/national numbers while adding safer backend validation for non-empty Arabic names, email format, phone characters, and save-and-add-another flow.
 - Fixed `/companies/{company}/units/{unit}/edit` for both company-specific and global units while preserving 404 isolation for units owned by another company.
 - Improved units list/create/edit pages with Arabic theme styling, professional cards, clear helper copy, empty state, placeholders, save-and-add-another flow, and Arabic frontend validation.
 - Improved tax profile list/create/edit pages with clear tax setup copy, professional table/cards, status/default badges, placeholders, helper text explaining tax percent/type/Jofotara code, save-and-add-another flow, and Arabic frontend validation.
@@ -13,7 +16,7 @@
 - Added single product image support using `products.image_path`, public disk storage, server-side validation for JPG/JPEG/PNG/WEBP up to 2MB, current image display, and replacement handling on update.
 - Added client-side validation without Vite or external assets for required Arabic name/type/price, non-negative price/cost, and image type/size.
 - Reviewed backend validation for company-scoped category/unit/tax profile, company-unique SKU, safe active status handling, product/service type, numeric price/cost, and company isolation on edit/update/activate/deactivate.
-- Added/updated master-data tests for units/tax/activity page rendering, global unit edit behavior, company isolation, category icon persistence, product image create/update, validation, and frontend-view no-`@vite` checks.
+- Added/updated master-data tests for contacts create/update/duplicate prevention/company isolation, units/tax/activity page rendering, global unit edit behavior, category icon persistence, product image create/update, validation, and frontend-view no-`@vite` checks.
 
 ## Previously completed
 - Built invoice template data preparation and rendering services.
@@ -21,6 +24,7 @@
 - Improved invoice listing, create/edit, and show pages with template-aware styling and cleaner actions.
 
 ## Remaining risks
+- Contact phone validation is intentionally permissive for digits and common dialing symbols; stricter local phone normalization can be added later.
 - Global units can now be opened from a company workspace edit route; if stricter global-edit governance is required, add a dedicated clone-to-company workflow later.
 - Category icons are stored as simple emoji/text values; replacing them with a full icon library can be handled later if needed.
 - Product images are stored on the `public` disk and require the usual Laravel public storage link in deployed environments.

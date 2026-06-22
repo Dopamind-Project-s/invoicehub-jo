@@ -152,6 +152,48 @@ class MasterDataFoundationTest extends TestCase
         $this->get(route('company.products.edit', [$companyB, $product]))->assertNotFound();
     }
 
+    public function test_contact_pages_render_and_do_not_use_vite(): void
+    {
+        $company = Company::create(['legal_name_ar' => 'شركة جهات', 'tax_number' => (string) random_int(100000, 999999)]);
+        $contact = Contact::create(['company_id' => $company->id, 'type' => Contact::TYPE_CUSTOMER, 'name_ar' => 'عميل اختبار', 'tax_number' => 'TAX-'.random_int(100, 999), 'phone' => '0790000000', 'email' => 'client@example.com', 'city' => 'عمّان', 'country' => 'JO', 'is_active' => true]);
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+        $this->actingAs(\App\Models\User::factory()->create(['company_id' => $company->id]));
+
+        $this->get(route('company.contacts.index', $company))->assertOk()->assertSee('العملاء والموردون')->assertSee('أدر بيانات العملاء والموردين لاستخدامها في الفواتير.');
+        $this->get(route('company.contacts.create', $company))->assertOk()->assertSee('حفظ وإضافة آخر')->assertSee('البيانات الضريبية');
+        $this->get(route('company.contacts.edit', [$company, $contact]))->assertOk()->assertSee('آخر تحديث')->assertSee('تعطيل جهة الاتصال');
+
+        foreach (glob(resource_path('views/company/master-data/contacts/*.blade.php')) ?: [] as $file) {
+            $this->assertStringNotContainsString('@vite', file_get_contents($file), $file);
+        }
+    }
+
+    public function test_contact_create_update_duplicate_prevention_and_company_isolation(): void
+    {
+        $companyA = Company::create(['legal_name_ar' => 'شركة العملاء أ', 'tax_number' => (string) random_int(100000, 999999)]);
+        $companyB = Company::create(['legal_name_ar' => 'شركة العملاء ب', 'tax_number' => (string) random_int(100000, 999999)]);
+        $controller = app(ContactController::class);
+
+        $controller->store($this->request(['type' => Contact::TYPE_CUSTOMER, 'name_ar' => 'عميل جديد', 'tax_number' => 'DUP-100', 'phone' => '0791111111', 'email' => 'new@example.com', 'city' => 'إربد', 'country' => 'JO', 'is_active' => '1']), $companyA);
+        $created = Contact::where('company_id', $companyA->id)->where('tax_number', 'DUP-100')->firstOrFail();
+        $this->assertSame('عميل جديد', $created->name_ar);
+
+        $controller->update($this->request(['type' => Contact::TYPE_BOTH, 'name_ar' => 'عميل محدث', 'tax_number' => 'DUP-100', 'phone' => '0792222222', 'email' => 'updated@example.com', 'city' => 'عمّان', 'country' => 'JO', 'is_active' => '1']), $companyA, $created);
+        $created->refresh();
+        $this->assertSame(Contact::TYPE_BOTH, $created->type);
+        $this->assertSame('عميل محدث', $created->name_ar);
+
+        Contact::create(['company_id' => $companyA->id, 'type' => Contact::TYPE_SUPPLIER, 'name_ar' => 'مورد مكرر', 'tax_number' => 'DUP-200', 'country' => 'JO', 'is_active' => true]);
+        $response = $controller->update($this->request(['type' => Contact::TYPE_CUSTOMER, 'name_ar' => 'تكرار', 'tax_number' => 'DUP-200', 'country' => 'JO', 'is_active' => '1']), $companyA, $created);
+        $this->assertTrue($response->getSession()->get('errors')->has('tax_number'));
+
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+        $this->actingAs(\App\Models\User::factory()->create(['company_id' => $companyA->id]));
+        $this->get(route('company.contacts.edit', [$companyA, $created]))->assertOk();
+        $this->get(route('company.contacts.edit', [$companyB, $created]))->assertNotFound();
+    }
+
+
     public function test_units_tax_profiles_and_activity_pages_render(): void
     {
         $company = Company::create(['legal_name_ar' => 'شركة تشغيل', 'tax_number' => (string) random_int(100000, 999999)]);

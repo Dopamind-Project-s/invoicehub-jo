@@ -18,7 +18,8 @@ class ContactController extends Controller
     public function index(Request $request, Company $company)
     {
         $contacts = Contact::where('company_id', $company->id)
-            ->when($request->filled('search'), fn ($q) => $q->where(fn ($s) => $s->where('name_ar', 'like', '%'.$request->search.'%')->orWhere('name_en', 'like', '%'.$request->search.'%')->orWhere('tax_number', 'like', '%'.$request->search.'%')->orWhere('national_number', 'like', '%'.$request->search.'%')->orWhere('phone', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')))
+            ->when($request->filled('search'), fn ($q) => $q->where(fn ($s) => $s->where('name_ar', 'like', '%'.$request->search.'%')->orWhere('name_en', 'like', '%'.$request->search.'%')->orWhere('phone', 'like', '%'.$request->search.'%')->orWhere('email', 'like', '%'.$request->search.'%')))
+            ->when($request->filled('tax_number'), fn ($q) => $q->where(fn ($s) => $s->where('tax_number', 'like', '%'.$request->tax_number.'%')->orWhere('national_number', 'like', '%'.$request->tax_number.'%')))
             ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->type))
             ->latest()->paginate(15)->withQueryString();
@@ -38,6 +39,10 @@ class ContactController extends Controller
             $contact = Contact::create($data + ['company_id' => $company->id]);
             $this->audit->record('master_data.contact.created', $contact, [], $contact->toArray(), $request);
         }
+        if ($request->input('save_action') === 'save_another') {
+            return redirect()->route('company.contacts.create', $company)->with('status', 'تم حفظ جهة الاتصال، يمكنك إضافة جهة أخرى.');
+        }
+
         return redirect()->route('company.contacts.index', $company)->with('status', 'تم حفظ جهة الاتصال.');
     }
 
@@ -55,10 +60,10 @@ class ContactController extends Controller
 
     public function activate(Request $request, Company $company, Contact $contact) { return $this->setActive($request, $company, $contact, true); }
     public function deactivate(Request $request, Company $company, Contact $contact) { return $this->setActive($request, $company, $contact, false); }
-    private function setActive(Request $request, Company $company, Contact $contact, bool $active) { abort_unless((int) $contact->company_id === (int) $company->id, 404); $before = $contact->only('is_active'); $contact->update(['is_active' => $active]); $this->audit->record('master_data.contact.'.($active ? 'activated' : 'deactivated'), $contact, $before, $contact->only('is_active'), $request); return back(); }
+    private function setActive(Request $request, Company $company, Contact $contact, bool $active) { abort_unless((int) $contact->company_id === (int) $company->id, 404); $before = $contact->only('is_active'); $contact->update(['is_active' => $active]); $this->audit->record('master_data.contact.'.($active ? 'activated' : 'deactivated'), $contact, $before, $contact->only('is_active'), $request); return back()->with('status', $active ? 'تم تفعيل جهة الاتصال.' : 'تم تعطيل جهة الاتصال.'); }
 
     private function validated(Request $request): array
     {
-        return $request->validate(['type' => ['required', Rule::in([Contact::TYPE_CUSTOMER, Contact::TYPE_SUPPLIER, Contact::TYPE_BOTH])], 'name_ar' => ['required', 'string', 'max:255'], 'name_en' => ['nullable', 'string', 'max:255'], 'tax_number' => ['nullable', 'string', 'max:50'], 'national_number' => ['nullable', 'string', 'max:50'], 'phone' => ['nullable', 'string', 'max:50'], 'email' => ['nullable', 'email', 'max:255'], 'address' => ['nullable', 'string'], 'city' => ['nullable', 'string', 'max:100'], 'country' => ['nullable', 'string', 'size:2'], 'is_active' => ['nullable', 'boolean']]) + ['country' => $request->input('country', 'JO'), 'is_active' => $request->boolean('is_active')];
+        return $request->validate(['type' => ['required', Rule::in([Contact::TYPE_CUSTOMER, Contact::TYPE_SUPPLIER, Contact::TYPE_BOTH])], 'name_ar' => ['required', 'string', 'max:255', 'not_regex:/^\s*$/u'], 'name_en' => ['nullable', 'string', 'max:255'], 'tax_number' => ['nullable', 'string', 'max:50'], 'national_number' => ['nullable', 'string', 'max:50'], 'phone' => ['nullable', 'string', 'max:50', 'regex:/^[0-9+()\-\s]*$/'], 'email' => ['nullable', 'email', 'max:255'], 'address' => ['nullable', 'string'], 'city' => ['nullable', 'string', 'max:100'], 'country' => ['nullable', 'string', 'size:2'], 'is_active' => ['nullable', 'boolean'], 'save_action' => ['nullable', Rule::in(['save', 'save_another'])]]) + ['country' => $request->input('country', 'JO'), 'is_active' => $request->boolean('is_active')];
     }
 }
