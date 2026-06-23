@@ -44,32 +44,42 @@
             <div class="tab-switch"><button class="tab-sw-btn on" id="tabLogin" onclick="swTab('login')">Log In</button><button class="tab-sw-btn" id="tabSignup" onclick="swTab('signup')">Sign Up</button></div>
             <!-- Login -->
             <div id="fLogin">
-               <div id="loginErr" class="err-msg"><i class="fa-solid fa-circle-exclamation me-1"></i><span id="loginErrMsg">Invalid email or password.</span></div>
-               <label class="olbl"><i class="fa-regular fa-envelope me-1"></i>Email address</label>
-               <input class="oinp" type="email" id="loginEmail" placeholder="you@company.com">
-               <label class="olbl"><i class="fa-solid fa-lock me-1"></i>Password</label>
-               <input class="oinp" type="password" id="loginPass" placeholder="********">
-               <div class="text-end mb-3" style="margin-top:-8px"><a href="#" style="font-size:.8rem;color:var(--pur)">Forgot password?</a></div>
-               <button class="bgrd btn w-100 py-3 fw-semibold fs-6" id="loginBtn" onclick="doLogin()">Log In <i class="fa-solid fa-arrow-right ms-1 fa-sm"></i></button>
-               <div class="odiv">or continue with</div>
-               <button class="oauth" onclick="quickLogin('google')"><i class="fa-brands fa-google me-2"></i>Continue with Google</button>
-               <button class="oauth" onclick="quickLogin('github')"><i class="fa-brands fa-github me-2"></i>Continue with GitHub</button>
-               <p class="text-center mt-4" style="font-size:.82rem;color:var(--tx3)">Don't have an account? <a href="#" style="color:var(--pur)" onclick="swTab('signup');return false">Sign up free</a></p>
+               <x-auth-session-status class="alert alert-success" :status="session('status')" />
+               <form method="POST" action="{{ route('login') }}" class="d-grid gap-3">
+                  @csrf
+                  <div>
+                     <label class="olbl" for="landingLoginEmail"><i class="fa-regular fa-envelope me-1"></i>Email address</label>
+                     <input class="oinp" type="email" id="landingLoginEmail" name="email" value="{{ old('email') }}" placeholder="you@company.com" required autocomplete="username">
+                     <x-input-error :messages="$errors->get('email')" class="text-danger small mt-2" />
+                  </div>
+                  <div>
+                     <label class="olbl" for="landingLoginPassword"><i class="fa-solid fa-lock me-1"></i>Password</label>
+                     <input class="oinp" type="password" id="landingLoginPassword" name="password" placeholder="********" required autocomplete="current-password">
+                     <x-input-error :messages="$errors->get('password')" class="text-danger small mt-2" />
+                  </div>
+                  <div class="d-flex align-items-center justify-content-between gap-3 mb-2">
+                     <label class="form-check m-0">
+                        <input class="form-check-input" type="checkbox" name="remember">
+                        <span class="form-check-label">Remember me</span>
+                     </label>
+                     @if (Route::has('password.request'))
+                        <a href="{{ route('password.request') }}" style="font-size:.8rem;color:var(--pur)">Forgot password?</a>
+                     @endif
+                  </div>
+                  <button type="submit" class="bgrd btn w-100 py-3 fw-semibold fs-6" id="loginBtn">Log In <i class="fa-solid fa-arrow-right ms-1 fa-sm"></i></button>
+               </form>
+               @if (Route::has('register'))
+                  <p class="text-center mt-4" style="font-size:.82rem;color:var(--tx3)">Don't have an account? <a href="{{ route('register') }}" style="color:var(--pur)">Sign up free</a></p>
+               @endif
             </div>
             <!-- Sign Up -->
             <div id="fSignup" style="display:none">
-               <div id="signupErr" class="err-msg"><i class="fa-solid fa-circle-exclamation me-1"></i><span id="signupErrMsg">Please fill all fields.</span></div>
-               <label class="olbl"><i class="fa-regular fa-user me-1"></i>Full name</label>
-               <input class="oinp" type="text" id="signupName" placeholder="Jane Smith">
-               <label class="olbl"><i class="fa-regular fa-envelope me-1"></i>Work email</label>
-               <input class="oinp" type="email" id="signupEmail" placeholder="you@company.com">
-               <label class="olbl"><i class="fa-solid fa-lock me-1"></i>Password</label>
-               <input class="oinp" type="password" id="signupPass" placeholder="Min. 8 characters">
-               <button class="bgrd btn w-100 py-3 fw-semibold fs-6" id="signupBtn" onclick="doSignup()">Create Free Account <i class="fa-solid fa-arrow-right ms-1 fa-sm"></i></button>
-               <div class="odiv">or sign up with</div>
-               <button class="oauth" onclick="quickLogin('google')"><i class="fa-brands fa-google me-2"></i>Continue with Google</button>
-               <button class="oauth" onclick="quickLogin('github')"><i class="fa-brands fa-github me-2"></i>Continue with GitHub</button>
-               <p class="text-center mt-3" style="font-size:.76rem;color:var(--tx3)">By signing up, you agree to our <a href="#" style="color:var(--pur)">Terms</a> &amp; <a href="#" style="color:var(--pur)">Privacy Policy</a></p>
+               @if (Route::has('register'))
+                  <p class="mb-3" style="color:var(--tx2)">Create accounts through the secure Laravel registration page.</p>
+                  <a class="bgrd btn w-100 py-3 fw-semibold fs-6" href="{{ route('register') }}">Create Free Account <i class="fa-solid fa-arrow-right ms-1 fa-sm"></i></a>
+               @else
+                  <p class="mb-0" style="color:var(--tx2)">Registration is currently disabled. Please contact the administrator.</p>
+               @endif
             </div>
          </div>
       </div>
@@ -120,7 +130,7 @@
                      <div class="dd-header">
                         <div class="dd-header-title"><i class="fa-regular fa-bell me-2" style="color:var(--pur)"></i>Notifications <span id="unreadCount" style="background:rgba(248,113,113,.15);color:#f87171;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:100px;margin-left:6px">4 new</span></div>
                         <div class="d-flex gap-2">
-                           <button class="dd-close" onclick="markAllRead()" title="Mark all read" style="width:auto;padding:4px 10px;font-size:.72rem;color:var(--pur);border-color:rgba(139,92,246,.3)">Mark all read</button>
+                           <button class="dd-close" onclick="markAllRead()" title="Mark all read" style="width:auto;padding:4px 10px;font-size:.72rem;color:var(--pur);border-color:rgba(14,165,233,.3)">Mark all read</button>
                            <button class="dd-close" onclick="toggleNotif(event)"><i class="fa-solid fa-xmark"></i></button>
                         </div>
                      </div>
@@ -144,7 +154,7 @@
                            <div class="notif-dot"></div>
                         </div>
                         <div class="notif-item notif-unread d-flex gap-3 mb-2">
-                           <div class="notif-ico" style="background:rgba(139,92,246,.12)"><i class="fa-brands fa-slack" style="color:#a78bfa;font-size:.9rem"></i></div>
+                           <div class="notif-ico" style="background:rgba(14,165,233,.12)"><i class="fa-brands fa-slack" style="color:#38bdf8;font-size:.9rem"></i></div>
                            <div style="flex:1">
                               <div style="font-size:.85rem;font-weight:600;margin-bottom:3px">Slack sync completed</div>
                               <div style="font-size:.78rem;color:var(--tx2)">#support channel successfully synced. 47 new threads indexed for AI training.</div>
@@ -162,7 +172,7 @@
                            <div class="notif-dot"></div>
                         </div>
                         <div class="notif-item d-flex gap-3 mb-2">
-                           <div class="notif-ico" style="background:rgba(59,130,246,.1)"><i class="fa-solid fa-file-lines" style="color:#60a5fa;font-size:.9rem"></i></div>
+                           <div class="notif-ico" style="background:rgba(6,182,212,.1)"><i class="fa-solid fa-file-lines" style="color:#60a5fa;font-size:.9rem"></i></div>
                            <div style="flex:1">
                               <div style="font-size:.85rem;font-weight:600;margin-bottom:3px">Weekly report ready</div>
                               <div style="font-size:.78rem;color:var(--tx2)">Your performance report for last week is ready to download.</div>
@@ -212,7 +222,7 @@
                         <div style="height:1px;background:var(--bd);margin:8px 16px"></div>
                         <div style="padding:8px 16px 4px">
                            <div style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);margin-bottom:8px">Current Plan</div>
-                           <div style="background:linear-gradient(135deg,rgba(139,92,246,.12),rgba(59,130,246,.08));border:1px solid rgba(139,92,246,.25);border-radius:12px;padding:12px">
+                           <div style="background:linear-gradient(135deg,rgba(14,165,233,.12),rgba(6,182,212,.08));border:1px solid rgba(14,165,233,.25);border-radius:12px;padding:12px">
                               <div style="font-weight:700;font-size:.88rem;margin-bottom:3px" id="pdPlanDetail">Pro Plan</div>
                               <div style="font-size:.76rem;color:var(--tx2);margin-bottom:8px">Next billing: June 1, 2025</div>
                               <button class="bgrd btn w-100 py-1" style="font-size:.75rem;border-radius:8px">Upgrade to Enterprise</button>
@@ -242,7 +252,7 @@
                      <div class="col-6 col-xl-3">
                         <div class="db-stat-card">
                            <div class="d-flex justify-content-between align-items-start mb-3">
-                              <div style="width:38px;height:38px;border-radius:11px;background:rgba(139,92,246,.15);display:flex;align-items:center;justify-content:center"><i class="fa-regular fa-comments" style="color:#a78bfa"></i></div>
+                              <div style="width:38px;height:38px;border-radius:11px;background:rgba(14,165,233,.15);display:flex;align-items:center;justify-content:center"><i class="fa-regular fa-comments" style="color:#38bdf8"></i></div>
                               <span style="font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:100px;background:rgba(52,211,153,.1);color:#34d399">? 18.4%</span>
                            </div>
                            <div class="db-stat-val gt">24.8K</div>
@@ -262,8 +272,8 @@
                      <div class="col-6 col-xl-3">
                         <div class="db-stat-card">
                            <div class="d-flex justify-content-between align-items-start mb-3">
-                              <div style="width:38px;height:38px;border-radius:11px;background:rgba(59,130,246,.12);display:flex;align-items:center;justify-content:center"><i class="fa-regular fa-clock" style="color:#60a5fa"></i></div>
-                              <span style="font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:100px;background:rgba(59,130,246,.1);color:#60a5fa">? 0.3s faster</span>
+                              <div style="width:38px;height:38px;border-radius:11px;background:rgba(6,182,212,.12);display:flex;align-items:center;justify-content:center"><i class="fa-regular fa-clock" style="color:#60a5fa"></i></div>
+                              <span style="font-size:.72rem;font-weight:600;padding:3px 9px;border-radius:100px;background:rgba(6,182,212,.1);color:#60a5fa">? 0.3s faster</span>
                            </div>
                            <div class="db-stat-val" style="color:#60a5fa">1.4s</div>
                            <div class="db-stat-lbl">Avg Response Time</div>
@@ -299,7 +309,7 @@
                            </div>
                            <div id="liveActivity" style="display:flex;flex-direction:column;gap:8px">
                               <div style="display:flex;gap:10px;padding:10px;background:var(--bg3);border-radius:10px;font-size:.78rem"><span style="width:7px;height:7px;border-radius:50%;background:#34d399;margin-top:4px;flex-shrink:0"></span><span style="color:var(--tx2)">AI resolved billing query for user@acme.com</span><span style="margin-left:auto;color:var(--tx3);white-space:nowrap">2s ago</span></div>
-                              <div style="display:flex;gap:10px;padding:10px;background:var(--bg3);border-radius:10px;font-size:.78rem"><span style="width:7px;height:7px;border-radius:50%;background:#8b5cf6;margin-top:4px;flex-shrink:0"></span><span style="color:var(--tx2)">Sales agent qualified lead from LinkedIn</span><span style="margin-left:auto;color:var(--tx3);white-space:nowrap">18s ago</span></div>
+                              <div style="display:flex;gap:10px;padding:10px;background:var(--bg3);border-radius:10px;font-size:.78rem"><span style="width:7px;height:7px;border-radius:50%;background:#0ea5e9;margin-top:4px;flex-shrink:0"></span><span style="color:var(--tx2)">Sales agent qualified lead from LinkedIn</span><span style="margin-left:auto;color:var(--tx3);white-space:nowrap">18s ago</span></div>
                               <div style="display:flex;gap:10px;padding:10px;background:var(--bg3);border-radius:10px;font-size:.78rem"><span style="width:7px;height:7px;border-radius:50%;background:#34d399;margin-top:4px;flex-shrink:0"></span><span style="color:var(--tx2)">CRM synced � 12 contacts updated</span><span style="margin-left:auto;color:var(--tx3);white-space:nowrap">45s ago</span></div>
                               <div style="display:flex;gap:10px;padding:10px;background:var(--bg3);border-radius:10px;font-size:.78rem"><span style="width:7px;height:7px;border-radius:50%;background:#fbbf24;margin-top:4px;flex-shrink:0"></span><span style="color:var(--tx2)">Escalation: complex refund case ? human</span><span style="margin-left:auto;color:var(--tx3);white-space:nowrap">1m ago</span></div>
                            </div>
@@ -347,9 +357,9 @@
                      <div class="col-md-6">
                         <div class="agent-card">
                            <div class="d-flex align-items-start gap-3 mb-3">
-                              <div style="width:46px;height:46px;border-radius:14px;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fa-solid fa-handshake" style="color:#a78bfa;font-size:1.1rem"></i></div>
+                              <div style="width:46px;height:46px;border-radius:14px;background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fa-solid fa-handshake" style="color:#38bdf8;font-size:1.1rem"></i></div>
                               <div style="flex:1">
-                                 <div class="d-flex align-items-center gap-2 mb-1"><strong>Sales Qualifier</strong><span style="width:9px;height:9px;border-radius:50%;background:#8b5cf6;box-shadow:0 0 8px #8b5cf6"></span></div>
+                                 <div class="d-flex align-items-center gap-2 mb-1"><strong>Sales Qualifier</strong><span style="width:9px;height:9px;border-radius:50%;background:#0ea5e9;box-shadow:0 0 8px #0ea5e9"></span></div>
                                  <div style="font-size:.78rem;color:var(--tx3)">Sales Automation � Claude 3.5</div>
                               </div>
                               <span class="bst sbz">Busy</span>
@@ -363,7 +373,7 @@
                               </div>
                               <div class="col-6">
                                  <div style="background:var(--bg3);border-radius:10px;padding:10px">
-                                    <div style="font-size:1.1rem;font-weight:700;color:#a78bfa">78.2%</div>
+                                    <div style="font-size:1.1rem;font-weight:700;color:#38bdf8">78.2%</div>
                                     <div style="font-size:.7rem;color:var(--tx3)">Conv. rate</div>
                                  </div>
                               </div>
@@ -374,7 +384,7 @@
                      <div class="col-md-6">
                         <div class="agent-card">
                            <div class="d-flex align-items-start gap-3 mb-3">
-                              <div style="width:46px;height:46px;border-radius:14px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fa-solid fa-chart-bar" style="color:#60a5fa;font-size:1.1rem"></i></div>
+                              <div style="width:46px;height:46px;border-radius:14px;background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="fa-solid fa-chart-bar" style="color:#60a5fa;font-size:1.1rem"></i></div>
                               <div style="flex:1">
                                  <div class="d-flex align-items-center gap-2 mb-1"><strong>Data Analyzer</strong><span style="width:9px;height:9px;border-radius:50%;background:#34d399;box-shadow:0 0 8px #34d399"></span></div>
                                  <div style="font-size:.78rem;color:var(--tx3)">Analytics � Gemini Pro</div>
@@ -466,7 +476,7 @@
                               <button class="boc btn py-2 text-start px-3" style="font-size:.82rem;border-radius:10px" onclick="quickMsg('Which AI agent is performing best this week?')"><i class="fa-solid fa-robot me-2" style="color:#34d399"></i>Best performing agent</button>
                               <button class="boc btn py-2 text-start px-3" style="font-size:.82rem;border-radius:10px" onclick="quickMsg('What automation should I set up to save the most time?')"><i class="fa-solid fa-bolt me-2" style="color:#fbbf24"></i>Automation suggestions</button>
                               <button class="boc btn py-2 text-start px-3" style="font-size:.82rem;border-radius:10px" onclick="quickMsg('How can I reduce my average response time?')"><i class="fa-regular fa-clock me-2" style="color:#60a5fa"></i>Improve response time</button>
-                              <button class="boc btn py-2 text-start px-3" style="font-size:.82rem;border-radius:10px" onclick="quickMsg('Generate a weekly performance report')"><i class="fa-solid fa-file-lines me-2" style="color:#a78bfa"></i>Generate report</button>
+                              <button class="boc btn py-2 text-start px-3" style="font-size:.82rem;border-radius:10px" onclick="quickMsg('Generate a weekly performance report')"><i class="fa-solid fa-file-lines me-2" style="color:#38bdf8"></i>Generate report</button>
                            </div>
                         </div>
                      </div>
@@ -482,7 +492,7 @@
                      <div class="col-md-3">
                         <div class="db-stat-card">
                            <div class="d-flex justify-content-between mb-3">
-                              <div style="width:36px;height:36px;border-radius:10px;background:rgba(139,92,246,.12);display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-chart-line" style="color:#a78bfa;font-size:.85rem"></i></div>
+                              <div style="width:36px;height:36px;border-radius:10px;background:rgba(14,165,233,.12);display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-chart-line" style="color:#38bdf8;font-size:.85rem"></i></div>
                               <span style="font-size:.7rem;font-weight:600;padding:3px 8px;border-radius:100px;background:rgba(52,211,153,.1);color:#34d399">? 24.3%</span>
                            </div>
                            <div class="db-stat-val gt">$128K</div>
@@ -502,7 +512,7 @@
                      <div class="col-md-3">
                         <div class="db-stat-card">
                            <div class="d-flex justify-content-between mb-3">
-                              <div style="width:36px;height:36px;border-radius:10px;background:rgba(59,130,246,.1);display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-users" style="color:#60a5fa;font-size:.85rem"></i></div>
+                              <div style="width:36px;height:36px;border-radius:10px;background:rgba(6,182,212,.1);display:flex;align-items:center;justify-content:center"><i class="fa-solid fa-users" style="color:#60a5fa;font-size:.85rem"></i></div>
                               <span style="font-size:.7rem;font-weight:600;padding:3px 8px;border-radius:100px;background:rgba(52,211,153,.1);color:#34d399">? 12%</span>
                            </div>
                            <div class="db-stat-val" style="color:#60a5fa">8,420</div>
@@ -541,7 +551,7 @@
                                  </div>
                               </div>
                               <div>
-                                 <div class="d-flex justify-content-between mb-1" style="font-size:.82rem"><span>Sales Qualifier</span><span style="color:#a78bfa;font-weight:600">78.2%</span></div>
+                                 <div class="d-flex justify-content-between mb-1" style="font-size:.82rem"><span>Sales Qualifier</span><span style="color:#38bdf8;font-weight:600">78.2%</span></div>
                                  <div class="rtbar">
                                     <div class="rtfill" style="width:78%"></div>
                                  </div>
@@ -600,7 +610,7 @@
                                  <div style="font-size:.75rem;color:var(--tx3)">Email Automator ? Onboarding</div>
                               </td>
                               <td style="font-size:.82rem">New user signup</td>
-                              <td style="font-weight:600;color:#a78bfa">93</td>
+                              <td style="font-weight:600;color:#38bdf8">93</td>
                               <td><span class="bst sbz">Running</span></td>
                               <td><button class="boc btn px-2 py-1" style="font-size:.75rem;border-radius:8px"><i class="fa-solid fa-pencil"></i></button></td>
                            </tr>
@@ -651,7 +661,7 @@
                      <div class="col-md-4">
                         <div class="gc p-4">
                            <div class="d-flex align-items-center gap-3 mb-3">
-                              <div style="width:46px;height:46px;border-radius:14px;background:rgba(74,21,75,.15);display:flex;align-items:center;justify-content:center"><i class="fa-brands fa-slack fa-xl" style="color:#a78bfa"></i></div>
+                              <div style="width:46px;height:46px;border-radius:14px;background:rgba(74,21,75,.15);display:flex;align-items:center;justify-content:center"><i class="fa-brands fa-slack fa-xl" style="color:#38bdf8"></i></div>
                               <div>
                                  <div class="fw-semibold">Slack</div>
                                  <div style="font-size:.75rem;color:var(--tx3)">#support, #escalations</div>
