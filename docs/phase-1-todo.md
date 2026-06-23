@@ -60,3 +60,18 @@ Remaining risks / follow-up:
 - Footer still contains legacy theme demo dashboard/offcanvas markup and should be isolated or removed in a later cleanup phase.
 - Hero/integration/testimonial/statistics CMS CRUD is intentionally deferred beyond Phase 1 per the implementation instruction to keep those hardcoded for now.
 - A richer media manager is not implemented; uploaded landing images should be handled in a later phase.
+
+## Post-merge hotfix — Theme, login, and InvoiceTemplateSeeder
+
+Completed:
+
+- Restored the landing theme to stable light/dark CSS variables and replaced the merged purple/violet accent with the blue/cyan palette used across the admin/workspace experience.
+- Rewired the landing offcanvas login form to the real Laravel `login` POST route with CSRF, `email`, `password`, `remember`, session status, field validation errors, and forgot-password link.
+- Changed the landing sign-up CTA/offcanvas to route to the real registration page instead of fake JavaScript auth.
+- Made `InvoiceTemplateSeeder` idempotent against the existing `company_settings` unique index by matching rows on `company_id` + `key` and updating `category`/`value`.
+- Verified the current `company_settings` schema defines `id`, `company_id`, `category`, `key`, `value`, timestamps, an index on `category`, and a unique index on `company_id` + `key`; for this hotfix the seeder now follows that actual uniqueness rule.
+
+Remaining risks:
+
+- The current `company_settings` unique rule ignores `category`; if future settings require the same key in multiple categories, add a separate migration to change the uniqueness rule deliberately.
+- The merged landing footer still includes large demo dashboard markup; this hotfix only corrected colors/auth wiring and did not remove unrelated demo sections.

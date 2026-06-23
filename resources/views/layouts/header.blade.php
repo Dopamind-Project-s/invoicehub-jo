@@ -19,7 +19,7 @@
       <link rel="stylesheet" href="{{ asset('assets/css/magnific-popup.css') }}"/>
       <!-- Style CSS -->
       <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" />
-   <style>:root{--pur:#00a9c4;--cyan:#12c2b2;--grad:linear-gradient(135deg,#00a9c4,#12c2b2);--bg:#f8fdff;--bg2:#eef9fb;--bg3:#ffffff;--sf:#ffffff;--bd:#d7eef3;--bd2:#bfe7ee;--tx:#172033;--tx2:#475569;--tx3:#64748b}.gc,.pcard,.dwrap,.stpill{border-radius:24px;box-shadow:0 18px 42px rgba(15,23,42,.08)}.bgrd{background:var(--grad)!important;border:0!important;color:#fff!important}.boc{border:1px solid var(--bd2)!important;color:#0f6170!important;background:#fff!important}.gt{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}.ftico{width:52px;height:52px;border-radius:16px;background:rgba(0,169,196,.12);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:#00a9c4;font-weight:800}.pchk{color:#00a9c4;margin-left:8px}.nav-link{color:var(--tx2)!important}</style>
+   <style>:root{--pur:#0ea5e9;--cyan:#06b6d4;--teal:#14b8a6;--grad:linear-gradient(135deg,#0ea5e9,#06b6d4);--bg:#0f172a;--bg2:#111827;--bg3:#1e293b;--sf:#172033;--bd:rgba(148,163,184,.18);--bd2:rgba(14,165,233,.32);--tx:#f8fafc;--tx2:#cbd5e1;--tx3:#94a3b8}.lm{--bg:#f8fafc;--bg2:#eef6fb;--bg3:#ffffff;--sf:#ffffff;--bd:#dbeafe;--bd2:#bae6fd;--tx:#172033;--tx2:#475569;--tx3:#64748b}.gc,.pcard,.dwrap,.stpill{border-radius:24px;box-shadow:0 18px 42px rgba(15,23,42,.08)}.bgrd{background:var(--grad)!important;border:0!important;color:#fff!important}.boc{border:1px solid var(--bd2)!important;color:var(--pur)!important;background:var(--sf)!important}.gt{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}.ftico{width:52px;height:52px;border-radius:16px;background:rgba(14,165,233,.12);display:flex;align-items:center;justify-content:center;margin-bottom:16px;color:var(--pur);font-weight:800}.pchk{color:var(--pur);margin-left:8px}.nav-link{color:var(--tx2)!important}</style>
    </head>
    <body>
       <!-- ======================== LANDING PAGE ======================== -->
@@ -46,9 +46,9 @@
                      <button class="boc px-3 py-2 d-none d-sm-flex align-items-center gap-1" data-bs-toggle="offcanvas" data-bs-target="#lofc" onclick="swTab('login')">
                      <i class="fa-regular fa-user fa-sm"></i> دخول
                      </button>
-                     <button class="bgrd btn px-3 py-2 d-none d-sm-flex align-items-center gap-1" data-bs-toggle="offcanvas" data-bs-target="#lofc" onclick="swTab('signup')">
+                     <a class="bgrd btn px-3 py-2 d-none d-sm-flex align-items-center gap-1" href="{{ route('register') }}">
                      ابدأ الآن <i class="fa-solid fa-arrow-right fa-sm"></i>
-                     </button>
+                     </a>
                      <button class="boc d-lg-none px-2 py-2" id="mbtog" style="border-radius:10px">
                      <i class="fa-solid fa-bars" id="barIcon"></i>
                      <i class="fa-solid fa-xmark" id="xIcon" style="display:none"></i>

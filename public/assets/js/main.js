@@ -270,8 +270,8 @@ function initOverviewChart() {
     }
     const c = ctx.getContext('2d');
     const g = c.createLinearGradient(0, 0, 0, 280);
-    g.addColorStop(0, 'rgba(139,92,246,0.35)');
-    g.addColorStop(1, 'rgba(59,130,246,0.02)');
+    g.addColorStop(0, 'rgba(14,165,233,0.35)');
+    g.addColorStop(1, 'rgba(6,182,212,0.02)');
     const labels = Array.from({
         length: 30
     }, (_, i) => `${i+1}`);
@@ -289,7 +289,7 @@ function initOverviewChart() {
                 data,
                 fill: true,
                 backgroundColor: g,
-                borderColor: '#8b5cf6',
+                borderColor: '#0ea5e9',
                 borderWidth: 2.5,
                 pointRadius: 0,
                 pointHoverRadius: 5,
@@ -304,9 +304,9 @@ function initOverviewChart() {
                 },
                 tooltip: {
                     backgroundColor: 'rgba(22,22,42,.95)',
-                    titleColor: '#a78bfa',
+                    titleColor: '#38bdf8',
                     bodyColor: '#a8a8c8',
-                    borderColor: 'rgba(139,92,246,.3)',
+                    borderColor: 'rgba(14,165,233,.3)',
                     borderWidth: 1,
                     padding: 10,
                     callbacks: {
@@ -355,8 +355,8 @@ function initAnalyticsChart() {
     }
     const c = ctx.getContext('2d');
     const g1 = c.createLinearGradient(0, 0, 0, 250);
-    g1.addColorStop(0, 'rgba(139,92,246,0.3)');
-    g1.addColorStop(1, 'rgba(139,92,246,0.01)');
+    g1.addColorStop(0, 'rgba(14,165,233,0.3)');
+    g1.addColorStop(1, 'rgba(14,165,233,0.01)');
     const g2 = c.createLinearGradient(0, 0, 0, 250);
     g2.addColorStop(0, 'rgba(52,211,153,0.2)');
     g2.addColorStop(1, 'rgba(52,211,153,0.01)');
@@ -374,10 +374,10 @@ function initAnalyticsChart() {
                     data: [8200, 9100, 10400, 9800, 11200, 12800, 14100, 15600, 17200, 19000, 21400, 24800],
                     fill: true,
                     backgroundColor: g1,
-                    borderColor: '#8b5cf6',
+                    borderColor: '#0ea5e9',
                     borderWidth: 2.5,
                     pointRadius: 3,
-                    pointBackgroundColor: '#8b5cf6',
+                    pointBackgroundColor: '#0ea5e9',
                     tension: .4
                 },
                 {
@@ -410,9 +410,9 @@ function initAnalyticsChart() {
                 },
                 tooltip: {
                     backgroundColor: 'rgba(22,22,42,.95)',
-                    titleColor: '#a78bfa',
+                    titleColor: '#38bdf8',
                     bodyColor: '#a8a8c8',
-                    borderColor: 'rgba(139,92,246,.3)',
+                    borderColor: 'rgba(14,165,233,.3)',
                     borderWidth: 1,
                     padding: 10
                 }
@@ -582,8 +582,8 @@ function markAllRead() {
     document.querySelectorAll('.notif-dot:not(.read)').forEach(d => d.classList.add('read'));
     document.querySelectorAll('.notif-unread').forEach(n => n.classList.remove('notif-unread'));
     document.getElementById('unreadCount').textContent = '0 new';
-    document.getElementById('unreadCount').style.background = 'rgba(139,92,246,.1)';
-    document.getElementById('unreadCount').style.color = '#a78bfa';
+    document.getElementById('unreadCount').style.background = 'rgba(14,165,233,.1)';
+    document.getElementById('unreadCount').style.color = '#38bdf8';
     document.getElementById('notifBadge').style.display = 'none';
 }
 
@@ -612,12 +612,12 @@ document.addEventListener('click', (e) => {
 /*  LIVE ACTIVITY TICKER  */
 const activities = [
     ['#34d399', 'AI resolved shipping query for customer #4821'],
-    ['#8b5cf6', 'Sales agent sent follow-up email to 5 leads'],
+    ['#0ea5e9', 'Sales agent sent follow-up email to 5 leads'],
     ['#34d399', 'Refund processed automatically â€” $29.99'],
     ['#fbbf24', 'Escalation: account access issue â†’ human agent'],
     ['#60a5fa', 'Data sync completed â€” 28 CRM records updated'],
     ['#34d399', 'Onboarding bot guided new user through setup'],
-    ['#8b5cf6', 'Weekly performance report generated and sent'],
+    ['#0ea5e9', 'Weekly performance report generated and sent'],
     ['#34d399', 'AI resolved 12 billing questions in 8 seconds'],
 ];
 let actIdx = 0;
