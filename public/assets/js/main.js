@@ -27,21 +27,21 @@ function toggleTheme() {
     // Update charts
     updateChartColors();
 }
-document.getElementById('thbtn').addEventListener('click', toggleTheme);
+document.getElementById('thbtn')?.addEventListener('click', toggleTheme);
 
 /*  NAVBAR  */
 window.addEventListener('scroll', () => document.getElementById('nbar').classList.toggle('scr', scrollY > 40));
 let mbOpen = false;
-document.getElementById('mbtog').addEventListener('click', () => {
+document.getElementById('mbtog')?.addEventListener('click', () => {
     mbOpen = !mbOpen;
-    document.getElementById('mbmenu').classList.toggle('open', mbOpen);
+    document.getElementById('mbmenu')?.classList.toggle('open', mbOpen);
     document.getElementById('barIcon').style.display = mbOpen ? 'none' : 'inline';
     document.getElementById('xIcon').style.display = mbOpen ? 'inline' : 'none';
 });
 document.querySelectorAll('#mbmenu a, #mbmenu button').forEach(el =>
     el.addEventListener('click', () => {
         mbOpen = false;
-        document.getElementById('mbmenu').classList.remove('open');
+        document.getElementById('mbmenu')?.classList.remove('open');
         document.getElementById('barIcon').style.display = 'inline';
         document.getElementById('xIcon').style.display = 'none';
     })
@@ -87,12 +87,18 @@ document.getElementById('ptog').addEventListener('change', function() {
 /*  AUTH FUNCTIONS  */
 function swTab(t) {
     const isL = t === 'login';
-    document.getElementById('fLogin').style.display = isL ? 'block' : 'none';
-    document.getElementById('fSignup').style.display = isL ? 'none' : 'block';
-    document.getElementById('tabLogin').classList.toggle('on', isL);
-    document.getElementById('tabSignup').classList.toggle('on', !isL);
-    document.getElementById('loginErr').style.display = 'none';
-    document.getElementById('signupErr').style.display = 'none';
+    const loginForm = document.getElementById('fLogin');
+    const signupForm = document.getElementById('fSignup');
+    const loginTab = document.getElementById('tabLogin');
+    const signupTab = document.getElementById('tabSignup');
+    if (loginForm) loginForm.style.display = isL ? 'block' : 'none';
+    if (signupForm) signupForm.style.display = isL ? 'none' : 'block';
+    loginTab?.classList.toggle('on', isL);
+    signupTab?.classList.toggle('on', !isL);
+    const loginErr = document.getElementById('loginErr');
+    const signupErr = document.getElementById('signupErr');
+    if (loginErr) loginErr.style.display = 'none';
+    if (signupErr) signupErr.style.display = 'none';
 }
 
 function showErrLogin(msg) {

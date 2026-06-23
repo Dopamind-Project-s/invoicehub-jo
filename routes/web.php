@@ -27,7 +27,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function (LandingPageDataService $landing) {
     return view('welcome', $landing->home('ar'));
-});
+})->name('home');
 Route::get('/shared/invoices/{token}', PublicInvoiceShareController::class)->name('invoices.shared.show');
 
 Route::get('/dashboard', function () {

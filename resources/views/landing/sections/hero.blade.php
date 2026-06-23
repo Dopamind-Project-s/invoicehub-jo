@@ -6,7 +6,7 @@
             <h1 class="h1 mt-4">أدر فواتير منشأتك بثقة مع <span class="gt">InvoSync</span></h1>
             <p class="mx-auto" style="max-width:720px;font-size:clamp(1rem,1.8vw,1.25rem);color:var(--tx2);margin-bottom:36px">منصة عربية لإدارة الفواتير والعملاء والمنتجات، وتجهيز بيانات منشأتك للربط مع نظام الفوترة الوطني بخطوات واضحة وتجربة سهلة.</p>
             <div class="d-flex align-items-center justify-content-center gap-3 flex-wrap">
-                <a href="{{ route('register') }}" class="bgrd btn px-4 py-3 fs-6">{{ data_get($settings, 'cta.primary_text_ar', 'ابدأ إدارة فواتير منشأتك') }}</a>
+                <a href="{{ route('login') }}" class="bgrd btn px-4 py-3 fs-6">{{ data_get($settings, 'cta.primary_text_ar', 'ابدأ إدارة فواتير منشأتك') }}</a>
                 <a href="https://wa.me/962{{ ltrim(data_get($settings, 'contact.whatsapp', '0776079926'), '0') }}" class="boc btn px-4 py-3 fs-6">{{ data_get($settings, 'cta.secondary_text_ar', 'تواصل عبر واتساب') }}</a>
             </div>
         </div>
