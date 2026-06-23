@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Landing\LandingPageDataService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Cache;
 
 class Plan extends Model
 {
@@ -17,8 +17,8 @@ class Plan extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn (): bool => Cache::forget('landing:home:ar'));
-        static::deleted(fn (): bool => Cache::forget('landing:home:ar'));
+        static::saved(fn (): null => LandingPageDataService::clear());
+        static::deleted(fn (): null => LandingPageDataService::clear());
     }
 
     public function featureKeys(): BelongsToMany

@@ -3,8 +3,8 @@
    <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="description" content="{{ ($settings ?? collect())->get('seo.description_ar', 'نظام فوترة إلكترونية عربي للمنشآت.') }}">
-      <title>{{ ($settings ?? collect())->get('seo.title_ar', 'InvoSync | نظام فوترة إلكترونية للمنشآت') }}</title>
+      <meta name="description" content="{{ data_get($settings ?? [], 'seo.description_ar', 'نظام فوترة إلكترونية عربي للمنشآت.') }}">
+      <title>{{ data_get($settings ?? [], 'seo.title_ar', 'InvoSync | نظام فوترة إلكترونية للمنشآت') }}</title>
       <link rel="preconnect" href="https://fonts.googleapis.com">
       <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
       <!-- Bootstrap 5.3 -->
