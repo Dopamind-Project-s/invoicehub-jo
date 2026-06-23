@@ -20,6 +20,10 @@
             <li class="side-item {{ request()->routeIs('admin.companies.*') ? 'selected' : '' }}"><a href="{{ route('admin.companies.index') }}"><span>🏢</span><span>المنشآت</span></a></li>
             <li class="side-item {{ request()->routeIs('admin.feature-keys.*') ? 'selected' : '' }}"><a href="{{ route('admin.feature-keys.index') }}"><span>🧩</span><span>مفاتيح المزايا</span></a></li>
             <li class="side-item {{ request()->routeIs('admin.plans.*') ? 'selected' : '' }}"><a href="{{ route('admin.plans.index') }}"><span>💳</span><span>الباقات</span></a></li>
+            <li class="side-item {{ request()->routeIs('admin.landing-cms.*') ? 'selected' : '' }}"><a href="{{ route('admin.landing-cms.settings.edit') }}"><span>🌐</span><span>الموقع الإلكتروني</span></a></li>
+            <li class="side-item {{ request()->routeIs('admin.landing-cms.settings.*') ? 'selected' : '' }}"><a href="{{ route('admin.landing-cms.settings.edit') }}"><span>⚙️</span><span>الإعدادات العامة</span></a></li>
+            <li class="side-item {{ request()->routeIs('admin.landing-cms.faqs.*') ? 'selected' : '' }}"><a href="{{ route('admin.landing-cms.faqs.index') }}"><span>❓</span><span>الأسئلة الشائعة</span></a></li>
+            <li class="side-item"><a href="{{ route('admin.plans.index') }}"><span>🏷️</span><span>باقات الموقع</span></a></li>
             <li class="side-item"><a href="{{ route('admin.companies.index') }}"><span>👥</span><span>المستخدمون</span></a></li>
             <li class="side-item"><a href="{{ route('admin.companies.index') }}"><span>📝</span><span>سجل النشاطات</span></a></li>
         @elseif($isCompany && $routeCompany)

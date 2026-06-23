@@ -4,10 +4,10 @@
                <div class="row g-5 mb-5">
                   <div class="col-lg-4">
                      <a class="d-flex align-items-center gap-2 mb-3" href="#" style="font-size:1.15rem;font-weight:700;color:var(--tx)">
-                        <div class="logo-i"><img src="assets/logos/logo.svg" alt="InvoSync Jo" style="width:50px;height:50px"></div>
+                        <div class="logo-i"><img src="{{ asset('assets/logos/logo.svg') }}" alt="InvoSync Jo" style="width:50px;height:50px"></div>
                         InvoSync Jo
                      </a>
-                     <p style="font-size:.875rem;color:var(--tx3);line-height:1.65;max-width:280px">The most powerful AI automation platform for modern teams.</p>
+                     <p style="font-size:.875rem;color:var(--tx3);line-height:1.65;max-width:280px">{{ ($settings ?? collect())->get('footer.description_ar', 'منصة فوترة إلكترونية عربية للمنشآت.') }}</p>
                      <div class="d-flex gap-2 mt-3"><input class="nli" type="email" placeholder="your@email.com" style="max-width:200px"><button class="bgrd btn px-3 py-2" style="font-size:.85rem;white-space:nowrap">Subscribe</button></div>
                   </div>
                   <div class="col-6 col-md-2 fcol">
@@ -24,7 +24,7 @@
                   </div>
                </div>
                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 pt-4" style="border-top:1px solid var(--bd)">
-                  <p style="font-size:.8rem;color:var(--tx3);margin:0">� 2025 InvoSync Jo, Inc. All rights reserved by <a target="_blank" class="text-primary fw-bold" href="https://bestwpware.com/">Bestwpware</a> <br> Distributed by <a target="_blank" class="text-primary fw-bold" href="https://themewagon.com">ThemeWagon</a> </p>
+                  <p style="font-size:.8rem;color:var(--tx3);margin:0">© {{ date('Y') }} {{ ($settings ?? collect())->get('footer.copyright_ar', 'جميع الحقوق محفوظة.') }} <a target="_blank" class="text-primary fw-bold" href="https://bestwpware.com/">Bestwpware</a> <br> Distributed by <a target="_blank" class="text-primary fw-bold" href="https://themewagon.com">ThemeWagon</a> </p>
                   <div class="d-flex gap-2"><a href="#" class="sico"><i class="fa-brands fa-x-twitter"></i></a><a href="#" class="sico"><i class="fa-brands fa-github"></i></a><a href="#" class="sico"><i class="fa-brands fa-linkedin-in"></i></a><a href="#" class="sico"><i class="fa-brands fa-discord"></i></a></div>
                </div>
             </div>
@@ -35,7 +35,7 @@
       <div class="offcanvas offcanvas-end" tabindex="-1" id="lofc">
          <div class="offcanvas-header">
             <div class="d-flex align-items-center gap-2">
-               <div class="logo-i" style="width:30px;height:30px;font-size:.8rem"><img src="assets/logos/logo.svg" alt="InvoSync Jo" style="width:50px;height:50px"></div>
+               <div class="logo-i" style="width:30px;height:30px;font-size:.8rem"><img src="{{ asset('assets/logos/logo.svg') }}" alt="InvoSync Jo" style="width:50px;height:50px"></div>
                <h5 class="offcanvas-title mb-0">InvoSync Jo</h5>
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" style="filter:invert(1)"></button>
@@ -78,7 +78,7 @@
          <!-- Sidebar -->
          <div class="db-sidebar" id="dbSidebar">
             <div class="db-logo">
-               <div class="logo-i"><img src="assets/logos/logo.svg" alt="InvoSync Jo" style="width:50px;height:50px"></div>
+               <div class="logo-i"><img src="{{ asset('assets/logos/logo.svg') }}" alt="InvoSync Jo" style="width:50px;height:50px"></div>
                <span>InvoSync Jo</span>
             </div>
             <div class="db-nav">
@@ -807,16 +807,16 @@
       <!-- /dashboard -->
       <!-- ======================== SCRIPTS ======================== -->
       <!-- jQuery -->
-      <script src="assets/js/jquery-3.7.1.min.js"></script>
+      <script src="{{ asset('assets/js/jquery-3.7.1.min.js') }}"></script>
       <!-- Bootstrap 5 -->
-      <script src="assets/js/bootstrap.bundle.min.js"></script>
+      <script src="{{ asset('assets/js/bootstrap.bundle.min.js') }}"></script>
       <!-- AOS -->
-      <script src="assets/js/aos.js"></script>
+      <script src="{{ asset('assets/js/aos.js') }}"></script>
       <!-- Swiper -->
-      <script src="assets/js/chart.umd.min.js"></script>
+      <script src="{{ asset('assets/js/chart.umd.min.js') }}"></script>
       <!-- CounterUp -->
-      <script src="assets/js/jquery.magnific-popup.min.js"></script>
+      <script src="{{ asset('assets/js/jquery.magnific-popup.min.js') }}"></script>
       <!-- Main js -->
-      <script src="assets/js/main.js"></script>
+      <script src="{{ asset('assets/js/main.js') }}"></script>
    </body>
 </html>
