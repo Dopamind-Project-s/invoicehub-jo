@@ -41,7 +41,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" style="filter:invert(1)"></button>
          </div>
          <div class="offcanvas-body p-4">
-            <div class="tab-switch"><button class="tab-sw-btn on" id="tabLogin" onclick="swTab('login')">Log In</button><button class="tab-sw-btn" id="tabSignup" onclick="swTab('signup')">Sign Up</button></div>
+            <div class="tab-switch"><button class="tab-sw-btn on" id="tabLogin" type="button">Log In</button></div>
             <!-- Login -->
             <div id="fLogin">
                <x-auth-session-status class="alert alert-success" :status="session('status')" />
@@ -68,18 +68,6 @@
                   </div>
                   <button type="submit" class="bgrd btn w-100 py-3 fw-semibold fs-6" id="loginBtn">Log In <i class="fa-solid fa-arrow-right ms-1 fa-sm"></i></button>
                </form>
-               @if (Route::has('register'))
-                  <p class="text-center mt-4" style="font-size:.82rem;color:var(--tx3)">Don't have an account? <a href="{{ route('register') }}" style="color:var(--pur)">Sign up free</a></p>
-               @endif
-            </div>
-            <!-- Sign Up -->
-            <div id="fSignup" style="display:none">
-               @if (Route::has('register'))
-                  <p class="mb-3" style="color:var(--tx2)">Create accounts through the secure Laravel registration page.</p>
-                  <a class="bgrd btn w-100 py-3 fw-semibold fs-6" href="{{ route('register') }}">Create Free Account <i class="fa-solid fa-arrow-right ms-1 fa-sm"></i></a>
-               @else
-                  <p class="mb-0" style="color:var(--tx2)">Registration is currently disabled. Please contact the administrator.</p>
-               @endif
             </div>
          </div>
       </div>
