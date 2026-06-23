@@ -2,9 +2,6 @@
 @section('title', 'الوحدات')
 @section('content')
 @php($routeCompanyId = $company->id ?? request()->route('company')?->id ?? request()->route('company') ?? auth()->user()?->company_id)
-<style>
-.master-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.master-hero .btn{border-radius:999px;font-weight:800}.master-filter,.master-table-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.master-filter .form-control,.master-filter .form-select{border-radius:14px}.master-icon{width:48px;height:48px;border-radius:16px;background:#eefcff;display:inline-grid;place-items:center;font-size:1.35rem;border:1px solid #d7eef3}.master-table th{background:#f7fbfc;color:#475569;white-space:nowrap}.master-table td{vertical-align:middle}.status-badge,.type-badge{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:.8rem;border:1px solid #d7eef3;background:#f1f9fb;color:#0f6170}.status-badge.inactive{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.type-badge.global{background:#f8fafc;color:#475569;border-color:#e2e8f0}.action-btn{border-radius:999px;min-width:78px}.empty-state{border:1px dashed #b7dce5;border-radius:22px;padding:42px;background:#f8fdff;text-align:center}.empty-state-icon{font-size:3rem}
-</style>
 <div class="master-hero d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3" dir="rtl">
     <div class="d-flex gap-3 align-items-center"><div class="master-icon bg-white text-info">📏</div><div><h1 class="h3 mb-2">الوحدات</h1><p class="mb-0 opacity-75">استخدم الوحدات لتحديد طريقة قياس المنتجات والخدمات.</p></div></div>
     <a class="btn btn-light btn-lg" href="{{ route('company.units.create', ['company' => $routeCompanyId]) }}">➕ إضافة وحدة جديدة</a>

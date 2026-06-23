@@ -29,6 +29,7 @@
             $isHome = request()->is('/');
             $sectionHref = fn (string $section): string => $isHome ? '#'.$section : $landingUrl.'#'.$section;
             $workspaceUrl = auth()->check() ? route('dashboard') : route('login');
+            $loginOffcanvasAttrs = 'data-bs-toggle="offcanvas" data-bs-target="#lofc" aria-controls="lofc"';
          @endphp
          <!-- NAVBAR -->
          <nav id="nbar">
@@ -49,9 +50,18 @@
                      <i class="fa-solid fa-sun" id="suni" style="display:none"></i>
                      <i class="fa-solid fa-moon" id="mooni"></i>
                      </button>
-                     <a class="bgrd btn px-3 py-2 d-none d-sm-flex align-items-center gap-1" href="{{ $workspaceUrl }}">
-                     <i class="fa-regular fa-user fa-sm"></i> {{ auth()->check() ? 'لوحة التحكم' : 'دخول' }}
-                     </a>
+                     @auth
+                        <a class="bgrd btn px-3 py-2 d-none d-sm-flex align-items-center gap-1" href="{{ $workspaceUrl }}">
+                           <i class="fa-solid fa-gauge-high fa-sm"></i> لوحة التحكم
+                        </a>
+                     @else
+                        <button class="boc btn px-3 py-2 d-none d-sm-flex align-items-center gap-1" type="button" {!! $loginOffcanvasAttrs !!}>
+                           <i class="fa-regular fa-user fa-sm"></i> دخول
+                        </button>
+                        <button class="bgrd btn px-3 py-2 d-none d-sm-flex align-items-center gap-1" type="button" {!! $loginOffcanvasAttrs !!}>
+                           ابدأ الآن <i class="fa-solid fa-arrow-left fa-sm"></i>
+                        </button>
+                     @endauth
                      <button class="boc d-lg-none px-2 py-2" id="mbtog" style="border-radius:10px">
                      <i class="fa-solid fa-bars" id="barIcon"></i>
                      <i class="fa-solid fa-xmark" id="xIcon" style="display:none"></i>
@@ -64,7 +74,12 @@
                      <a href="{{ $sectionHref('integrations') }}" class="nav-link">التكاملات</a>
                      <a href="{{ $sectionHref('pricing') }}" class="nav-link">الباقات</a>
                      <a href="{{ $sectionHref('faq') }}" class="nav-link">الأسئلة الشائعة</a>
-                     <a class="bgrd btn w-100 py-2 mt-2" href="{{ $workspaceUrl }}">{{ auth()->check() ? 'لوحة التحكم' : 'دخول' }}</a>
+                     @auth
+                        <a class="bgrd btn w-100 py-2 mt-2" href="{{ $workspaceUrl }}">لوحة التحكم</a>
+                     @else
+                        <button class="boc btn w-100 py-2 mt-2" type="button" {!! $loginOffcanvasAttrs !!}>دخول</button>
+                        <button class="bgrd btn w-100 py-2" type="button" {!! $loginOffcanvasAttrs !!}>ابدأ الآن</button>
+                     @endauth
                   </div>
                </div>
             </div>
