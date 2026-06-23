@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
             FeatureKeySeeder::class,
             CompanySeeder::class,
             PlanSeeder::class,
+            SiteSettingSeeder::class,
+            LandingFaqSeeder::class,
             SuperAdminSeeder::class,
             CompanyUserSeeder::class,
             InvoiceTemplateSeeder::class,

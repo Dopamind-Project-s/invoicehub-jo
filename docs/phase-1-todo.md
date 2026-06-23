@@ -38,3 +38,25 @@
 
 ## Recommended next step
 - Consider moving cache invalidation into model observers once the domain event structure is formalized.
+
+## Landing CMS Phase 1 Implementation Update
+
+Completed in this phase:
+
+- Added `site_settings` for public contact, footer, CTA, SEO, and social settings.
+- Added `landing_faqs` for active FAQ content rendered on the landing page.
+- Extended `plans` with bilingual marketing fields, sort order, and recommended badge support.
+- Added seeders for Arabic-first site settings and FAQ content.
+- Updated plan seeding with Arabic/English marketing copy and recommended plan metadata.
+- Added `LandingPageDataService` with cache key `landing:home:ar` for settings, active FAQs, and active plans with feature keys.
+- Split `welcome.blade.php` into landing section partials for hero, features, integrations, pricing, FAQ, testimonials, statistics, partners, and CTA.
+- Kept hero, integrations, testimonials, statistics, and partners hardcoded for Phase 1 while replacing generic AI copy with Arabic InvoSync content.
+- Wired pricing to active database plans and included feature keys.
+- Added admin website menu entries for `الموقع الإلكتروني`, `الإعدادات العامة`, `الأسئلة الشائعة`, and a link to existing plans.
+- Added protected admin CRUD for landing FAQs and settings editing.
+
+Remaining risks / follow-up:
+
+- Footer still contains legacy theme demo dashboard/offcanvas markup and should be isolated or removed in a later cleanup phase.
+- Hero/integration/testimonial/statistics CMS CRUD is intentionally deferred beyond Phase 1 per the implementation instruction to keep those hardcoded for now.
+- A richer media manager is not implemented; uploaded landing images should be handled in a later phase.

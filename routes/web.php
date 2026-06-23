@@ -4,6 +4,9 @@ use App\Http\Controllers\Admin\CompanyManagementController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\FeatureKeyController;
 use App\Http\Controllers\Admin\PlanController;
+use App\Http\Controllers\Admin\LandingCms\LandingFaqController;
+use App\Http\Controllers\Admin\LandingCms\SiteSettingController;
+use App\Services\Landing\LandingPageDataService;
 use App\Http\Controllers\CompanyWorkspace\ActivityController;
 use App\Http\Controllers\CompanyWorkspace\CompanyRoleController;
 use App\Http\Controllers\CompanyWorkspace\CompanySettingsController;
@@ -22,8 +25,8 @@ use App\Http\Controllers\CompanyWorkspace\MasterData\UnitController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
+Route::get('/', function (LandingPageDataService $landing) {
+    return view('welcome', $landing->home('ar'));
 });
 Route::get('/shared/invoices/{token}', PublicInvoiceShareController::class)->name('invoices.shared.show');
 
@@ -62,6 +65,9 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::post('companies/{company}/activate', [CompanyManagementController::class, 'activate'])->name('companies.activate');
     Route::post('companies/{company}/suspend', [CompanyManagementController::class, 'suspend'])->name('companies.suspend');
     Route::get('feature-keys', [FeatureKeyController::class, 'index'])->name('feature-keys.index');
+    Route::get('landing-cms/settings', [SiteSettingController::class, 'edit'])->name('landing-cms.settings.edit');
+    Route::put('landing-cms/settings', [SiteSettingController::class, 'update'])->name('landing-cms.settings.update');
+    Route::resource('landing-cms/faqs', LandingFaqController::class)->parameters(['faqs' => 'faq'])->names('landing-cms.faqs');
     Route::resource('plans', PlanController::class)->except(['show', 'destroy']);
     Route::post('plans/{plan}/activate', [PlanController::class, 'activate'])->name('plans.activate');
     Route::post('plans/{plan}/deactivate', [PlanController::class, 'deactivate'])->name('plans.deactivate');

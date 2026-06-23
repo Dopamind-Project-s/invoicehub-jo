@@ -7,12 +7,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class Plan extends Model
 {
-    protected $fillable = ['name', 'slug', 'description', 'price', 'monthly_price', 'yearly_price', 'billing_cycle', 'is_active'];
+    protected $fillable = ['name', 'name_ar', 'name_en', 'slug', 'description', 'description_ar', 'description_en', 'price', 'monthly_price', 'yearly_price', 'billing_cycle', 'sort_order', 'is_active', 'is_recommended'];
 
-    protected $casts = ['price' => 'decimal:3', 'monthly_price' => 'decimal:3', 'yearly_price' => 'decimal:3', 'is_active' => 'boolean'];
+    protected $casts = ['price' => 'decimal:3', 'monthly_price' => 'decimal:3', 'yearly_price' => 'decimal:3', 'is_active' => 'boolean', 'is_recommended' => 'boolean', 'sort_order' => 'integer'];
+
+    protected static function booted(): void
+    {
+        static::saved(fn (): bool => Cache::forget('landing:home:ar'));
+        static::deleted(fn (): bool => Cache::forget('landing:home:ar'));
+    }
 
     public function featureKeys(): BelongsToMany
     {
