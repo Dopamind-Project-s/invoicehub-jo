@@ -16,7 +16,7 @@
                     </label>
                 </div>
                 <span style="font-size:.9rem;color:var(--tx2);font-weight:500">شهرياً</span>
-                <span style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);color:#34d399;font-size:.72rem;font-weight:600;padding:3px 10px;border-radius:100px"><i class="fa-solid fa-tag me-1"></i>وفر 30%</span>
+                <span style="background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.25);color:#34d399;font-size:.72rem;font-weight:600;padding:3px 10px;border-radius:100px"><i class="fa-solid fa-tag me-1"></i>وفر 40% واكثر </span>
             </div>
         @endif
 
