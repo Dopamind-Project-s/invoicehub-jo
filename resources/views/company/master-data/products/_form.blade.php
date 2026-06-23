@@ -1,8 +1,5 @@
 @csrf
 @php($mode = $mode ?? 'create')
-<style>
-.product-form{border:1px solid #e5eef4;border-radius:24px;overflow:hidden;box-shadow:0 16px 36px rgba(15,23,42,.07);background:#fff}.product-form-head{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;padding:22px 24px}.product-form-body{padding:24px}.product-section{border:1px solid #e8f0f5;border-radius:18px;padding:18px;background:#fff;margin-bottom:18px}.product-section-title{font-weight:800;margin-bottom:14px}.product-form .form-control,.product-form .form-select{border-radius:14px}.product-form .form-text{font-size:.8rem}.image-preview-box{border:1px dashed #b7dce5;border-radius:18px;background:#f8fdff;padding:16px;text-align:center}.product-image-preview{width:150px;height:150px;border-radius:22px;object-fit:cover;background:#eef6f8}.product-actions{background:#f8fbfc;border-top:1px solid #e5eef4;padding:18px 24px}.product-actions .btn{border-radius:999px;min-width:150px}.validation-summary{display:none;border-radius:14px}.status-card{border-radius:16px;background:#f8fdff;border:1px solid #d7eef3;padding:14px}
-</style>
 <div class="product-form" dir="rtl">
     <div class="product-form-head"><h2 class="h4 mb-1">{{ $mode === 'edit' ? 'تعديل بيانات المنتج / الخدمة' : 'منتج / خدمة جديدة' }}</h2><p class="mb-0 opacity-75">نظّم بيانات الكتالوج لتسهيل إنشاء الفواتير بسرعة ودقة.</p></div>
     <div class="product-form-body">
@@ -39,39 +36,3 @@
         <a class="btn btn-outline-secondary" href="{{ route('company.products.index', ['company' => $routeCompanyId]) }}">إلغاء</a>
     </div>
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    document.querySelectorAll('[data-product-form]').forEach(function (form) {
-        var imageInput = form.querySelector('[data-image-input]');
-        var imagePreview = form.querySelector('[data-image-preview]');
-        var summary = form.querySelector('[data-validation-summary]');
-        function showErrors(errors) { summary.style.display = errors.length ? 'block' : 'none'; summary.innerHTML = errors.map(function (e) { return '<div>'+e+'</div>'; }).join(''); }
-        if (imageInput && imagePreview) {
-            imageInput.addEventListener('change', function () {
-                var file = imageInput.files[0];
-                if (!file) return;
-                if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) { showErrors(['صيغة الصورة أو حجمها غير صحيح.']); imageInput.value = ''; return; }
-                imagePreview.src = URL.createObjectURL(file);
-                showErrors([]);
-            });
-        }
-        form.addEventListener('submit', function (event) {
-            var errors = [];
-            var nameAr = form.querySelector('[name="name_ar"]');
-            var type = form.querySelector('[name="type"]');
-            var price = form.querySelector('[name="price"]');
-            var cost = form.querySelector('[name="cost"]');
-            if (!nameAr.value.trim()) errors.push('الاسم العربي مطلوب.');
-            if (!type.value) errors.push('نوع المنتج مطلوب.');
-            if (price.value === '' || Number(price.value) < 0) errors.push('السعر مطلوب ويجب أن يكون 0 أو أكثر.');
-            if (cost.value !== '' && Number(cost.value) < 0) errors.push('التكلفة يجب أن تكون 0 أو أكثر.');
-            if (imageInput && imageInput.files[0]) {
-                var file = imageInput.files[0];
-                if (!['image/jpeg','image/png','image/webp'].includes(file.type)) errors.push('صيغة الصورة يجب أن تكون JPG أو PNG أو WEBP.');
-                if (file.size > 2 * 1024 * 1024) errors.push('حجم الصورة يجب ألا يتجاوز 2MB.');
-            }
-            if (errors.length) { event.preventDefault(); showErrors(errors); window.scrollTo({ top: form.offsetTop - 20, behavior: 'smooth' }); }
-        });
-    });
-});
-</script>

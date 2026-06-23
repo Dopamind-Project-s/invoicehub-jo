@@ -1,0 +1,15 @@
+@page { margin: 22px; }
+body { direction: rtl; text-align: right; font-family: "DejaVu Sans", sans-serif; color:#111; font-size:12px; }
+table { width:100%; border-collapse: collapse; margin-top:10px; }
+th, td { border:1px solid #b8b8b8; padding:7px; vertical-align: top; }
+th { background:#f1f4f8; font-weight:bold; }
+.header td { border:none; }
+.title { font-size:24px; font-weight:bold; color:#123; }
+.subtitle { color:#555; margin-top:4px; }
+.ltr { direction:ltr; unicode-bidi:embed; text-align:left; }
+.totals { width:42%; margin-right:auto; }
+.qrbox { text-align:center; border:1px solid #bbb; padding:10px; margin-top:12px; width:170px; }
+.qrbox img { width:145px; height:145px; }
+.watermark { position:fixed; top:40%; left:18%; font-size:54px; color:#c00; opacity:.14; transform:rotate(-20deg); }
+.footer { margin-top:22px; text-align:center; color:#555; border-top:1px solid #ccc; padding-top:10px; }
+.text-left { text-align: left; }

@@ -10,7 +10,7 @@
     <div class="col-md-4">
         <label class="form-label">شعار المنشأة</label>
         <input name="logo" type="file" accept="image/*" class="form-control">
-        @if($company->logo_path)<img src="{{ asset('storage/'.$company->logo_path) }}" alt="شعار المنشأة" class="mt-2 rounded border" style="max-height:64px">@endif
+        @if($company->logo_path)<img src="{{ asset('storage/'.$company->logo_path) }}" alt="شعار المنشأة" class="mt-2 rounded border company-logo-preview">@endif
     </div>
     <div class="col-md-4"><label class="form-label">تسلسل مصدر الدخل</label><input name="jofotara_source_id" class="form-control" value="{{ old('jofotara_source_id', $company->jofotara_source_id) }}"></div>
     <div class="col-md-4"><label class="form-label">Client ID</label><input name="jofotara_client_id" type="password" autocomplete="new-password" class="form-control" placeholder="{{ $company->exists && $company->hasJofotaraClientId() ? 'محفوظ ومشفّر — اتركه فارغاً للإبقاء عليه' : 'أدخل Client ID' }}"></div>

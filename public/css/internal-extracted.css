@@ -1,0 +1,374 @@
+
+/* Extracted from resources/views/company/dashboard.blade.php */
+.company-hero {
+        background: linear-gradient(135deg, #00a9c4, #12c2b2);
+        color: #fff;
+        border-radius: 26px;
+        padding: 24px;
+        margin-bottom: 18px;
+        box-shadow: 0 18px 42px rgba(15, 23, 42, .12)
+    }
+
+    .hero-badge {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 6px 12px;
+        background: #fff;
+        color: #0f6170;
+        font-weight: 800
+    }
+
+    .dashboard-card {
+        border: 1px solid #e5eef4;
+        border-radius: 22px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, .06);
+        height: 100%
+    }
+
+    .metric-card {
+        border: 1px solid #e5eef4;
+        border-radius: 20px;
+        background: #fff;
+        padding: 18px;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, .05);
+        height: 100%
+    }
+
+    .metric-card .icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 16px;
+        background: #eefcff;
+        display: grid;
+        place-items: center;
+        font-size: 1.35rem
+    }
+
+    .metric-card .value {
+        font-size: 1.45rem;
+        font-weight: 900;
+        color: #172033
+    }
+
+    .metric-card .label {
+        color: #64748b;
+        font-size: .9rem
+    }
+
+    .quick-actions .btn {
+        border-radius: 999px;
+        font-weight: 800
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 10px 0;
+        border-bottom: 1px dashed #e5eef4
+    }
+
+    .info-row:last-child {
+        border-bottom: 0
+    }
+
+    .status-badge {
+        display: inline-flex;
+        border-radius: 999px;
+        padding: 5px 10px;
+        border: 1px solid #d7eef3;
+        background: #f1f9fb;
+        color: #0f6170;
+        font-size: .8rem
+    }
+
+    .timeline-item {
+        padding: 12px 0;
+        border-bottom: 1px dashed #e5eef4
+    }
+
+    .timeline-item:last-child {
+        border-bottom: 0
+    }
+
+    .empty-soft {
+        border: 1px dashed #b7dce5;
+        border-radius: 18px;
+        background: #f8fdff;
+        padding: 18px;
+        text-align: center;
+        color: #64748b
+    }
+
+
+/* Extracted from resources/views/company/invoices/show.blade.php */
+.invoice-show{--invoice-primary:{{ $primary }};--invoice-secondary:{{ $secondary }}}.invoice-show.theme-arabic-classic .invoice-summary-hero{border:5px double rgba(255,255,255,.75);border-radius:10px}.invoice-show.theme-arabic-modern .summary-card{border:0;box-shadow:0 18px 38px rgba(15,23,42,.10)}.invoice-show.theme-bilingual-ar-en .invoice-summary-hero{text-align:start}.invoice-show.theme-retail-receipt{max-width:840px;margin:auto}.invoice-show.theme-retail-receipt .invoice-summary-hero,.invoice-show.theme-retail-receipt .summary-card,.invoice-show.theme-retail-receipt .items-card{border-style:dashed;border-radius:14px}.invoice-show.theme-corporate-tax .invoice-summary-hero{border-radius:8px;border-top:10px solid rgba(255,255,255,.55)}.invoice-summary-hero{background:linear-gradient(135deg,var(--invoice-primary),var(--invoice-secondary));color:#fff;border-radius:26px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.invoice-summary-hero .btn{border-radius:999px}.summary-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06);height:100%}.summary-card h2{font-size:1rem;font-weight:800;margin-bottom:14px}.summary-line{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px dashed #e5eef4}.summary-line:last-child{border-bottom:0}.summary-label{color:#64748b}.summary-value{font-weight:700;color:#172033;text-align:end}.status-chip{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 12px;background:#f1f9fb;color:#0f6170;border:1px solid #d7eef3}.grand-total{font-size:1.35rem;color:var(--invoice-primary);font-weight:900}.invoice-actions{width:min(560px,100%);display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.invoice-actions form{margin:0;display:block}.invoice-actions .btn,.invoice-action-btn{border-radius:999px;width:100%;min-width:0;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;font-weight:700}@media(max-width:575.98px){.invoice-actions{grid-template-columns:1fr 1fr}}.invoice-actions .btn-primary-soft{background:#fff;color:#0f6170;border-color:#fff}.share-toast{position:fixed;top:88px;left:24px;z-index:1050;max-width:430px;border:1px solid #bde7ff;border-radius:18px;background:#fff;box-shadow:0 18px 45px rgba(15,23,42,.18);padding:16px}.share-toast input{border-radius:12px}.copy-link-box{display:flex;gap:8px}.items-card{border:1px solid #e5eef4;border-radius:22px;overflow:hidden}.items-card th{background:#f7fbfc;color:#475569}.qr-panel{border:1px solid #d7eef3;background:#f8fdff;border-radius:18px;padding:16px}.end-user-note{background:#fff8e6;border:1px solid #ffe2a8;color:#7a5200;border-radius:18px;padding:14px}
+
+
+/* Extracted from resources/views/company/invoices/index.blade.php */
+.invoice-shell{--invoice-primary:{{ $primary }};--invoice-secondary:{{ $secondary }}}.invoice-hero{background:linear-gradient(135deg,var(--invoice-primary),var(--invoice-secondary));color:#fff;border-radius:24px;padding:24px;margin-bottom:20px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.invoice-hero .btn,.invoice-action-btn{border-radius:999px;min-width:128px;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}.invoice-filter,.invoice-list-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.invoice-filter .form-control,.invoice-filter .form-select{border-radius:14px}.invoice-table{vertical-align:middle}.invoice-table thead th{background:#f7fbfc;color:#475569;border-bottom:1px solid #e5eef4}.invoice-number{font-weight:800;color:#172033}.status-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;background:#eef9fb;color:#0f6170;border:1px solid #d7eef3;font-size:.82rem}.status-pill.draft{background:#fff8e6;color:#946200;border-color:#ffe2a8}.status-pill.ready{background:#e8f7ff;color:#075985;border-color:#bde7ff}.status-pill.submitted{background:#eafaf1;color:#166534;border-color:#bbf7d0}.status-pill.cancelled{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.action-icon{width:40px;height:40px;display:inline-grid;place-items:center;border-radius:12px;text-decoration:none;background:#f1f9fb;color:#0f6170;border:1px solid #d7eef3}.action-icon:hover{background:var(--invoice-primary);color:#fff;border-color:var(--invoice-primary)}
+
+
+/* Extracted from resources/views/company/invoices/_form.blade.php */
+.invoice-form-shell{--invoice-primary:{{ $primary }};--invoice-secondary:{{ $secondary }};border:1px solid #e5eef4;border-radius:24px;overflow:hidden;box-shadow:0 16px 36px rgba(15,23,42,.07);background:#fff}.invoice-form-shell.theme-arabic-classic{border:5px double var(--invoice-primary);border-radius:10px}.invoice-form-shell.theme-arabic-modern .invoice-form-banner{border-radius:0 0 28px 28px}.invoice-form-shell.theme-bilingual-ar-en{direction:rtl;border-inline-start:10px solid var(--invoice-secondary)}.invoice-form-shell.theme-retail-receipt{max-width:760px;margin:auto;border-style:dashed;border-radius:14px}.invoice-form-shell.theme-corporate-tax{border-top:10px solid var(--invoice-primary);border-radius:8px}.invoice-form-banner{background:linear-gradient(135deg,var(--invoice-primary),var(--invoice-secondary));color:#fff;padding:22px 24px}.invoice-form-body{padding:24px}.form-section{border:1px solid #e8f0f5;border-radius:18px;padding:18px;background:#fff;margin-bottom:18px}.form-section-title{display:flex;align-items:center;gap:8px;font-weight:800;margin-bottom:15px;color:#172033}.invoice-form-shell .form-control,.invoice-form-shell .form-select{border-radius:14px;border-color:#dbe7ee}.invoice-form-shell .form-control:focus,.invoice-form-shell .form-select:focus{border-color:var(--invoice-primary);box-shadow:0 0 0 .2rem rgba(0,169,196,.12)}.items-table th{background:#f7fbfc;color:#475569}.form-actions{background:#f8fbfc;border-top:1px solid #e5eef4;padding:18px 24px}.form-actions .btn{border-radius:999px;min-width:150px;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:6px}.template-chip{display:inline-flex;align-items:center;gap:6px;background:#f1f9fb;color:#0f6170;border:1px solid #d7eef3;border-radius:999px;padding:7px 12px}
+
+
+/* Extracted from resources/views/company/invoices/printable.blade.php */
+body{font-family:DejaVu Sans,Arial,sans-serif;color:#1f2a37;margin:0;background:#f8fafc}.sheet{max-width:900px;margin:24px auto;background:#fff;padding:32px;border:1px solid #d9e0e8}.header{display:flex;justify-content:space-between;gap:24px;border-bottom:4px solid {{ $branding['primary_color'] }};padding-bottom:18px}.logo{max-height:72px}.muted{color:#6b7a8e}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:{{ $branding['secondary_color'] }};color:#fff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}.card{border:1px solid #d9e0e8;border-radius:12px;padding:16px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border-bottom:1px solid #e5e7eb;padding:10px;text-align:inherit}th{background:#f2f7fb}.totals{margin-inline-start:auto;width:320px}.footer{margin-top:32px;border-top:1px solid #e5e7eb;padding-top:16px}.placeholder{border:1px dashed #94a3b8;border-radius:10px;padding:12px;color:#64748b;background:#f8fafc}@media print{body{background:#fff}.sheet{margin:0;border:0;max-width:none}}
+
+
+/* Extracted from resources/views/company/activity/index.blade.php */
+.activity-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.activity-filter,.activity-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.activity-filter .form-control,.activity-filter .form-select{border-radius:14px}.activity-timeline{position:relative}.activity-item{display:grid;grid-template-columns:56px 1fr;gap:14px;padding:16px;border-bottom:1px dashed #e5eef4}.activity-item:last-child{border-bottom:0}.activity-icon{width:48px;height:48px;border-radius:16px;background:#eefcff;border:1px solid #d7eef3;display:grid;place-items:center;font-size:1.25rem}.activity-action{font-weight:800;color:#172033}.activity-meta{color:#64748b;font-size:.9rem}.activity-badge{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:.8rem;border:1px solid #d7eef3;background:#f1f9fb;color:#0f6170}.empty-state{border:1px dashed #b7dce5;border-radius:22px;padding:42px;background:#f8fdff;text-align:center}.empty-state-icon{font-size:3rem}
+
+
+/* Extracted from resources/views/company/invoice-templates/index.blade.php */
+.template-page-header{background:linear-gradient(135deg,#f8fdff,#eef9fb);border:1px solid #d9f1f5;border-radius:18px;padding:18px 20px;margin-bottom:18px}
+    .template-card{border:1px solid #e5eef4;border-radius:18px;overflow:hidden;transition:.2s ease;background:#fff;position:relative}
+    .template-card:hover{transform:translateY(-4px);box-shadow:0 18px 38px rgba(15,23,42,.10)}
+    .template-card.is-selected{border-color:#00a9c4;box-shadow:0 16px 36px rgba(0,169,196,.16)}
+    .template-preview{height:132px;background:linear-gradient(180deg,#f8fafc,#eef6f8);padding:10px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid #e5eef4}
+    .mini-invoice{width:96px;height:124px;background:#fff;border-radius:10px;box-shadow:0 10px 25px rgba(15,23,42,.12);padding:12px;direction:rtl;border-top:6px solid #00a9c4}
+    .mini-invoice.modern{border-top:0;background:linear-gradient(135deg,#00a9c4 0 30%,#fff 30%)}
+    .mini-invoice.bilingual{direction:ltr;border-color:#12c2b2}
+    .mini-invoice.receipt{width:118px;border-style:dashed;border-top-color:#334155}
+    .mini-invoice.corporate{border-top-color:#1f4f75}
+    .mini-line{height:5px;border-radius:999px;background:#dbe7ee;margin-bottom:7px}
+    .mini-line.short{width:48%}.mini-line.mid{width:70%}.mini-line.accent{background:#00a9c4}.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:12px 0}.mini-box{height:18px;border-radius:6px;background:#eef6f8}.template-meta{display:flex;gap:8px;flex-wrap:wrap}.template-meta .pill{background:#f1f9fb;color:#0f6170;border:1px solid #d7eef3;border-radius:999px;padding:4px 10px;font-size:.72rem}.selected-ribbon{position:absolute;top:10px;inset-inline-start:10px;background:#00a9c4;color:#fff;border-radius:999px;padding:5px 11px;font-size:.78rem;z-index:2}.template-actions .btn{border-radius:999px}.preview-image{max-width:100%;max-height:100%;object-fit:cover;border-radius:12px;box-shadow:0 10px 25px rgba(15,23,42,.12)}
+
+
+/* Extracted from resources/views/company/settings/edit.blade.php */
+.settings-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.settings-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06);overflow:hidden}.settings-tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid #e5eef4;background:#f8fbfc;padding:12px}.settings-tab{border:0;background:#fff;border-radius:999px;padding:9px 14px;color:#0f6170;font-weight:800}.settings-tab.active{background:#00a9c4;color:#fff}.settings-panel{display:none;padding:22px}.settings-panel.active{display:block}.settings-panel .form-control,.settings-panel .form-select{border-radius:14px}.preview-box{border:1px dashed #b7dce5;border-radius:18px;background:#f8fdff;padding:14px;text-align:center}.preview-box img{max-height:90px;max-width:180px;object-fit:contain}.secret-status{border-radius:16px;background:#f8fdff;border:1px solid #d7eef3;padding:14px}.settings-actions{background:#f8fbfc;border-top:1px solid #e5eef4;padding:18px 22px}.settings-actions .btn{border-radius:999px;min-width:150px}.validation-summary{display:none;border-radius:14px}
+
+
+/* Extracted from resources/views/company/invoice-templates/partials/base.blade.php */
+@font-face{font-family:KufiLocal;src:url('{{ asset('assets/fonts/ArbFONTS-Droid-Arabic-Kufi.ttf') }}') format('truetype');font-weight:400}@font-face{font-family:NaskhLocal;src:url('{{ asset('assets/fonts/ArbFONTS-Droid.Arabic.Naskh_.Regular_DownloadSoftware.iR_.ttf') }}') format('truetype')}@font-face{font-family:OpenSansLocal;src:url('{{ asset('assets/fonts/OpenSans-Regular-webfont.woff') }}') format('woff')}*{box-sizing:border-box}body{margin:0;background:#eef3f7;color:#172033;font-family:KufiLocal,NaskhLocal,OpenSansLocal,DejaVu Sans,sans-serif;font-size:12px}.sheet{max-width:940px;margin:18px auto;background:#fff;padding:28px;border-radius:{{ $variant==='receipt'?'8px':'18px' }};box-shadow:0 10px 35px #0001}.classic .sheet{border:6px double #1f4f75}.modern .hero,.bilingual .hero{background:linear-gradient(135deg,{{ $data->branding['primary_color'] }},{{ $data->branding['secondary_color'] }});color:#fff;border-radius:16px;padding:22px}.corporate .sheet{border-top:10px solid {{ $data->branding['primary_color'] }}}.receipt .sheet{max-width:430px}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.brand{display:flex;gap:14px;align-items:center}.logo{width:76px;height:76px;object-fit:contain}.logo-ph{width:76px;height:76px;border-radius:18px;background:#e8f6f8;color:{{ $data->branding['primary_color'] }};display:grid;place-items:center;font-size:24px;font-weight:700}.muted{color:#64748b}.hero .muted{color:#e8ffff}.badge{display:inline-block;padding:5px 10px;border-radius:999px;background:#e6f7f9;color:#075666;border:1px solid #b7ecf2}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}.card{border:1px solid #e2e8f0;border-radius:14px;padding:14px;background:#fff}.modern .card{box-shadow:0 8px 24px #0f172a12}.receipt .grid{grid-template-columns:1fr}.receipt .hide-receipt{display:none}table{width:100%;border-collapse:collapse;margin-top:14px}th,td{padding:9px;border-bottom:1px solid #e5e7eb;text-align:inherit}th{background:#f7fbfc;color:#334155}.totals{width:330px;margin-inline-start:auto}.receipt .totals{width:100%}.total-grand th,.total-grand td{background:{{ $data->branding['primary_color'] }};color:#fff;font-size:15px}.qrbox{display:flex;gap:12px;align-items:center}.qrbox img{width:112px;height:112px}.qr-placeholder{border:1px dashed #94a3b8;background:#f8fafc;color:#64748b;border-radius:12px;padding:15px;text-align:center}.footer{margin-top:18px;padding-top:14px;border-top:1px solid #e5e7eb}.stamp{max-width:130px;max-height:90px}.sign{min-height:84px;border:1px dashed #cbd5e1;border-radius:12px;padding:12px}.ltr{direction:ltr;text-align:left}@media print{body{background:#fff}.sheet{box-shadow:none;margin:0;max-width:none;border-radius:0}}
+
+
+/* Extracted from resources/views/company/master-data/categories/index.blade.php */
+.category-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.category-hero .btn{border-radius:999px;font-weight:800}.category-filter,.category-table-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.category-filter .form-control,.category-filter .form-select{border-radius:14px}.category-icon{width:48px;height:48px;border-radius:16px;background:#eefcff;display:inline-grid;place-items:center;font-size:1.45rem;border:1px solid #d7eef3}.category-table th{background:#f7fbfc;color:#475569;white-space:nowrap}.category-table td{vertical-align:middle}.status-badge{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:.8rem;border:1px solid #d7eef3;background:#f1f9fb;color:#0f6170}.status-badge.inactive{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.action-btn{border-radius:999px;min-width:78px}.empty-state{border:1px dashed #b7dce5;border-radius:22px;padding:42px;background:#f8fdff;text-align:center}.empty-state-icon{font-size:3rem;line-height:1}
+
+
+/* Extracted from resources/views/company/master-data/categories/_form.blade.php */
+.category-form{border:1px solid #e5eef4;border-radius:24px;overflow:hidden;box-shadow:0 16px 36px rgba(15,23,42,.07);background:#fff}.category-form-head{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;padding:22px 24px}.category-form-body{padding:24px}.category-section{border:1px solid #e8f0f5;border-radius:18px;padding:18px;background:#fff;margin-bottom:18px}.category-section-title{font-weight:800;margin-bottom:14px}.category-form .form-control,.category-form .form-select{border-radius:14px}.category-form .form-text{font-size:.8rem}.category-icon-picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(52px,1fr));gap:10px}.category-icon-option{position:relative}.category-icon-option input{position:absolute;opacity:0;pointer-events:none}.category-icon-tile{display:grid;place-items:center;height:48px;border:1px solid #d7eef3;border-radius:16px;background:#f8fdff;font-size:1.35rem;cursor:pointer;transition:.15s}.category-icon-option input:checked+.category-icon-tile{background:#00a9c4;color:#fff;border-color:#00a9c4;box-shadow:0 10px 24px rgba(0,169,196,.22)}.category-actions{background:#f8fbfc;border-top:1px solid #e5eef4;padding:18px 24px}.category-actions .btn{border-radius:999px;min-width:140px}.validation-summary{display:none;border-radius:14px}.status-card{border-radius:16px;background:#f8fdff;border:1px solid #d7eef3;padding:14px}.current-icon{width:62px;height:62px;border-radius:20px;background:#eefcff;border:1px solid #d7eef3;display:grid;place-items:center;font-size:1.8rem}
+
+
+/* Extracted from resources/views/company/master-data/units/index.blade.php */
+.master-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.master-hero .btn{border-radius:999px;font-weight:800}.master-filter,.master-table-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.master-filter .form-control,.master-filter .form-select{border-radius:14px}.master-icon{width:48px;height:48px;border-radius:16px;background:#eefcff;display:inline-grid;place-items:center;font-size:1.35rem;border:1px solid #d7eef3}.master-table th{background:#f7fbfc;color:#475569;white-space:nowrap}.master-table td{vertical-align:middle}.status-badge,.type-badge{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:.8rem;border:1px solid #d7eef3;background:#f1f9fb;color:#0f6170}.status-badge.inactive{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.type-badge.global{background:#f8fafc;color:#475569;border-color:#e2e8f0}.action-btn{border-radius:999px;min-width:78px}.empty-state{border:1px dashed #b7dce5;border-radius:22px;padding:42px;background:#f8fdff;text-align:center}.empty-state-icon{font-size:3rem}
+
+
+/* Extracted from resources/views/company/master-data/units/_form.blade.php */
+.master-form {
+        border: 1px solid #e5eef4;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, .07);
+        background: #fff
+    }
+
+    .master-form-head {
+        background: linear-gradient(135deg, #00a9c4, #12c2b2);
+        color: #fff;
+        padding: 22px 24px
+    }
+
+    .master-form-body {
+        padding: 24px
+    }
+
+    .master-section {
+        border: 1px solid #e8f0f5;
+        border-radius: 18px;
+        padding: 18px;
+        background: #fff;
+        margin-bottom: 18px
+    }
+
+    .master-section-title {
+        font-weight: 800;
+        margin-bottom: 14px
+    }
+
+    .master-form .form-control {
+        border-radius: 14px
+    }
+
+    .form-text {
+        font-size: .8rem
+    }
+
+    .master-actions {
+        background: #f8fbfc;
+        border-top: 1px solid #e5eef4;
+        padding: 18px 24px
+    }
+
+    .master-actions .btn {
+        border-radius: 999px;
+        min-width: 140px
+    }
+
+    .validation-summary {
+        display: none;
+        border-radius: 14px
+    }
+
+    .status-card {
+        border-radius: 16px;
+        background: #f8fdff;
+        border: 1px solid #d7eef3;
+        padding: 14px
+    }
+
+
+/* Extracted from resources/views/company/master-data/tax-profiles/index.blade.php */
+.tax-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.tax-hero .btn{border-radius:999px;font-weight:800}.tax-filter,.tax-table-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.tax-filter .form-control,.tax-filter .form-select{border-radius:14px}.tax-icon{width:48px;height:48px;border-radius:16px;background:#eefcff;display:inline-grid;place-items:center;font-size:1.35rem;border:1px solid #d7eef3}.tax-table th{background:#f7fbfc;color:#475569;white-space:nowrap}.tax-table td{vertical-align:middle}.status-badge,.default-badge{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:.8rem;border:1px solid #d7eef3;background:#f1f9fb;color:#0f6170}.status-badge.inactive{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.default-badge.no{background:#f8fafc;color:#64748b;border-color:#e2e8f0}.action-btn{border-radius:999px;min-width:78px}.empty-state{border:1px dashed #b7dce5;border-radius:22px;padding:42px;background:#f8fdff;text-align:center}.empty-state-icon{font-size:3rem}
+
+
+/* Extracted from resources/views/company/master-data/tax-profiles/_form.blade.php */
+.tax-form {
+        border: 1px solid #e5eef4;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, .07);
+        background: #fff
+    }
+
+    .tax-form-head {
+        background: linear-gradient(135deg, #00a9c4, #12c2b2);
+        color: #fff;
+        padding: 22px 24px
+    }
+
+    .tax-form-body {
+        padding: 24px
+    }
+
+    .tax-section {
+        border: 1px solid #e8f0f5;
+        border-radius: 18px;
+        padding: 18px;
+        background: #fff;
+        margin-bottom: 18px
+    }
+
+    .tax-section-title {
+        font-weight: 800;
+        margin-bottom: 14px
+    }
+
+    .tax-form .form-control,
+    .tax-form .form-select {
+        border-radius: 14px
+    }
+
+    .form-text {
+        font-size: .8rem
+    }
+
+    .tax-actions {
+        background: #f8fbfc;
+        border-top: 1px solid #e5eef4;
+        padding: 18px 24px
+    }
+
+    .tax-actions .btn {
+        border-radius: 999px;
+        min-width: 140px
+    }
+
+    .validation-summary {
+        display: none;
+        border-radius: 14px
+    }
+
+    .status-card {
+        border-radius: 16px;
+        background: #f8fdff;
+        border: 1px solid #d7eef3;
+        padding: 14px
+    }
+
+    .hint-card {
+        border-radius: 16px;
+        background: #fff8e6;
+        border: 1px solid #ffe2a8;
+        color: #7a5200;
+        padding: 14px
+    }
+
+
+/* Extracted from resources/views/company/master-data/contacts/index.blade.php */
+.contact-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.contact-hero .btn{border-radius:999px;font-weight:800}.contact-filter,.contact-table-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.contact-filter .form-control,.contact-filter .form-select{border-radius:14px}.contact-avatar{width:48px;height:48px;border-radius:16px;background:#eefcff;display:inline-grid;place-items:center;font-size:1.1rem;border:1px solid #d7eef3;color:#0f6170;font-weight:800}.contact-table th{background:#f7fbfc;color:#475569;white-space:nowrap}.contact-table td{vertical-align:middle}.status-badge,.type-badge{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:.8rem;border:1px solid #d7eef3;background:#f1f9fb;color:#0f6170}.status-badge.inactive{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.type-badge.supplier{background:#fff8e6;color:#7a5200;border-color:#ffe2a8}.type-badge.both{background:#f5f3ff;color:#5b21b6;border-color:#ddd6fe}.action-btn{border-radius:999px;min-width:78px}.empty-state{border:1px dashed #b7dce5;border-radius:22px;padding:42px;background:#f8fdff;text-align:center}.empty-state-icon{font-size:3rem}
+
+
+/* Extracted from resources/views/company/master-data/contacts/_form.blade.php */
+.contact-form {
+        border: 1px solid #e5eef4;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, .07);
+        background: #fff
+    }
+
+    .contact-form-head {
+        background: linear-gradient(135deg, #00a9c4, #12c2b2);
+        color: #fff;
+        padding: 22px 24px
+    }
+
+    .contact-form-body {
+        padding: 24px
+    }
+
+    .contact-section {
+        border: 1px solid #e8f0f5;
+        border-radius: 18px;
+        padding: 18px;
+        background: #fff;
+        margin-bottom: 18px
+    }
+
+    .contact-section-title {
+        font-weight: 800;
+        margin-bottom: 14px
+    }
+
+    .contact-form .form-control,
+    .contact-form .form-select {
+        border-radius: 14px
+    }
+
+    .form-text {
+        font-size: .8rem
+    }
+
+    .contact-actions {
+        background: #f8fbfc;
+        border-top: 1px solid #e5eef4;
+        padding: 18px 24px
+    }
+
+    .contact-actions .btn {
+        border-radius: 999px;
+        min-width: 140px
+    }
+
+    .validation-summary {
+        display: none;
+        border-radius: 14px
+    }
+
+    .status-card {
+        border-radius: 16px;
+        background: #f8fdff;
+        border: 1px solid #d7eef3;
+        padding: 14px
+    }
+
+
+/* Extracted from resources/views/company/master-data/products/index.blade.php */
+.product-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.product-hero .btn{border-radius:999px;font-weight:800}.product-filter,.product-table-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.product-filter .form-control,.product-filter .form-select{border-radius:14px}.product-thumb{width:48px;height:48px;border-radius:14px;object-fit:cover;background:#eef6f8;display:inline-grid;place-items:center;color:#0f6170;font-weight:800}.product-table th{background:#f7fbfc;color:#475569;white-space:nowrap}.product-table td{vertical-align:middle}.status-badge{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:.8rem;border:1px solid #d7eef3;background:#f1f9fb;color:#0f6170}.status-badge.inactive{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.action-btn{border-radius:999px}.empty-state{border:1px dashed #b7dce5;border-radius:22px;padding:40px;background:#f8fdff;text-align:center}
+
+
+/* Extracted from resources/views/company/master-data/products/_form.blade.php */
+.product-form{border:1px solid #e5eef4;border-radius:24px;overflow:hidden;box-shadow:0 16px 36px rgba(15,23,42,.07);background:#fff}.product-form-head{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;padding:22px 24px}.product-form-body{padding:24px}.product-section{border:1px solid #e8f0f5;border-radius:18px;padding:18px;background:#fff;margin-bottom:18px}.product-section-title{font-weight:800;margin-bottom:14px}.product-form .form-control,.product-form .form-select{border-radius:14px}.product-form .form-text{font-size:.8rem}.image-preview-box{border:1px dashed #b7dce5;border-radius:18px;background:#f8fdff;padding:16px;text-align:center}.product-image-preview{width:150px;height:150px;border-radius:22px;object-fit:cover;background:#eef6f8}.product-actions{background:#f8fbfc;border-top:1px solid #e5eef4;padding:18px 24px}.product-actions .btn{border-radius:999px;min-width:150px}.validation-summary{display:none;border-radius:14px}.status-card{border-radius:16px;background:#f8fdff;border:1px solid #d7eef3;padding:14px}

@@ -8,7 +8,7 @@
         <h1>الفواتير الإلكترونية - جوفوتارا</h1>
         <div class="d-flex gap-2"><a class="btn btn-success" href="{{ route('invoices.create') }}">فاتورة يدوية</a><form method="post" action="{{ route('jofotara.create-real-sample') }}">
             @csrf
-            <button class="btn btn-primary" onclick="return confirm('إنشاء فاتورة عينة حقيقية جاهزة لجوفوتارا؟')">إنشاء فاتورة عينة حقيقية</button>
+            <button class="btn btn-primary" data-confirm="إنشاء فاتورة عينة حقيقية جاهزة لجوفوتارا؟">إنشاء فاتورة عينة حقيقية</button>
         </form></div>
     </div>
     @if(session('success'))<pre class="alert alert-success text-start" dir="ltr">{{ session('success') }}</pre>@endif

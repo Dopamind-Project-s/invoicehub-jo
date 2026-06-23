@@ -3,9 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $invoice->invoice_number }}</title>
-    <style>
-        body{font-family:DejaVu Sans,Arial,sans-serif;color:#1f2a37;margin:0;background:#f8fafc}.sheet{max-width:900px;margin:24px auto;background:#fff;padding:32px;border:1px solid #d9e0e8}.header{display:flex;justify-content:space-between;gap:24px;border-bottom:4px solid {{ $branding['primary_color'] }};padding-bottom:18px}.logo{max-height:72px}.muted{color:#6b7a8e}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:{{ $branding['secondary_color'] }};color:#fff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0}.card{border:1px solid #d9e0e8;border-radius:12px;padding:16px}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border-bottom:1px solid #e5e7eb;padding:10px;text-align:inherit}th{background:#f2f7fb}.totals{margin-inline-start:auto;width:320px}.footer{margin-top:32px;border-top:1px solid #e5e7eb;padding-top:16px}.placeholder{border:1px dashed #94a3b8;border-radius:10px;padding:12px;color:#64748b;background:#f8fafc}@media print{body{background:#fff}.sheet{margin:0;border:0;max-width:none}}
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/internal-extracted.css') }}">
 </head>
 <body>
 <div class="sheet">
@@ -32,7 +30,7 @@
             <strong>QR / Barcode</strong>
             @if($invoice->jofotara_qr || $invoice->qr_code || $invoice->jofotara_uuid || $invoice->submission_uuid)
                 <p class="muted">UUID: {{ $invoice->jofotara_uuid ?: $invoice->submission_uuid ?: '—' }}</p>
-                <div style="word-break:break-all">{{ $invoice->jofotara_qr ?: $invoice->qr_code ?: '—' }}</div>
+                <div class="break-all">{{ $invoice->jofotara_qr ?: $invoice->qr_code ?: '—' }}</div>
             @else
                 <p class="muted">سيظهر QR / UUID بعد الإرسال إلى نظام الفوترة الوطني.</p>
             @endif

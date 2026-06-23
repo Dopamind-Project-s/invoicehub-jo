@@ -6,9 +6,6 @@
     $secondary = $branding['secondary_color'] ?? '#12c2b2';
     $statusLabels = ['draft'=>'مسودة','ready'=>'جاهزة','submitted'=>'مرسلة','cancelled'=>'ملغاة','pending'=>'مراجعة','approved'=>'معتمدة'];
 @endphp
-<style>
-.invoice-shell{--invoice-primary:{{ $primary }};--invoice-secondary:{{ $secondary }}}.invoice-hero{background:linear-gradient(135deg,var(--invoice-primary),var(--invoice-secondary));color:#fff;border-radius:24px;padding:24px;margin-bottom:20px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.invoice-hero .btn,.invoice-action-btn{border-radius:999px;min-width:128px;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}.invoice-filter,.invoice-list-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.invoice-filter .form-control,.invoice-filter .form-select{border-radius:14px}.invoice-table{vertical-align:middle}.invoice-table thead th{background:#f7fbfc;color:#475569;border-bottom:1px solid #e5eef4}.invoice-number{font-weight:800;color:#172033}.status-pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 10px;background:#eef9fb;color:#0f6170;border:1px solid #d7eef3;font-size:.82rem}.status-pill.draft{background:#fff8e6;color:#946200;border-color:#ffe2a8}.status-pill.ready{background:#e8f7ff;color:#075985;border-color:#bde7ff}.status-pill.submitted{background:#eafaf1;color:#166534;border-color:#bbf7d0}.status-pill.cancelled{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.action-icon{width:40px;height:40px;display:inline-grid;place-items:center;border-radius:12px;text-decoration:none;background:#f1f9fb;color:#0f6170;border:1px solid #d7eef3}.action-icon:hover{background:var(--invoice-primary);color:#fff;border-color:var(--invoice-primary)}
-</style>
 <div class="invoice-shell">
     <div class="invoice-hero d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
         <div>

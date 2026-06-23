@@ -31,8 +31,4 @@
         <button class="btn btn-success mt-3">حفظ مسودة</button>
     </form>
 </div>
-<script>
-function recalc(){let total=0;document.querySelectorAll('#items-table tbody tr').forEach(row=>{const nums=row.querySelectorAll('.calc');const q=parseFloat(nums[0].value)||0,p=parseFloat(nums[1].value)||0,d=parseFloat(nums[2].value)||0,t=parseFloat(nums[3].value)||0;const line=Math.max(q*p-d,0)*(1+t/100);row.querySelector('.line-total').textContent=line.toFixed(3);total+=line;});document.getElementById('grand-total').textContent=total.toFixed(3)}
-document.addEventListener('input',e=>{if(e.target.classList.contains('calc'))recalc()});document.getElementById('add-row').onclick=()=>{const tbody=document.querySelector('#items-table tbody'),i=tbody.children.length;tbody.insertAdjacentHTML('beforeend',`<tr><td><input name="items[${i}][description]" class="form-control" required></td><td><input name="items[${i}][quantity]" type="number" step="0.001" min="0.001" class="form-control calc" value="1" required></td><td><input name="items[${i}][unit_price]" type="number" step="0.001" min="0" class="form-control calc" value="0" required></td><td><input name="items[${i}][discount]" type="number" step="0.001" min="0" class="form-control calc" value="0"></td><td><input name="items[${i}][tax_percent]" type="number" step="0.001" min="0" class="form-control calc" value="0"></td><td class="line-total ltr">0.000</td><td><button type="button" class="btn btn-sm btn-danger remove-row">حذف</button></td></tr>`);recalc()};document.addEventListener('click',e=>{if(e.target.classList.contains('remove-row')){e.target.closest('tr').remove();recalc()}});recalc();
-</script>
 @endsection

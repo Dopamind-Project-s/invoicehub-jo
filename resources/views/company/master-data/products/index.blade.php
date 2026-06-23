@@ -2,9 +2,6 @@
 @section('title', 'المنتجات والخدمات')
 @section('content')
 @php($routeCompanyId = $company->id ?? request()->route('company')?->id ?? request()->route('company') ?? auth()->user()?->company_id)
-<style>
-.product-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.product-hero .btn{border-radius:999px;font-weight:800}.product-filter,.product-table-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.product-filter .form-control,.product-filter .form-select{border-radius:14px}.product-thumb{width:48px;height:48px;border-radius:14px;object-fit:cover;background:#eef6f8;display:inline-grid;place-items:center;color:#0f6170;font-weight:800}.product-table th{background:#f7fbfc;color:#475569;white-space:nowrap}.product-table td{vertical-align:middle}.status-badge{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:.8rem;border:1px solid #d7eef3;background:#f1f9fb;color:#0f6170}.status-badge.inactive{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.action-btn{border-radius:999px}.empty-state{border:1px dashed #b7dce5;border-radius:22px;padding:40px;background:#f8fdff;text-align:center}
-</style>
 <div class="product-hero d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
     <div><h1 class="h3 mb-2">المنتجات والخدمات</h1><p class="mb-0 opacity-75">أضف المنتجات أو الخدمات التي ستظهر في الفواتير.</p></div>
     <a class="btn btn-light btn-lg" href="{{ route('company.products.create', ['company' => $routeCompanyId]) }}">➕ إضافة منتج / خدمة جديدة</a>

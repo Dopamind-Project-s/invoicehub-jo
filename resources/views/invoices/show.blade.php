@@ -28,7 +28,7 @@
 
         <div class="d-flex gap-2 flex-wrap my-3">
             <form method="post" action="{{ route('invoices.prepare', $invoice) }}">@csrf<button class="btn btn-info">تجهيز XML</button></form>
-            <form method="post" action="{{ route('invoices.submit-to-jofotara', $invoice) }}">@csrf<button class="btn btn-danger" onclick="return confirm('الإرسال الحقيقي إلى نظام الفوترة الوطني سيقوم بمحاولة إصدار فاتورة فعلية. هل أنت متأكد؟')">إرسال فعلي إلى جوفوتارا</button></form>
+            <form method="post" action="{{ route('invoices.submit-to-jofotara', $invoice) }}">@csrf<button class="btn btn-danger" data-confirm="الإرسال الحقيقي إلى نظام الفوترة الوطني سيقوم بمحاولة إصدار فاتورة فعلية. هل أنت متأكد؟">إرسال فعلي إلى جوفوتارا</button></form>
             <a class="btn btn-outline-secondary" href="{{ route('invoices.download-xml', $invoice) }}">Download XML</a>
             <a class="btn btn-outline-secondary" href="{{ route('invoices.download-payload', $invoice) }}">Download Payload</a>
         </div>
@@ -54,7 +54,7 @@
 
         <h4 class="mt-4">QR</h4>
         @if($invoice->status === 'ACCEPTED' && $invoice->qr_code)
-            <img src="{{ route('invoices.qr', $invoice) }}" alt="QR" style="width:160px;height:160px">
+            <img src="{{ route('invoices.qr', $invoice) }}" alt="QR" class="qr-image">
         @else
             <p class="text-muted">لا يوجد رمز QR مقبول لهذه الفاتورة.</p>
         @endif
