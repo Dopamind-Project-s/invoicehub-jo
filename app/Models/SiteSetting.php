@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Landing\LandingPageDataService;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Cache;
 
 class SiteSetting extends Model
 {
@@ -15,7 +15,7 @@ class SiteSetting extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn (): bool => Cache::forget('landing:home:ar'));
-        static::deleted(fn (): bool => Cache::forget('landing:home:ar'));
+        static::saved(fn (): null => LandingPageDataService::clear());
+        static::deleted(fn (): null => LandingPageDataService::clear());
     }
 }

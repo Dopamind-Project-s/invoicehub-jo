@@ -7,7 +7,7 @@
                         <div class="logo-i"><img src="{{ asset('assets/logos/logo.svg') }}" alt="InvoSync Jo" style="width:50px;height:50px"></div>
                         InvoSync Jo
                      </a>
-                     <p style="font-size:.875rem;color:var(--tx3);line-height:1.65;max-width:280px">{{ ($settings ?? collect())->get('footer.description_ar', 'منصة فوترة إلكترونية عربية للمنشآت.') }}</p>
+                     <p style="font-size:.875rem;color:var(--tx3);line-height:1.65;max-width:280px">{{ data_get($settings ?? [], 'footer.description_ar', 'منصة فوترة إلكترونية عربية للمنشآت.') }}</p>
                      <div class="d-flex gap-2 mt-3"><input class="nli" type="email" placeholder="your@email.com" style="max-width:200px"><button class="bgrd btn px-3 py-2" style="font-size:.85rem;white-space:nowrap">Subscribe</button></div>
                   </div>
                   <div class="col-6 col-md-2 fcol">
@@ -24,7 +24,7 @@
                   </div>
                </div>
                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 pt-4" style="border-top:1px solid var(--bd)">
-                  <p style="font-size:.8rem;color:var(--tx3);margin:0">© {{ date('Y') }} {{ ($settings ?? collect())->get('footer.copyright_ar', 'جميع الحقوق محفوظة.') }} <a target="_blank" class="text-primary fw-bold" href="https://bestwpware.com/">Bestwpware</a> <br> Distributed by <a target="_blank" class="text-primary fw-bold" href="https://themewagon.com">ThemeWagon</a> </p>
+                  <p style="font-size:.8rem;color:var(--tx3);margin:0">© {{ date('Y') }} {{ data_get($settings ?? [], 'footer.copyright_ar', 'جميع الحقوق محفوظة.') }} <a target="_blank" class="text-primary fw-bold" href="https://bestwpware.com/">Bestwpware</a> <br> Distributed by <a target="_blank" class="text-primary fw-bold" href="https://themewagon.com">ThemeWagon</a> </p>
                   <div class="d-flex gap-2"><a href="#" class="sico"><i class="fa-brands fa-x-twitter"></i></a><a href="#" class="sico"><i class="fa-brands fa-github"></i></a><a href="#" class="sico"><i class="fa-brands fa-linkedin-in"></i></a><a href="#" class="sico"><i class="fa-brands fa-discord"></i></a></div>
                </div>
             </div>

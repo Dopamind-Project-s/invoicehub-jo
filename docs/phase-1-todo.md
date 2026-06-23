@@ -50,10 +50,10 @@ Completed in this phase:
 - Extended `plans` with bilingual marketing fields, sort order, and recommended badge support.
 - Added seeders for Arabic-first site settings and FAQ content.
 - Updated plan seeding with Arabic/English marketing copy and recommended plan metadata.
-- Added `LandingPageDataService` with cache key `landing:home:ar` for settings, active FAQs, and active plans with feature keys.
+- Added `LandingPageDataService` with versioned cache key `landing:home:v2:ar` for scalar-array settings, active FAQs, and active plans with feature-name arrays; legacy `landing:home:ar` is forgotten during reads and invalidation.
 - Split `welcome.blade.php` into landing section partials for hero, features, integrations, pricing, FAQ, testimonials, statistics, partners, and CTA.
 - Kept hero, integrations, testimonials, statistics, and partners hardcoded for Phase 1 while replacing generic AI copy with Arabic InvoSync content.
-- Wired pricing to active database plans and included feature keys.
+- Wired pricing to active database plans and included feature keys rendered from cached scalar arrays.
 - Added admin website menu entries for `الموقع الإلكتروني`, `الإعدادات العامة`, `الأسئلة الشائعة`, and a link to existing plans.
 - Added protected admin CRUD for landing FAQs and settings editing.
 
@@ -77,3 +77,8 @@ Remaining risks:
 
 - The current `company_settings` unique rule ignores `category`; if future settings require the same key in multiple categories, add a separate migration to change the uniqueness rule deliberately.
 - The merged landing footer still includes large demo dashboard markup; this hotfix only corrected colors/auth wiring and did not remove unrelated demo sections.
+
+Hotfix landing cache notes (2026-06-23):
+
+- Root cause: the previous landing cache stored Laravel Collections and Eloquent models under `landing:home:ar`, so stale serialized objects could become incomplete after deployment when `Illuminate\Support\Collection` was not loaded before unserialization.
+- Fixed by moving the landing page contract to scalar arrays only, using `data_get()` in Blade partials, versioning the key to `landing:home:v2:ar`, and invalidating both the v2 and legacy keys when site settings, FAQs, or plans change.
