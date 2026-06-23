@@ -1,6 +1,8 @@
 # Phase 1 — Professional Invoice Templates, PDF Engine, and Product UX
 
 ## Completed in this pass
+- Hotfixed the company dashboard cached-stats contract: cache key is now `company-dashboard-stats:v2:company:{id}`, stale v1 keys are forgotten, dashboard stats cache scalar arrays instead of Eloquent models, and the Blade view reads cached arrays safely with `data_get()`.
+- Added company settings cache invalidation to the existing invoice/product/contact dashboard invalidation paths, and added dashboard hotfix coverage for fresh stats, cached array stats, no-crash Blade rendering, cached recent-invoice array shape, and company isolation.
 - Improved company settings with professional tabs/cards for general data, visual identity, invoice settings, JoFotara status, language/currency, logo/stamp previews, color pickers, helper text, and Arabic frontend validation without exposing JoFotara secrets.
 - Improved `/companies/{company}` and company-user `/dashboard` with a professional profile/dashboard layout, quick actions, JoFotara connection status, subscription/features, last submitted invoice, last activity, recent invoices, and recent activities.
 - Added `CompanyDashboardStatsService` with company-scoped 10-minute cached stats for products, contacts, invoices by status, JoFotara errors, sales totals, tax totals, recent invoices, and recent activities.
@@ -28,7 +30,7 @@
 - Improved invoice listing, create/edit, and show pages with template-aware styling and cleaner actions.
 
 ## Remaining risks
-- Dashboard statistics are cached for 10 minutes; very high-write installations may later benefit from model observers or queued cache warming.
+- Dashboard statistics are cached for 10 minutes and invalidated from current controller write paths; very high-write installations or future background writes may later benefit from model observers or queued cache warming.
 - Contact phone validation is intentionally permissive for digits and common dialing symbols; stricter local phone normalization can be added later.
 - Global units can now be opened from a company workspace edit route; if stricter global-edit governance is required, add a dedicated clone-to-company workflow later.
 - Category icons are stored as simple emoji/text values; replacing them with a full icon library can be handled later if needed.

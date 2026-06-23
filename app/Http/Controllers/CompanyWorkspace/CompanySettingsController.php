@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\CompanySetting;
 use App\Services\Audit\AuditLogger;
+use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -47,6 +48,7 @@ class CompanySettingsController extends Controller
         }
         $after = $company->settings()->pluck('value', 'key')->all();
         $this->audit->record('company.settings.updated', $company, $before, $after, $request);
+        CompanyDashboardStatsService::forget($company);
 
         return back()->with('success', 'تم حفظ إعدادات المنشأة.');
     }
