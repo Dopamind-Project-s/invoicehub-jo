@@ -6,7 +6,9 @@ use App\Http\Controllers\Admin\FeatureKeyController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\LandingCms\LandingFaqController;
 use App\Http\Controllers\Admin\LandingCms\SiteSettingController;
+use App\Http\Controllers\Admin\LandingCms\GenericLandingController;
 use App\Services\Landing\LandingPageDataService;
+use App\Http\Controllers\LandingEventController;
 use App\Http\Controllers\CompanyWorkspace\ActivityController;
 use App\Http\Controllers\CompanyWorkspace\CompanyRoleController;
 use App\Http\Controllers\CompanyWorkspace\CompanySettingsController;
@@ -25,9 +27,12 @@ use App\Http\Controllers\CompanyWorkspace\MasterData\UnitController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function (LandingPageDataService $landing) {
+Route::get('/', function (LandingPageDataService $landing, \App\Services\Landing\LandingAnalyticsService $analytics, \Illuminate\Http\Request $request) {
+    $analytics->record($request, 'landing_page_view');
     return view('welcome', $landing->home('ar'));
 })->name('home');
+Route::post('/landing-events/cta', [LandingEventController::class, 'cta'])->name('landing-events.cta');
+Route::post('/landing-events/pricing', [LandingEventController::class, 'pricing'])->name('landing-events.pricing');
 Route::get('/shared/invoices/{token}', PublicInvoiceShareController::class)->name('invoices.shared.show');
 
 Route::get('/dashboard', function () {
@@ -68,6 +73,16 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::get('landing-cms/settings', [SiteSettingController::class, 'edit'])->name('landing-cms.settings.edit');
     Route::put('landing-cms/settings', [SiteSettingController::class, 'update'])->name('landing-cms.settings.update');
     Route::resource('landing-cms/faqs', LandingFaqController::class)->parameters(['faqs' => 'faq'])->names('landing-cms.faqs');
+    Route::view('landing-cms/hero', 'admin.landing-cms.simple', ['title' => 'Hero'])->name('landing-cms.hero.index');
+    Route::view('landing-cms/testimonials', 'admin.landing-cms.simple', ['title' => 'آراء العملاء'])->name('landing-cms.testimonials.index');
+    Route::view('landing-cms/integrations', 'admin.landing-cms.simple', ['title' => 'التكاملات'])->name('landing-cms.integrations.index');
+    Route::view('landing-cms/statistics', 'admin.landing-cms.simple', ['title' => 'الإحصائيات'])->name('landing-cms.statistics.index');
+    Route::view('landing-cms/partners', 'admin.landing-cms.simple', ['title' => 'الشركاء'])->name('landing-cms.partners.index');
+    Route::get('landing-cms/analytics', [GenericLandingController::class, 'analytics'])->name('landing-cms.analytics.index');
+    Route::get('landing-cms/seo', [GenericLandingController::class, 'seo'])->name('landing-cms.seo.edit');
+    Route::put('landing-cms/groups/{group}', [GenericLandingController::class, 'saveGroup'])->whereIn('group', ['seo','theme'])->name('landing-cms.groups.update');
+    Route::get('landing-cms/theme', [GenericLandingController::class, 'theme'])->name('landing-cms.theme.edit');
+
     Route::resource('plans', PlanController::class)->except(['show', 'destroy']);
     Route::post('plans/{plan}/activate', [PlanController::class, 'activate'])->name('plans.activate');
     Route::post('plans/{plan}/deactivate', [PlanController::class, 'deactivate'])->name('plans.deactivate');

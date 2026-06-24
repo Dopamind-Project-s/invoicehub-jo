@@ -1,0 +1,3 @@
+@extends('layouts.app')
+@section('page_title','تحليلات الموقع')
+@section('content')<div class="row g-3"><div class="col-md-4"><div class="card card-body">الزيارات: {{ $counters['views'] }}</div></div><div class="col-md-4"><div class="card card-body">CTA: {{ $counters['cta_clicks'] }}</div></div><div class="col-md-4"><div class="card card-body">الباقات: {{ $counters['pricing_clicks'] }}</div></div></div><div class="card mt-3"><table class="table"><thead><tr><th>الحدث</th><th>الرابط</th><th>التاريخ</th></tr></thead><tbody>@foreach($events as $e)<tr><td>{{ $e->event_type }}</td><td>{{ $e->url }}</td><td>{{ $e->created_at }}</td></tr>@endforeach</tbody></table></div>@endsection
