@@ -43,6 +43,8 @@ class LandingCmsPhase1Test extends TestCase
 
         $this->assertDatabaseHas('site_settings', ['group' => 'contact', 'key' => 'phone', 'value' => '0776079926']);
         $this->assertDatabaseHas('site_settings', ['group' => 'site', 'key' => 'brand', 'value' => 'دوبامايند للتحول الرقمي']);
+        $this->assertDatabaseHas('site_settings', ['group' => 'contact', 'key' => 'email', 'value' => 'musab.m.alzoubii@gmail.com']);
+        $this->assertDatabaseHas('site_settings', ['group' => 'social', 'key' => 'linkedin', 'value' => 'https://www.linkedin.com/in/musabmalzoubi/']);
     }
 
     public function test_admin_faq_crud_is_protected_by_super_admin(): void
