@@ -5,6 +5,11 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\LandingFaq;
+use App\Models\LandingHeroSlide;
+use App\Models\LandingIntegration;
+use App\Models\LandingPartner;
+use App\Models\LandingStatistic;
+use App\Models\LandingTestimonial;
 use App\Models\Plan;
 use App\Models\SiteSetting;
 use App\Services\Landing\LandingPageDataService;
@@ -118,6 +123,42 @@ class LandingPageCmsTest extends TestCase
         Plan::query()->firstOrFail()->update(['name_ar' => 'باقة محدثة']);
         $this->assertFalse(Cache::has(LandingPageDataService::CACHE_KEY_AR));
         $this->assertFalse(Cache::has(LandingPageDataService::LEGACY_CACHE_KEY_AR));
+    }
+
+
+    public function test_phase2_sections_seo_theme_and_analytics_render(): void
+    {
+        $this->seed();
+        LandingHeroSlide::create(['title_ar' => 'عنوان هيرو CMS', 'subtitle_ar' => 'وصف هيرو CMS', 'is_active' => true]);
+        LandingTestimonial::create(['name' => 'عميل CMS', 'testimonial_ar' => 'رأي عميل CMS', 'rating' => 5, 'is_active' => true]);
+        LandingIntegration::create(['name_ar' => 'تكامل CMS', 'description_ar' => 'وصف تكامل CMS', 'status' => 'coming_soon', 'is_active' => true]);
+        LandingStatistic::create(['label_ar' => 'إحصائية CMS', 'value' => '123', 'suffix' => '+', 'is_active' => true]);
+        LandingPartner::create(['name_ar' => 'شريك CMS', 'is_active' => true]);
+        SiteSetting::updateOrCreate(['group' => 'seo', 'key' => 'meta_title_ar', 'locale' => null], ['value' => 'عنوان SEO CMS', 'type' => 'text', 'is_public' => true]);
+        SiteSetting::updateOrCreate(['group' => 'theme', 'key' => 'primary_color', 'locale' => null], ['value' => '#0ea5e9', 'type' => 'color', 'is_public' => true]);
+
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('عنوان هيرو CMS')
+            ->assertSee('رأي عميل CMS')
+            ->assertSee('تكامل CMS')
+            ->assertSee('قريباً')
+            ->assertSee('إحصائية CMS')
+            ->assertSee('شريك CMS')
+            ->assertSee('عنوان SEO CMS')
+            ->assertSee('--pur:#0ea5e9', false);
+
+        $this->assertDatabaseHas('landing_events', ['event_type' => 'landing_page_view']);
+    }
+
+    public function test_landing_click_event_routes_record_hashed_ip_only(): void
+    {
+        $this->post(route('landing-events.cta'), ['target' => '/login'])->assertRedirect('/login');
+        $this->post(route('landing-events.pricing'), ['target' => '/login', 'plan_id' => 1])->assertRedirect('/login');
+
+        $this->assertDatabaseHas('landing_events', ['event_type' => 'cta_click']);
+        $this->assertDatabaseHas('landing_events', ['event_type' => 'pricing_click']);
+        $this->assertDatabaseMissing('landing_events', ['ip_hash' => '127.0.0.1']);
     }
 
     public function test_no_vite_in_landing_views(): void

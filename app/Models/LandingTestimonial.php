@@ -9,11 +9,15 @@ use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
-class SiteSetting extends Model implements HasMedia
+class LandingTestimonial extends Model implements HasMedia
 {
     use InteractsWithMedia;
-    protected $fillable = ['group', 'key', 'value', 'type', 'locale', 'is_public'];
-    protected $casts = ['is_public' => 'boolean'];
+    protected $guarded = [];
+    protected $casts = ['is_active' => 'boolean'];
     protected static function booted(): void { static::saved(fn (): null => LandingPageDataService::clear()); static::deleted(fn (): null => LandingPageDataService::clear()); }
-    public function registerMediaCollections(): void { $this->addMediaCollection('seo_og_image')->singleFile(); }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('testimonial_avatar')->singleFile();
+    }
 }

@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             PlanSeeder::class,
             SiteSettingSeeder::class,
             LandingFaqSeeder::class,
+            LandingPhase2Seeder::class,
             SuperAdminSeeder::class,
             CompanyUserSeeder::class,
             InvoiceTemplateSeeder::class,

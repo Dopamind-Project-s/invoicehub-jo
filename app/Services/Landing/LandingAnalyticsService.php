@@ -1,0 +1,4 @@
+<?php
+namespace App\Services\Landing;
+use App\Models\LandingEvent; use Illuminate\Http\Request; use Illuminate\Support\Facades\Cache;
+class LandingAnalyticsService { public function record(Request $r,string $type,array $metadata=[]): void { LandingEvent::create(['event_type'=>$type,'url'=>$r->fullUrl(),'referrer'=>$r->headers->get('referer'),'user_agent'=>substr((string)$r->userAgent(),0,1000),'ip_hash'=>$r->ip()?hash_hmac('sha256',$r->ip(),config('app.key')):null,'metadata'=>$metadata ?: null]); Cache::forget('landing:analytics:counters'); } public function counters(): array { return Cache::remember('landing:analytics:counters', now()->addMinutes(10), fn()=>['views'=>LandingEvent::where('event_type','landing_page_view')->count(),'cta_clicks'=>LandingEvent::where('event_type','cta_click')->count(),'pricing_clicks'=>LandingEvent::where('event_type','pricing_click')->count()]); }}
