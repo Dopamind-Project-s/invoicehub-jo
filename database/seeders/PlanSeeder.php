@@ -65,9 +65,9 @@ class PlanSeeder extends Seeder
 
         $starter = $this->plan('starter', 'باقة البداية', 'Starter', 'باقة مناسبة لتجربة إدارة المنشأة والفواتير الأساسية.', 'A starter plan for electronic invoices and essential establishment management.', 5, 35, $starterCodes, 1, false);
         $this->plan('business', 'باقة الأعمال', 'Business', 'باقة أوسع لإدارة المستخدمين والمشاركة والاعتماد والربط مع الفوترة الوطنية.', 'A business plan for users, sharing, approvals, and national e-invoicing integration.', 7, 50, $businessCodes, 2, true);
+        $this->plan('professional', 'باقة الأعمال', 'Professional', 'باقة أوسع لإدارة المستخدمين والمشاركة والاعتماد والربط مع الفوترة الوطنية.', 'A professional plan for teams, approvals, sharing, and national e-invoicing readiness.', 7, 50, $businessCodes, 2, true);
         $this->plan('advanced', 'المتقدمة', 'Advanced', 'تحليل الفواتير والمبيعات بشكل معمق واستخراج تقارير تفصيلية عن كل منتج , مورد او عميل', 'Advanced invoice and sales analytics with detailed reports for each product, supplier, or customer.', 8, 80, $advancedCodes, 3, false);
 
-        Plan::where('slug', 'professional')->update(['is_active' => false]);
 
         $company = Company::where('tax_number', '9578331')->first();
         if ($company) {

@@ -11,6 +11,7 @@ use App\Models\Plan;
 use App\Models\Subscription;
 use App\Services\Audit\AuditLogger;
 use App\Services\Company\CompanyRoleSeeder;
+use App\Services\Subscriptions\SubscriptionAccessService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +19,7 @@ use Illuminate\Validation\Rule;
 
 class CompanyManagementController extends Controller
 {
-    public function __construct(private readonly AuditLogger $audit, private readonly CompanyRoleSeeder $roles) {}
+    public function __construct(private readonly AuditLogger $audit, private readonly CompanyRoleSeeder $roles, private readonly SubscriptionAccessService $subscriptions) {}
 
     public function index()
     {
@@ -56,9 +57,10 @@ class CompanyManagementController extends Controller
 
     public function show(Company $company)
     {
-        $company->load(['featureKeys', 'activeSubscription.plan.featureKeys']);
+        $company->load(['featureKeys', 'subscriptions.plan.featureKeys']);
+        $subscriptionAccess = $this->subscriptions->resolve($company);
 
-        return view('admin.companies.show', compact('company'));
+        return view('admin.companies.show', compact('company', 'subscriptionAccess'));
     }
 
     public function edit(Company $company)
@@ -92,6 +94,22 @@ class CompanyManagementController extends Controller
         }
 
         return redirect()->route('admin.companies.show', $company)->with('success', 'تم تحديث المنشأة.');
+    }
+
+
+    public function renewSubscription(Request $request, Company $company, string $cycle): RedirectResponse
+    {
+        abort_unless(in_array($cycle, ['monthly', 'yearly'], true), 404);
+
+        $subscription = $this->subscriptions->currentSubscription($company);
+        abort_unless($subscription, 404, 'لا يوجد اشتراك لتجديده.');
+
+        $before = $subscription->only(['billing_cycle', 'current_period_start_at', 'current_period_end_at', 'expires_at', 'grace_ends_at', 'status', 'renewed_at', 'source']);
+        $subscription = $this->subscriptions->renew($subscription, $cycle);
+
+        $this->audit->record('admin.subscription.renewed', $subscription, $before, $subscription->only(['billing_cycle', 'current_period_start_at', 'current_period_end_at', 'expires_at', 'grace_ends_at', 'status', 'renewed_at', 'source']), $request);
+
+        return back()->with('success', $cycle === 'yearly' ? 'تم تجديد الاشتراك سنوياً.' : 'تم تجديد الاشتراك شهرياً.');
     }
 
     public function activate(Request $request, Company $company): RedirectResponse
@@ -146,9 +164,22 @@ class CompanyManagementController extends Controller
         if ($planId) {
             $plan = Plan::with('featureKeys')->findOrFail($planId);
             Subscription::where('company_id', $company->id)->where('status', 'active')->where('plan_id', '!=', $planId)->update(['status' => 'cancelled', 'expires_at' => now()]);
+            $subscriptionStart = now();
+            $subscriptionEnd = $subscriptionStart->copy()->addYear();
             Subscription::updateOrCreate(
                 ['company_id' => $company->id, 'status' => 'active'],
-                ['plan_id' => $plan->id, 'starts_at' => now(), 'expires_at' => null]
+                [
+                    'plan_id' => $plan->id,
+                    'starts_at' => $subscriptionStart,
+                    'expires_at' => $subscriptionEnd,
+                    'billing_cycle' => 'manual',
+                    'current_period_start_at' => $subscriptionStart,
+                    'current_period_end_at' => $subscriptionEnd,
+                    'grace_ends_at' => $subscriptionEnd->copy()->addDays((int) ($plan->grace_period_days ?? 7)),
+                    'source' => 'admin',
+                    'price_amount' => $plan->yearly_price ?: $plan->monthly_price,
+                    'currency' => $plan->currency ?: 'JOD',
+                ]
             );
 
             $featureIds = array_values(array_unique(array_merge($featureIds, $plan->featureKeys->pluck('id')->map(fn ($id) => (int) $id)->all())));
