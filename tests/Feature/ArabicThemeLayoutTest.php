@@ -16,9 +16,9 @@ class ArabicThemeLayoutTest extends TestCase
         $this->get('/')
             ->assertOk()
             ->assertSee('<html lang="ar" dir="rtl"', false)
-            ->assertSee('css/Theme.css', false)
-            ->assertSee('css/Style.css', false)
-            ->assertSee('css/phase1-layout.css', false)
+            ->assertSee('assets/css/bootstrap.min.css', false)
+            ->assertSee('assets/css/style.css', false)
+            ->assertSee('نظام فوترة إلكترونية للمنشآت', false)
             ->assertDontSee('@vite', false)
             ->assertDontSee('public/build/manifest.json', false);
     }

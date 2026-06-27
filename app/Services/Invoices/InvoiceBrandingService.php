@@ -11,7 +11,8 @@ class InvoiceBrandingService
     {
         $settings = $company->settings()->where('category', 'invoice_branding')->pluck('value', 'key');
         $template = InvoiceTemplate::query()->find($settings->get('invoice_template_id'))
-            ?: InvoiceTemplate::query()->whereNull('company_id')->where('is_default', true)->first();
+            ?: InvoiceTemplate::query()->whereNull('company_id')->where('is_default', true)->first()
+            ?: InvoiceTemplate::query()->whereNull('company_id')->where('slug', 'arabic-classic')->first();
 
         return [
             'template' => $template,

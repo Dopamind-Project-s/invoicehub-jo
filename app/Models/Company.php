@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Contracts\Encryption\DecryptException;
+use App\Services\Subscriptions\SubscriptionAccessService;
 
 class Company extends Model
 {
@@ -46,13 +47,50 @@ class Company extends Model
 
     public function activeSubscription(): HasOne
     {
-        return $this->hasOne(Subscription::class)->where('status', 'active')->latestOfMany();
+        return $this->hasOne(Subscription::class)
+            ->whereIn('status', ['active', 'trial', 'trialing', 'grace'])
+            ->where(function ($query): void {
+                $query->whereNull('current_period_start_at')->orWhere('current_period_start_at', '<=', now());
+            })
+            ->where(function ($query): void {
+                $query->whereNull('current_period_end_at')
+                    ->orWhere('current_period_end_at', '>=', now())
+                    ->orWhere('grace_ends_at', '>=', now());
+            })
+            ->latestOfMany();
     }
 
     public function isSuspended(): bool
     {
         return $this->status === 'suspended' || ! $this->is_active;
     }
+
+    /** @return array<string,mixed> */
+    public function subscriptionAccess(): array
+    {
+        return app(SubscriptionAccessService::class)->resolve($this);
+    }
+
+    public function effectiveSubscriptionStatus(): string
+    {
+        return (string) $this->subscriptionAccess()['effective_status'];
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return in_array($this->effectiveSubscriptionStatus(), ['active', 'trialing'], true);
+    }
+
+    public function isInGracePeriod(): bool
+    {
+        return $this->effectiveSubscriptionStatus() === 'grace';
+    }
+
+    public function isSubscriptionExpired(): bool
+    {
+        return $this->effectiveSubscriptionStatus() === 'expired';
+    }
+
 
     public function getJofotaraClientIdAttribute(?string $value): ?string
     {

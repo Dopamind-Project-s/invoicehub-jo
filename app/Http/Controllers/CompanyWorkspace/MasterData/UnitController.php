@@ -30,18 +30,22 @@ class UnitController extends Controller
     {
         $unit = Unit::create($this->validated($request, $company) + ['company_id' => $company->id, 'name' => $request->input('name_ar')]);
         $this->audit->record('master_data.unit.created', $unit, [], $unit->toArray(), $request);
+        if ($request->input('save_action') === 'save_another') {
+            return redirect()->route('company.units.create', $company)->with('status', 'تم حفظ الوحدة، يمكنك إضافة وحدة أخرى.');
+        }
+
         return redirect()->route('company.units.index', $company)->with('status', 'تم إنشاء الوحدة.');
     }
 
     public function edit(Company $company, Unit $unit)
     {
-        abort_unless((int) $unit->company_id === (int) $company->id, 404);
+        abort_unless($unit->company_id === null || (int) $unit->company_id === (int) $company->id, 404);
         return view('company.master-data.units.edit', compact('company', 'unit'));
     }
 
     public function update(Request $request, Company $company, Unit $unit)
     {
-        abort_unless((int) $unit->company_id === (int) $company->id, 404);
+        abort_unless($unit->company_id === null || (int) $unit->company_id === (int) $company->id, 404);
         $before = $unit->toArray();
         $unit->update($this->validated($request, $company, $unit) + ['name' => $request->input('name_ar')]);
         $this->audit->record('master_data.unit.updated', $unit, $before, $unit->toArray(), $request);
@@ -53,7 +57,7 @@ class UnitController extends Controller
 
     private function setActive(Request $request, Company $company, Unit $unit, bool $active)
     {
-        abort_unless((int) $unit->company_id === (int) $company->id, 404);
+        abort_unless($unit->company_id === null || (int) $unit->company_id === (int) $company->id, 404);
         $before = $unit->only('is_active'); $unit->update(['is_active' => $active]);
         $this->audit->record('master_data.unit.'.($active ? 'activated' : 'deactivated'), $unit, $before, $unit->only('is_active'), $request);
         return back();
@@ -62,9 +66,10 @@ class UnitController extends Controller
     private function validated(Request $request, Company $company, ?Unit $unit = null): array
     {
         return $request->validate([
-            'code' => ['required', 'string', 'max:50', Rule::unique('units', 'code')->where('company_id', $company->id)->ignore($unit)],
-            'name_ar' => ['required', 'string', 'max:255'], 'name_en' => ['nullable', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:50', 'not_regex:/^\s*$/u', Rule::unique('units', 'code')->where('company_id', $company->id)->ignore($unit)],
+            'name_ar' => ['required', 'string', 'max:255', 'not_regex:/^\s*$/u'], 'name_en' => ['nullable', 'string', 'max:255'],
             'symbol' => ['nullable', 'string', 'max:50'], 'description' => ['nullable', 'string'], 'is_active' => ['nullable', 'boolean'],
+            'save_action' => ['nullable', Rule::in(['save', 'save_another'])],
         ]) + ['is_active' => $request->boolean('is_active')];
     }
 }

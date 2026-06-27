@@ -4,15 +4,22 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Landing\LandingPageDataService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Plan extends Model
 {
-    protected $fillable = ['name', 'slug', 'description', 'price', 'monthly_price', 'yearly_price', 'billing_cycle', 'is_active'];
+    protected $fillable = ['name', 'name_ar', 'name_en', 'slug', 'description', 'description_ar', 'description_en', 'price', 'monthly_price', 'yearly_price', 'billing_cycle', 'sort_order', 'is_active', 'is_recommended', 'trial_days', 'grace_period_days', 'currency', 'is_public', 'is_legacy', 'limits'];
 
-    protected $casts = ['price' => 'decimal:3', 'monthly_price' => 'decimal:3', 'yearly_price' => 'decimal:3', 'is_active' => 'boolean'];
+    protected $casts = ['price' => 'decimal:3', 'monthly_price' => 'decimal:3', 'yearly_price' => 'decimal:3', 'is_active' => 'boolean', 'is_recommended' => 'boolean', 'sort_order' => 'integer', 'trial_days' => 'integer', 'grace_period_days' => 'integer', 'is_public' => 'boolean', 'is_legacy' => 'boolean', 'limits' => 'array'];
+
+    protected static function booted(): void
+    {
+        static::saved(fn (): null => LandingPageDataService::clear());
+        static::deleted(fn (): null => LandingPageDataService::clear());
+    }
 
     public function featureKeys(): BelongsToMany
     {

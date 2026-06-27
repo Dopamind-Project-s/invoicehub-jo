@@ -31,6 +31,10 @@ class ProductCategoryController extends Controller
         $data = $this->validated($request, $company);
         $category = ProductCategory::create($data + ['company_id' => $company->id]);
         $this->audit->record('master_data.product_category.created', $category, [], $category->toArray(), $request);
+        if ($request->input('save_action') === 'save_another') {
+            return redirect()->route('company.product-categories.create', $company)->with('status', 'تم حفظ الفئة، يمكنك إضافة فئة أخرى.');
+        }
+
         return redirect()->route('company.product-categories.index', $company)->with('status', 'تم إنشاء التصنيف.');
     }
 
@@ -68,9 +72,10 @@ class ProductCategoryController extends Controller
     private function validated(Request $request, Company $company, ?ProductCategory $category = null): array
     {
         return $request->validate([
-            'name_ar' => ['required', 'string', 'max:255'], 'name_en' => ['nullable', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', Rule::unique('product_categories', 'code')->where('company_id', $company->id)->ignore($category)],
-            'description' => ['nullable', 'string'], 'is_active' => ['nullable', 'boolean'],
+            'name_ar' => ['required', 'string', 'max:255', 'not_regex:/^\s*$/u'], 'name_en' => ['nullable', 'string', 'max:255'],
+            'code' => ['required', 'string', 'max:50', 'not_regex:/^\s*$/u', Rule::unique('product_categories', 'code')->where('company_id', $company->id)->ignore($category)],
+            'description' => ['nullable', 'string'], 'icon' => ['nullable', 'string', 'max:20'], 'is_active' => ['nullable', 'boolean'],
+            'save_action' => ['nullable', Rule::in(['save', 'save_another'])],
         ]) + ['is_active' => $request->boolean('is_active')];
     }
 }

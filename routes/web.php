@@ -4,6 +4,9 @@ use App\Http\Controllers\Admin\CompanyManagementController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\FeatureKeyController;
 use App\Http\Controllers\Admin\PlanController;
+use App\Http\Controllers\Admin\LandingCms\LandingFaqController;
+use App\Http\Controllers\Admin\LandingCms\SiteSettingController;
+use App\Services\Landing\LandingPageDataService;
 use App\Http\Controllers\CompanyWorkspace\ActivityController;
 use App\Http\Controllers\CompanyWorkspace\CompanyRoleController;
 use App\Http\Controllers\CompanyWorkspace\CompanySettingsController;
@@ -22,26 +25,28 @@ use App\Http\Controllers\CompanyWorkspace\MasterData\UnitController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', function (LandingPageDataService $landing) {
+    return view('welcome', $landing->home('ar'));
+})->name('home');
 Route::get('/shared/invoices/{token}', PublicInvoiceShareController::class)->name('invoices.shared.show');
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
     if ($user?->isSuperAdmin()) { return redirect()->route('admin.dashboard.show'); }
-    if ($user?->company_id && ($company = \App\Models\Company::with('featureKeys')->find($user->company_id))) {
+    if ($user?->company_id && ($company = \App\Models\Company::with(['featureKeys', 'activeSubscription.plan'])->find($user->company_id))) {
+        $stats = app(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::class)->get($company);
         return view('company.dashboard', [
             'company' => $company,
-            'productCount' => \App\Models\Product::where('company_id', $company->id)->count(),
-            'contactCount' => \App\Models\Contact::where('company_id', $company->id)->count(),
-            'invoiceCount' => \App\Models\Invoice::where('company_id', $company->id)->count(),
-            'pendingInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_READY)->count(),
-            'approvedInvoices' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_SUBMITTED)->count(),
-            'jofotaraSubmittedCount' => \App\Models\Invoice::where('company_id', $company->id)->whereNotNull('jofotara_submitted_at')->count(),
-            'pendingJofotaraCount' => \App\Models\Invoice::where('company_id', $company->id)->where('status', \App\Models\Invoice::STATUS_READY)->whereNull('jofotara_status')->count(),
-            'importedInvoiceCount' => \App\Models\Invoice::where('company_id', $company->id)->where('source', 'jofotara_import')->count(),
-            'recentInvoices' => \App\Models\Invoice::where('company_id', $company->id)->latest()->limit(5)->get(),
+            'stats' => $stats,
+            'productCount' => $stats['product_count'],
+            'contactCount' => $stats['contact_count'],
+            'invoiceCount' => $stats['invoice_count'],
+            'pendingInvoices' => $stats['ready_invoices'],
+            'approvedInvoices' => $stats['submitted_invoices'],
+            'jofotaraSubmittedCount' => $stats['submitted_invoices'],
+            'pendingJofotaraCount' => $stats['ready_invoices'],
+            'importedInvoiceCount' => 0,
+            'recentInvoices' => $stats['recent_invoices'],
         ]);
     }
     return view('dashboard');
@@ -59,7 +64,11 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::resource('companies', CompanyManagementController::class);
     Route::post('companies/{company}/activate', [CompanyManagementController::class, 'activate'])->name('companies.activate');
     Route::post('companies/{company}/suspend', [CompanyManagementController::class, 'suspend'])->name('companies.suspend');
+    Route::post('companies/{company}/subscriptions/renew/{cycle}', [CompanyManagementController::class, 'renewSubscription'])->whereIn('cycle', ['monthly', 'yearly'])->name('companies.subscriptions.renew');
     Route::get('feature-keys', [FeatureKeyController::class, 'index'])->name('feature-keys.index');
+    Route::get('landing-cms/settings', [SiteSettingController::class, 'edit'])->name('landing-cms.settings.edit');
+    Route::put('landing-cms/settings', [SiteSettingController::class, 'update'])->name('landing-cms.settings.update');
+    Route::resource('landing-cms/faqs', LandingFaqController::class)->parameters(['faqs' => 'faq'])->names('landing-cms.faqs');
     Route::resource('plans', PlanController::class)->except(['show', 'destroy']);
     Route::post('plans/{plan}/activate', [PlanController::class, 'activate'])->name('plans.activate');
     Route::post('plans/{plan}/deactivate', [PlanController::class, 'deactivate'])->name('plans.deactivate');

@@ -1,7 +1,37 @@
 @extends('layouts.app')
-@section('title', 'تصنيفات المنتجات')
+@section('title', 'فئات المنتجات')
 @section('content')
-<x-layout.page-header :title="'تصنيفات المنتجات - '.($company->name_ar ?? $company->legal_name_ar)" subtitle="إدارة بيانات أساسية عربية أولاً ومعزولة حسب المنشأة."><x-slot:actions><a class="btn btn-primary" href="{{ route('company.product-categories.create', $company) }}">إضافة</a></x-slot:actions></x-layout.page-header>
-<form class="card card-body mb-3"><div class="row g-2"><div class="col-md-5"><input name="search" class="form-control" placeholder="بحث" value="{{ request('search') }}"></div><div class="col-md-3"><select name="status" class="form-select"><option value="">كل الحالات</option><option value="active" @selected(request('status')==='active')>نشط</option><option value="inactive" @selected(request('status')==='inactive')>غير نشط</option></select></div><div class="col-md-2"><button class="btn btn-primary w-100">تصفية</button></div></div></form>
-<div class="card"><table class="table mb-0"><tr><th>الكود</th><th>الاسم العربي</th><th>الاسم الإنجليزي</th><th>الحالة</th><th></th></tr>@foreach($categories as $category)<tr><td>{{ $category->code }}</td><td>{{ $category->name_ar }}</td><td>{{ $category->name_en ?: '—' }}</td><td>{{ $category->is_active ? 'نشط' : 'غير نشط' }}</td><td>@if(! isset($category->company_id) || $category->company_id)<a href="{{ route('company.product-categories.edit', [$company, $category]) }}">تعديل</a>@else عام@endif</td></tr>@endforeach</table></div>{{ $categories->links() }}
+@php($routeCompanyId = $company->id ?? request()->route('company')?->id ?? request()->route('company') ?? auth()->user()?->company_id)
+<style>
+.category-hero{background:linear-gradient(135deg,#00a9c4,#12c2b2);color:#fff;border-radius:24px;padding:24px;margin-bottom:18px;box-shadow:0 18px 42px rgba(15,23,42,.12)}.category-hero .btn{border-radius:999px;font-weight:800}.category-filter,.category-table-card{border:1px solid #e5eef4;border-radius:22px;box-shadow:0 12px 30px rgba(15,23,42,.06)}.category-filter .form-control,.category-filter .form-select{border-radius:14px}.category-icon{width:48px;height:48px;border-radius:16px;background:#eefcff;display:inline-grid;place-items:center;font-size:1.45rem;border:1px solid #d7eef3}.category-table th{background:#f7fbfc;color:#475569;white-space:nowrap}.category-table td{vertical-align:middle}.status-badge{display:inline-flex;border-radius:999px;padding:5px 10px;font-size:.8rem;border:1px solid #d7eef3;background:#f1f9fb;color:#0f6170}.status-badge.inactive{background:#fff1f2;color:#9f1239;border-color:#fecdd3}.action-btn{border-radius:999px;min-width:78px}.empty-state{border:1px dashed #b7dce5;border-radius:22px;padding:42px;background:#f8fdff;text-align:center}.empty-state-icon{font-size:3rem;line-height:1}
+</style>
+<div class="category-hero d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3" dir="rtl">
+    <div class="d-flex gap-3 align-items-center"><div class="category-icon bg-white text-info">🗂️</div><div><h1 class="h3 mb-2">فئات المنتجات</h1><p class="mb-0 opacity-75">استخدم الفئات لتنظيم المنتجات والخدمات.</p></div></div>
+    <a class="btn btn-light btn-lg" href="{{ route('company.product-categories.create', ['company' => $routeCompanyId]) }}">➕ إضافة فئة جديدة</a>
+</div>
+<form class="category-filter card card-body mb-3" dir="rtl">
+    <div class="row g-2 align-items-end">
+        <div class="col-lg-7"><label class="form-label small text-muted">بحث</label><input name="search" class="form-control" placeholder="ابحث بالاسم أو الكود" value="{{ request('search') }}"></div>
+        <div class="col-lg-3"><label class="form-label small text-muted">الحالة</label><select name="status" class="form-select"><option value="">كل الحالات</option><option value="active" @selected(request('status')==='active')>نشطة</option><option value="inactive" @selected(request('status')==='inactive')>غير نشطة</option></select></div>
+        <div class="col-lg-2"><button class="btn btn-primary w-100">🔎 تصفية</button></div>
+    </div>
+</form>
+@if($categories->isEmpty())
+    <div class="empty-state" dir="rtl"><div class="empty-state-icon mb-3">🗂️</div><h2 class="h4">لا توجد فئات بعد</h2><p class="text-muted">ابدأ بإنشاء فئات لتنظيم المنتجات والخدمات وتسهيل إدارتها داخل الفواتير.</p><a class="btn btn-primary" href="{{ route('company.product-categories.create', ['company' => $routeCompanyId]) }}">➕ إضافة أول فئة</a></div>
+@else
+<div class="category-table-card card overflow-hidden" dir="rtl">
+    <div class="table-responsive"><table class="table category-table mb-0 align-middle">
+        <thead><tr><th>الأيقونة</th><th>الكود</th><th>الاسم العربي</th><th>الاسم الإنجليزي</th><th>الوصف</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+        <tbody>@foreach($categories as $category)<tr>
+            <td><span class="category-icon">{{ $category->icon ?: '🗂️' }}</span></td>
+            <td><code>{{ $category->code }}</code></td>
+            <td><strong>{{ $category->name_ar }}</strong></td>
+            <td>{{ $category->name_en ?: '—' }}</td>
+            <td class="text-muted">{{ $category->description ? \Illuminate\Support\Str::limit($category->description, 70) : '—' }}</td>
+            <td><span class="status-badge {{ $category->is_active ? '' : 'inactive' }}">{{ $category->is_active ? 'نشطة' : 'غير نشطة' }}</span></td>
+            <td><div class="d-flex flex-wrap gap-1"><a class="btn btn-sm btn-outline-primary action-btn" href="{{ route('company.product-categories.edit', ['company' => $routeCompanyId, 'product_category' => $category->id]) }}">تعديل</a><form method="post" action="{{ $category->is_active ? route('company.product-categories.deactivate', ['company' => $routeCompanyId, 'product_category' => $category->id]) : route('company.product-categories.activate', ['company' => $routeCompanyId, 'product_category' => $category->id]) }}">@csrf<button class="btn btn-sm {{ $category->is_active ? 'btn-outline-warning' : 'btn-outline-success' }} action-btn">{{ $category->is_active ? 'تعطيل' : 'تفعيل' }}</button></form></div></td>
+        </tr>@endforeach</tbody>
+    </table></div>
+</div><div class="mt-3">{{ $categories->links() }}</div>
+@endif
 @endsection

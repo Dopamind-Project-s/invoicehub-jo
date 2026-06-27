@@ -41,7 +41,7 @@ return new class extends Migration
             $table->foreignId('plan_id')->constrained()->cascadeOnDelete();
             $table->timestamp('starts_at')->nullable();
             $table->timestamp('expires_at')->nullable();
-            $table->enum('status', ['trial', 'active', 'expired', 'cancelled'])->default('trial')->index();
+            $table->enum('status', ['trial', 'trialing', 'active', 'grace', 'expired', 'cancelled', 'suspended'])->default('trial')->index();
             $table->timestamps();
             $table->index(['company_id', 'status']);
         });

@@ -12,7 +12,10 @@ use App\Models\TaxCategory;
 use App\Models\TaxProfile;
 use App\Models\Unit;
 use App\Services\Audit\AuditLogger;
+use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
@@ -26,16 +29,33 @@ class ProductController extends Controller
             ->when($request->filled('status'), fn ($q) => $q->where('is_active', $request->status === 'active'))
             ->when($request->filled('type'), fn ($q) => $q->where('type', $request->type))
             ->latest()->paginate(15)->withQueryString();
+
         return view('company.master-data.products.index', compact('company', 'products'));
     }
 
-    public function create(Company $company) { return view('company.master-data.products.create', $this->formData($company, new Product(['is_active' => true, 'type' => Product::TYPE_PRODUCT]))); }
+    public function create(Company $company)
+    {
+        return view('company.master-data.products.create', $this->formData($company, new Product(['is_active' => true, 'type' => Product::TYPE_PRODUCT])));
+    }
 
-    public function store(Request $request, Company $company)
+    public function store(Request $request, Company $company): RedirectResponse
     {
         $data = $this->validated($request, $company);
-        $product = Product::create($data + ['company_id' => $company->id, 'item_code' => $company->id.'-'.$data['sku'], 'default_price' => $data['price'], 'tax_category_id' => TaxCategory::query()->value('id') ?? TaxCategory::create(['code' => 'MASTER_DEFAULT', 'tax_rate' => 0, 'tax_code' => 'Z', 'description' => 'Master data fallback tax category'])->id]);
+        $data['image_path'] = $this->storeImage($request);
+        $product = Product::create($data + [
+            'company_id' => $company->id,
+            'item_code' => $company->id.'-'.$data['sku'],
+            'default_price' => $data['price'],
+            'tax_category_id' => TaxCategory::query()->value('id') ?? TaxCategory::create(['code' => 'MASTER_DEFAULT', 'tax_rate' => 0, 'tax_code' => 'Z', 'description' => 'Master data fallback tax category'])->id,
+        ]);
         $this->audit->record('master_data.product.created', $product, [], $product->toArray(), $request);
+
+        CompanyDashboardStatsService::forget($company);
+
+        if ($request->input('save_action') === 'save_another') {
+            return redirect()->route('company.products.create', $company)->with('status', 'تم حفظ المنتج، يمكنك إضافة منتج آخر.');
+        }
+
         return redirect()->route('company.products.index', $company)->with('status', 'تم إنشاء المنتج/الخدمة.');
     }
 
@@ -45,18 +65,33 @@ class ProductController extends Controller
         return view('company.master-data.products.edit', $this->formData($company, $product));
     }
 
-    public function update(Request $request, Company $company, Product $product)
+    public function update(Request $request, Company $company, Product $product): RedirectResponse
     {
         abort_unless((int) $product->company_id === (int) $company->id, 404);
-        $before = $product->toArray(); $data = $this->validated($request, $company, $product);
+        $before = $product->toArray();
+        $data = $this->validated($request, $company, $product);
+        if ($request->hasFile('image')) {
+            $data['image_path'] = $this->storeImage($request, $product->image_path);
+        }
+
         $product->update($data + ['item_code' => $company->id.'-'.$data['sku'], 'default_price' => $data['price']]);
         $this->audit->record('master_data.product.updated', $product, $before, $product->toArray(), $request);
+        CompanyDashboardStatsService::forget($company);
+
         return redirect()->route('company.products.index', $company)->with('status', 'تم تحديث المنتج/الخدمة.');
     }
 
-    public function activate(Request $request, Company $company, Product $product) { return $this->setActive($request, $company, $product, true); }
-    public function deactivate(Request $request, Company $company, Product $product) { return $this->setActive($request, $company, $product, false); }
-    private function setActive(Request $request, Company $company, Product $product, bool $active) { abort_unless((int) $product->company_id === (int) $company->id, 404); $before = $product->only('is_active'); $product->update(['is_active' => $active]); $this->audit->record('master_data.product.'.($active ? 'activated' : 'deactivated'), $product, $before, $product->only('is_active'), $request); return back(); }
+    public function activate(Request $request, Company $company, Product $product): RedirectResponse { return $this->setActive($request, $company, $product, true); }
+    public function deactivate(Request $request, Company $company, Product $product): RedirectResponse { return $this->setActive($request, $company, $product, false); }
+
+    private function setActive(Request $request, Company $company, Product $product, bool $active): RedirectResponse
+    {
+        abort_unless((int) $product->company_id === (int) $company->id, 404);
+        $before = $product->only('is_active');
+        $product->update(['is_active' => $active]);
+        $this->audit->record('master_data.product.'.($active ? 'activated' : 'deactivated'), $product, $before, $product->only('is_active'), $request);
+        return back()->with('status', $active ? 'تم تفعيل المنتج.' : 'تم تعطيل المنتج.');
+    }
 
     private function formData(Company $company, Product $product): array
     {
@@ -68,11 +103,31 @@ class ProductController extends Controller
         return $request->validate([
             'type' => ['required', Rule::in([Product::TYPE_PRODUCT, Product::TYPE_SERVICE])],
             'sku' => ['required', 'string', 'max:100', Rule::unique('products', 'sku')->where('company_id', $company->id)->ignore($product)],
-            'barcode' => ['nullable', 'string', 'max:100'], 'name_ar' => ['required', 'string', 'max:255'], 'name_en' => ['nullable', 'string', 'max:255'], 'description' => ['nullable', 'string'],
+            'barcode' => ['nullable', 'string', 'max:100'],
+            'name_ar' => ['required', 'string', 'max:255'],
+            'name_en' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
             'category_id' => ['nullable', Rule::exists('product_categories', 'id')->where('company_id', $company->id)],
             'unit_id' => ['required', Rule::exists('units', 'id')->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $company->id))],
             'tax_profile_id' => ['nullable', Rule::exists('tax_profiles', 'id')->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $company->id))],
-            'price' => ['required', 'numeric', 'min:0'], 'cost' => ['nullable', 'numeric', 'min:0'], 'is_active' => ['nullable', 'boolean'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'cost' => ['nullable', 'numeric', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
+            'image' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'save_action' => ['nullable', Rule::in(['save', 'save_another'])],
         ]) + ['is_active' => $request->boolean('is_active')];
+    }
+
+    private function storeImage(Request $request, ?string $oldPath = null): ?string
+    {
+        if (! $request->hasFile('image')) {
+            return $oldPath;
+        }
+
+        if ($oldPath) {
+            Storage::disk('public')->delete($oldPath);
+        }
+
+        return $request->file('image')->store('products', 'public');
     }
 }
