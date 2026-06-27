@@ -64,6 +64,7 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::resource('companies', CompanyManagementController::class);
     Route::post('companies/{company}/activate', [CompanyManagementController::class, 'activate'])->name('companies.activate');
     Route::post('companies/{company}/suspend', [CompanyManagementController::class, 'suspend'])->name('companies.suspend');
+    Route::post('companies/{company}/subscriptions/renew/{cycle}', [CompanyManagementController::class, 'renewSubscription'])->whereIn('cycle', ['monthly', 'yearly'])->name('companies.subscriptions.renew');
     Route::get('feature-keys', [FeatureKeyController::class, 'index'])->name('feature-keys.index');
     Route::get('landing-cms/settings', [SiteSettingController::class, 'edit'])->name('landing-cms.settings.edit');
     Route::put('landing-cms/settings', [SiteSettingController::class, 'update'])->name('landing-cms.settings.update');
