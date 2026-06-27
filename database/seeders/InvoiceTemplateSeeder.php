@@ -13,6 +13,9 @@ class InvoiceTemplateSeeder extends Seeder
         ['Arabic / English Bilingual', 'bilingual-ar-en', 'ar_en', 'bilingual', 'company.invoice-templates.render.bilingual-ar-en', false],
         ['Retail Receipt', 'retail-receipt', 'ar', 'receipt', 'company.invoice-templates.render.retail-receipt', false],
         ['Corporate Tax Invoice', 'corporate-tax', 'ar_en', 'corporate', 'company.invoice-templates.render.corporate-tax', false],
+        ['Jordan Tax Pro', 'jordan-tax-pro', 'ar_en', 'jordan-tax', 'company.invoice-templates.render.jordan-tax-pro', false],
+        ['Premium Ledger', 'premium-ledger', 'ar', 'ledger', 'company.invoice-templates.render.premium-ledger', false],
+        ['Minimal Blue', 'minimal-blue', 'ar_en', 'minimal', 'company.invoice-templates.render.minimal-blue', false],
     ];
 
     public function run(): void

@@ -40,10 +40,10 @@ class InvoiceExperienceLayerTest extends TestCase
     {
         $company = Company::where('tax_number', '9578331')->firstOrFail();
         $this->assertDatabaseHas('invoice_templates', ['slug' => 'arabic-classic', 'is_default' => true, 'view_path' => 'company.invoice-templates.render.arabic-classic']);
-        foreach (['arabic-classic', 'arabic-modern', 'bilingual-ar-en', 'retail-receipt', 'corporate-tax'] as $slug) {
+        foreach (['arabic-classic', 'arabic-modern', 'bilingual-ar-en', 'retail-receipt', 'corporate-tax', 'jordan-tax-pro', 'premium-ledger', 'minimal-blue'] as $slug) {
             $this->assertDatabaseHas('invoice_templates', ['slug' => $slug, 'is_active' => true]);
         }
-        $this->assertCount(5, InvoiceTemplate::whereNull('company_id')->get());
+        $this->assertCount(8, InvoiceTemplate::whereNull('company_id')->get());
         $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_primary_color']);
         $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id']);
     }

@@ -12,6 +12,9 @@
     .mini-invoice.bilingual{direction:ltr;border-color:#12c2b2}
     .mini-invoice.receipt{width:118px;border-style:dashed;border-top-color:#334155}
     .mini-invoice.corporate{border-top-color:#1f4f75}
+    .mini-invoice.jordan-tax{border-top-color:#0b5d7a;border-bottom:5px solid #d6a23a}
+    .mini-invoice.ledger{border-inline-start:6px solid #8a6b3f;background:#fffdf7}
+    .mini-invoice.minimal{border-top-color:#2563eb;border-radius:2px;box-shadow:none}
     .mini-line{height:5px;border-radius:999px;background:#dbe7ee;margin-bottom:7px}
     .mini-line.short{width:48%}.mini-line.mid{width:70%}.mini-line.accent{background:#00a9c4}.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:12px 0}.mini-box{height:18px;border-radius:6px;background:#eef6f8}.template-meta{display:flex;gap:8px;flex-wrap:wrap}.template-meta .pill{background:#f1f9fb;color:#0f6170;border:1px solid #d7eef3;border-radius:999px;padding:4px 10px;font-size:.72rem}.selected-ribbon{position:absolute;top:10px;inset-inline-start:10px;background:#00a9c4;color:#fff;border-radius:999px;padding:5px 11px;font-size:.78rem;z-index:2}.template-actions .btn{border-radius:999px}.preview-image{max-width:100%;max-height:100%;object-fit:cover;border-radius:12px;box-shadow:0 10px 25px rgba(15,23,42,.12)}
 </style>
@@ -40,6 +43,9 @@
                     'bilingual-ar-en' => 'bilingual',
                     'retail-receipt' => 'receipt',
                     'corporate-tax' => 'corporate',
+                    'jordan-tax-pro' => 'jordan-tax',
+                    'premium-ledger' => 'ledger',
+                    'minimal-blue' => 'minimal',
                     default => 'classic',
                 };
             @endphp
