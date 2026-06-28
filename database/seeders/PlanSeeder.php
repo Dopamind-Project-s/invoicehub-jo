@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Models\Company;
 use App\Models\FeatureKey;
 use App\Models\Plan;
-use App\Models\Subscription;
 use Illuminate\Database\Seeder;
 
 class PlanSeeder extends Seeder
@@ -63,21 +61,20 @@ class PlanSeeder extends Seeder
             'WHATSAPP_SHARE',
         ];
 
-        $starter = $this->plan('starter', 'باقة البداية', 'Starter', 'باقة مناسبة لتجربة إدارة المنشأة والفواتير الأساسية.', 'A starter plan for electronic invoices and essential establishment management.', 5, 35, $starterCodes, 1, false);
+        $this->plan('starter', 'باقة البداية', 'Starter', 'باقة مناسبة لتجربة إدارة المنشأة والفواتير الأساسية.', 'A starter plan for electronic invoices and essential establishment management.', 5, 35, $starterCodes, 1, false);
         $this->plan('business', 'باقة الأعمال', 'Business', 'باقة أوسع لإدارة المستخدمين والمشاركة والاعتماد والربط مع الفوترة الوطنية.', 'A business plan for users, sharing, approvals, and national e-invoicing integration.', 7, 50, $businessCodes, 2, true);
         $this->plan('professional', 'باقة الأعمال', 'Professional', 'باقة أوسع لإدارة المستخدمين والمشاركة والاعتماد والربط مع الفوترة الوطنية.', 'A professional plan for teams, approvals, sharing, and national e-invoicing readiness.', 7, 50, $businessCodes, 2, true);
         $this->plan('advanced', 'المتقدمة', 'Advanced', 'تحليل الفواتير والمبيعات بشكل معمق واستخراج تقارير تفصيلية عن كل منتج , مورد او عميل', 'Advanced invoice and sales analytics with detailed reports for each product, supplier, or customer.', 8, 80, $advancedCodes, 3, false);
+    }
 
-
-        $company = Company::where('tax_number', '9578331')->first();
-        if ($company) {
-            Subscription::updateOrCreate(
-                ['company_id' => $company->id, 'status' => 'active'],
-                ['plan_id' => $starter->id, 'starts_at' => now(), 'expires_at' => null]
-            );
-
-            $company->featureKeys()->syncWithoutDetaching($starter->featureKeys()->pluck('feature_keys.id')->all());
-        }
+    private function limitsFor(string $slug): array
+    {
+        return match ($slug) {
+            'starter' => ['usage' => 'Basic', 'invoices' => 100, 'users' => 2, 'products' => 50, 'contacts' => 100],
+            'business', 'professional' => ['usage' => 'Business', 'invoices' => 1000, 'users' => 10, 'products' => 500, 'contacts' => 1000],
+            'advanced' => ['usage' => 'Advanced', 'invoices' => 'Unlimited', 'users' => 'Unlimited', 'products' => 'Unlimited', 'contacts' => 'Unlimited'],
+            default => ['usage' => 'Manual', 'invoices' => '—', 'users' => '—', 'products' => '—', 'contacts' => '—'],
+        };
     }
 
     private function plan(string $slug, string $nameAr, string $nameEn, string $descriptionAr, string $descriptionEn, float $monthly, float $yearly, array $featureCodes, int $sortOrder, bool $recommended): Plan
@@ -98,6 +95,8 @@ class PlanSeeder extends Seeder
                 'sort_order' => $sortOrder,
                 'is_active' => true,
                 'is_recommended' => $recommended,
+                'limits' => $this->limitsFor($slug),
+                'currency' => 'JOD',
             ]
         );
 

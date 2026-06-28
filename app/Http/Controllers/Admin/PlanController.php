@@ -8,11 +8,12 @@ use App\Models\Plan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Services\Subscriptions\SubscriptionPresentationService;
 use Illuminate\Validation\Rule;
 
 class PlanController extends Controller
 {
-    public function index()
+    public function index(SubscriptionPresentationService $presenter)
     {
         return view('admin.plans.index', [
             'plans' => Plan::query()
@@ -29,6 +30,8 @@ class PlanController extends Controller
             'plan' => new Plan(['billing_cycle' => 'monthly', 'is_active' => true, 'monthly_price' => 0, 'yearly_price' => 0, 'sort_order' => 0]),
             'features' => FeatureKey::where('is_active', true)->orderBy('category')->orderBy('code')->get(),
             'enabledFeatureIds' => [],
+            'comparisonPlans' => Plan::query()->with('featureKeys')->where('is_active', true)->orderBy('sort_order')->get(),
+            'comparisonRows' => $presenter->planComparisonRows(),
         ]);
     }
 

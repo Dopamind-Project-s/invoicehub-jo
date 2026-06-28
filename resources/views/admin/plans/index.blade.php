@@ -1,35 +1,13 @@
 @extends('layouts.app')
 @section('title', 'الباقات')
 @section('content')
-<x-layout.page-header title="الباقات" subtitle="إدارة احترافية لباقات الاشتراك والأسعار ومفاتيح المزايا.">
+<x-layout.page-header title="الباقات" subtitle="إدارة احترافية لباقات الاشتراك والأسعار ومقارنة المزايا والحدود.">
     <x-slot:actions><a class="btn btn-primary px-4" href="#create-plan">+ إنشاء باقة</a></x-slot:actions>
 </x-layout.page-header>
 
-<div class="card border-0 shadow-sm mb-4">
-    <div class="card-body">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-lg-5"><label class="form-label">بحث</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="اسم الباقة أو الوصف"></div>
-            <div class="col-md-3"><label class="form-label">الحالة</label><select name="status" class="form-select"><option value="">كل الحالات</option><option value="active" @selected(request('status')==='active')>فعالة</option><option value="inactive" @selected(request('status')==='inactive')>معطلة</option></select></div>
-            <div class="col-md-2"><label class="form-label">التمييز</label><select name="recommended" class="form-select"><option value="">الكل</option><option value="1" @selected(request('recommended')==='1')>موصى بها</option></select></div>
-            <div class="col-md-2 d-grid"><button class="btn btn-outline-primary">تصفية</button></div>
-        </form>
-    </div>
-</div>
+<div class="card border-0 shadow-sm mb-4"><div class="card-body"><form method="get" class="row g-3 align-items-end"><div class="col-lg-5"><label class="form-label">بحث</label><input name="search" value="{{ request('search') }}" class="form-control" placeholder="اسم الباقة أو الوصف"></div><div class="col-md-3"><label class="form-label">الحالة</label><select name="status" class="form-select"><option value="">كل الحالات</option><option value="active" @selected(request('status')==='active')>فعالة</option><option value="inactive" @selected(request('status')==='inactive')>معطلة</option></select></div><div class="col-md-2"><label class="form-label">التمييز</label><select name="recommended" class="form-select"><option value="">الكل</option><option value="1" @selected(request('recommended')==='1')>موصى بها</option></select></div><div class="col-md-2 d-grid"><button class="btn btn-outline-primary">تصفية</button></div></form></div></div>
 
-<div class="row g-4">
-    <div class="col-xl-4" id="create-plan">
-        <form method="post" action="{{ route('admin.plans.store') }}" class="card border-0 shadow-sm card-body sticky-lg-top" style="top:1rem">
-            <div class="d-flex align-items-center justify-content-between mb-3"><div><h2 class="h5 fw-bold mb-1">إنشاء باقة</h2><p class="text-muted small mb-0">أضف الأسعار والمزايا المرتبطة.</p></div><span class="badge bg-primary-subtle text-primary border border-primary-subtle">جديدة</span></div>
-            @include('admin.plans._form', ['plan' => $plan, 'features' => $features, 'enabledFeatureIds' => []])
-        </form>
-    </div>
-    <div class="col-xl-8">
-        @if($plans->count())
-            <div class="row g-4">@foreach($plans as $plan)<div class="col-md-6"><x-plan-card :plan="$plan" /></div>@endforeach</div>
-            <div class="mt-4">{{ $plans->links() }}</div>
-        @else
-            <div class="card border-0 shadow-sm"><div class="card-body text-center py-5"><div class="display-5 mb-3">📦</div><h2 class="h5 fw-bold">لا توجد باقات مطابقة</h2><p class="text-muted">جرّب تعديل البحث أو أنشئ باقة جديدة للبدء.</p><a class="btn btn-primary" href="#create-plan">إنشاء باقة</a></div></div>
-        @endif
-    </div>
-</div>
+<div class="card border-0 shadow-sm mb-4"><div class="card-body p-4"><div class="d-flex justify-content-between flex-wrap gap-2 mb-3"><div><h2 class="h5 fw-bold mb-1">جدول مقارنة الباقات</h2><p class="text-muted mb-0">مقارنة واضحة باستخدام ✓ أو — مع حدود الاستخدام الأساسية.</p></div><span class="badge bg-info text-dark">SaaS Ready</span></div><div class="table-responsive"><table class="table align-middle text-center"><thead><tr><th class="text-start">البند</th>@foreach($comparisonPlans as $cmpPlan)<th>{{ $cmpPlan->name_ar ?: $cmpPlan->name }} @if($cmpPlan->is_recommended)<span class="badge bg-success ms-1">Recommended</span>@endif<br><small class="text-muted">{{ number_format((float)$cmpPlan->monthly_price, 3) }} JOD / شهر</small></th>@endforeach</tr></thead><tbody>@foreach($comparisonRows as $row)<tr><th class="text-start">{{ $row['label'] }}</th>@foreach($comparisonPlans as $cmpPlan)@php $codes=$cmpPlan->featureKeys->pluck('code'); $limits=$cmpPlan->limits ?: []; $value='—'; if(($row['type'] ?? null)==='features'){$value=$cmpPlan->featureKeys->count();} elseif(isset($row['limit'])){$value=$limits[$row['limit']] ?? '—';} elseif(isset($row['feature'])){$value=$codes->contains($row['feature']) ? '✓' : '—';} @endphp<td class="fw-bold {{ $value === '✓' ? 'text-success' : '' }}">{{ $value }}</td>@endforeach</tr>@endforeach</tbody></table></div></div></div>
+
+<div class="row g-4"><div class="col-xl-4" id="create-plan"><form method="post" action="{{ route('admin.plans.store') }}" class="card border-0 shadow-sm card-body sticky-lg-top" style="top:1rem"><div class="d-flex align-items-center justify-content-between mb-3"><div><h2 class="h5 fw-bold mb-1">إنشاء باقة</h2><p class="text-muted small mb-0">أضف الأسعار والمزايا المرتبطة.</p></div><span class="badge bg-primary-subtle text-primary border border-primary-subtle">جديدة</span></div>@include('admin.plans._form', ['plan' => $plan, 'features' => $features, 'enabledFeatureIds' => []])</form></div><div class="col-xl-8">@if($plans->count())<div class="row g-4">@foreach($plans as $plan)<div class="col-md-6"><x-plan-card :plan="$plan" /></div>@endforeach</div><div class="mt-4">{{ $plans->links() }}</div>@else<div class="card border-0 shadow-sm"><div class="card-body text-center py-5"><div class="display-5 mb-3">📦</div><h2 class="h5 fw-bold">لا توجد باقات مطابقة</h2><p class="text-muted">جرّب تعديل البحث أو أنشئ باقة جديدة للبدء.</p><a class="btn btn-primary" href="#create-plan">إنشاء باقة</a></div></div>@endif</div></div>
 @endsection
