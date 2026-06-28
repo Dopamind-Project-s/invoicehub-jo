@@ -120,52 +120,6 @@
         </select>
     </div>
 
-    <div class="col-md-6">
-        <label class="form-label">الباقة</label>
-        <select name="plan_id" class="form-select">
-            <option value="">بدون باقة محددة</option>
-
-            @foreach($plans as $planOption)
-                <option value="{{ $planOption->id }}"
-                    @selected((int) old('plan_id', $selectedPlanId ?? 0) === $planOption->id)>
-                    {{ $planOption->name }} — {{ number_format((float) $planOption->monthly_price, 3) }} شهرياً
-                </option>
-            @endforeach
-        </select>
-
-        <div class="form-text">
-            اختيار الباقة يضيف مفاتيحها تلقائياً، ويمكن إبقاء مفاتيح يدوية كاستثناءات.
-        </div>
-    </div>
-
-    {{-- مفاتيح المزايا --}}
-    <div class="col-12">
-        <h5 class="border-bottom pb-2 mb-3 mt-3">مفاتيح المزايا</h5>
-    </div>
-
-    @foreach($features as $feature)
-        <div class="col-md-4">
-            <label class="form-check border rounded p-3 h-100">
-                <input class="form-check-input"
-                       type="checkbox"
-                       name="feature_keys[]"
-                       value="{{ $feature->id }}"
-                       @checked(in_array($feature->id, old('feature_keys', $enabledFeatureIds ?? [])))>
-
-                <span class="form-check-label d-block pe-2">
-                    <strong>{{ $feature->name_ar ?: $feature->name }}</strong>
-                    <br>
-                    <small class="text-muted">{{ $feature->code }} — {{ $feature->category }}</small>
-
-                    @if($feature->description)
-                        <br>
-                        <small>{{ $feature->description }}</small>
-                    @endif
-                </span>
-            </label>
-        </div>
-    @endforeach
-
     <div class="col-12">
         <button type="submit" class="btn btn-primary mt-3">
             حفظ

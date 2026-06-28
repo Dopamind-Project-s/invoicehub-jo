@@ -15,7 +15,17 @@ class PlanController extends Controller
     public function index()
     {
         return view('admin.plans.index', [
-            'plans' => Plan::withCount('featureKeys')->latest()->paginate(15),
+            'plans' => Plan::query()
+                ->with('featureKeys')
+                ->withCount('featureKeys')
+                ->when(request('search'), fn ($query, $search) => $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('name_ar', 'like', "%{$search}%")->orWhere('description_ar', 'like', "%{$search}%")))
+                ->when(request('status') === 'active', fn ($query) => $query->where('is_active', true))
+                ->when(request('status') === 'inactive', fn ($query) => $query->where('is_active', false))
+                ->when(request('recommended') === '1', fn ($query) => $query->where('is_recommended', true))
+                ->orderBy('sort_order')
+                ->latest()
+                ->paginate(12)
+                ->withQueryString(),
             'plan' => new Plan(['billing_cycle' => 'monthly', 'is_active' => true, 'monthly_price' => 0, 'yearly_price' => 0, 'sort_order' => 0]),
             'features' => FeatureKey::where('is_active', true)->orderBy('category')->orderBy('code')->get(),
             'enabledFeatureIds' => [],
