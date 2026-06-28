@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\FeatureKey;
 use App\Models\Plan;
+use App\Models\Product;
 use App\Models\Subscription;
 use App\Services\Audit\AuditLogger;
 use App\Services\Company\CompanyRoleSeeder;
@@ -57,20 +58,23 @@ class CompanyManagementController extends Controller
 
     public function show(Company $company)
     {
-        $company->load(['featureKeys', 'subscriptions.plan.featureKeys']);
+        $company->load(['featureKeys', 'activeSubscription.plan.featureKeys', 'subscriptions.plan.featureKeys'])
+            ->loadCount(['featureKeys', 'users', 'invoices'])
+            ->loadCount(['invoices as submitted_invoices_count' => fn ($query) => $query->whereNotNull('submitted_at')]);
         $subscriptionAccess = $this->subscriptions->resolve($company);
+        $summary = [
+            'products_count' => Product::where('company_id', $company->id)->count(),
+            'customers_count' => $company->invoices()->whereNotNull('customer_id')->distinct('customer_id')->count('customer_id'),
+            'active_users_count' => $company->users()->where(fn ($query) => $query->whereNull('status')->orWhere('status', 'active'))->count(),
+        ];
 
-        return view('admin.companies.show', compact('company', 'subscriptionAccess'));
+        return view('admin.companies.show', compact('company', 'subscriptionAccess', 'summary'));
     }
 
     public function edit(Company $company)
     {
         return view('admin.companies.edit', [
-            'company' => $company->load(['featureKeys', 'activeSubscription.plan.featureKeys']),
-            'features' => FeatureKey::where('is_active', true)->orderBy('category')->orderBy('code')->get(),
-            'plans' => Plan::where('is_active', true)->with('featureKeys')->orderBy('name')->get(),
-            'enabledFeatureIds' => $company->featureKeys->pluck('id')->all(),
-            'selectedPlanId' => $company->activeSubscription?->plan_id,
+            'company' => $company,
         ]);
     }
 
@@ -78,6 +82,7 @@ class CompanyManagementController extends Controller
     {
         $before = $this->auditSnapshot($company->fresh());
         $data = $this->validated($request, $company);
+        $hasSubscriptionPayload = array_key_exists('feature_keys', $data) || array_key_exists('plan_id', $data);
         $features = $data['feature_keys'] ?? [];
         $planId = $data['plan_id'] ?? null;
         unset($data['feature_keys'], $data['plan_id']);
@@ -85,11 +90,13 @@ class CompanyManagementController extends Controller
         $company->update($this->payload($data, $request, $company));
         $oldFeatures = $company->featureKeys()->pluck('feature_keys.id')->all();
         $oldPlanId = $company->activeSubscription?->plan_id;
-        $this->syncPlanAndFeatures($company, $planId ? (int) $planId : null, $features, $oldPlanId ? (int) $oldPlanId : null);
+        if ($hasSubscriptionPayload) {
+            $this->syncPlanAndFeatures($company, $planId ? (int) $planId : null, $features, $oldPlanId ? (int) $oldPlanId : null);
+        }
         $company->refresh();
 
         $this->audit->record('admin.company.updated', $company, $before, $this->auditSnapshot($company), $request);
-        if ($oldFeatures !== array_map('intval', $features)) {
+        if ($hasSubscriptionPayload && $oldFeatures !== array_map('intval', $features)) {
             $this->audit->record('admin.company.features.synced', $company, ['feature_key_ids' => $oldFeatures], ['feature_key_ids' => $features], $request);
         }
 
@@ -146,8 +153,8 @@ class CompanyManagementController extends Controller
             'jofotara_secret_key' => ['nullable', 'string'],
             'default_language' => ['required', Rule::in(['ar', 'en'])],
             'default_currency' => ['required', 'string', 'size:3'],
-            'plan_id' => ['nullable', 'integer', 'exists:plans,id'],
-            'feature_keys' => ['array'],
+            'plan_id' => ['sometimes', 'nullable', 'integer', 'exists:plans,id'],
+            'feature_keys' => ['sometimes', 'array'],
             'feature_keys.*' => ['integer', 'exists:feature_keys,id'],
         ]);
     }
