@@ -16,6 +16,7 @@ use App\Http\Controllers\CompanyWorkspace\InvoiceShareController;
 use App\Http\Controllers\CompanyWorkspace\InvoiceTemplateController;
 use App\Http\Controllers\CompanyWorkspace\JofotaraImportController;
 use App\Http\Controllers\CompanyWorkspace\WorkspaceDashboardController;
+use App\Http\Controllers\CompanyWorkspace\SubscriptionController as CompanySubscriptionController;
 use App\Http\Controllers\PublicInvoiceShareController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ContactController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductCategoryController;
@@ -64,7 +65,11 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::resource('companies', CompanyManagementController::class);
     Route::post('companies/{company}/activate', [CompanyManagementController::class, 'activate'])->name('companies.activate');
     Route::post('companies/{company}/suspend', [CompanyManagementController::class, 'suspend'])->name('companies.suspend');
+    Route::get('companies/{company}/subscriptions', [CompanyManagementController::class, 'subscriptions'])->name('companies.subscriptions.index');
     Route::post('companies/{company}/subscriptions/renew/{cycle}', [CompanyManagementController::class, 'renewSubscription'])->whereIn('cycle', ['monthly', 'yearly'])->name('companies.subscriptions.renew');
+    Route::post('companies/{company}/subscriptions/toggle-auto-renew', [CompanyManagementController::class, 'toggleAutoRenew'])->name('companies.subscriptions.toggle-auto-renew');
+    Route::post('companies/{company}/subscriptions/cancel', [CompanyManagementController::class, 'cancelSubscription'])->name('companies.subscriptions.cancel');
+    Route::post('companies/{company}/subscriptions/reactivate', [CompanyManagementController::class, 'reactivateSubscription'])->name('companies.subscriptions.reactivate');
     Route::get('feature-keys', [FeatureKeyController::class, 'index'])->name('feature-keys.index');
     Route::get('landing-cms/settings', [SiteSettingController::class, 'edit'])->name('landing-cms.settings.edit');
     Route::put('landing-cms/settings', [SiteSettingController::class, 'update'])->name('landing-cms.settings.update');
@@ -96,6 +101,8 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
     Route::put('settings', [CompanySettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
 
     Route::get('activity', [ActivityController::class, 'index'])->middleware('permission:reports.view')->name('activity.index');
+    Route::get('subscriptions', [CompanySubscriptionController::class, 'index'])->name('subscriptions.index');
+    Route::post('subscriptions/requests', [CompanySubscriptionController::class, 'requestChange'])->name('subscriptions.requests.store');
 
 
     Route::middleware('permission:invoices.create')->group(function (): void {

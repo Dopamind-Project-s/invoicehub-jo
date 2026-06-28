@@ -5,6 +5,10 @@
 @php
 $stats = $stats ?? [];
 $dashboardDate = static fn ($value, string $format = 'Y-m-d') => $value instanceof \Carbon\CarbonInterface ? $value->format($format) : ($value ?: '—');
+$subscriptionAccess = $company->subscriptionAccess();
+$subscription = $subscriptionAccess['subscription'] ?? null;
+$subscriptionPlan = $subscriptionAccess['plan'] ?? null;
+$subscriptionHealth = app(\App\Services\Subscriptions\SubscriptionPresentationService::class)->health($subscription, $subscriptionAccess['effective_status']);
 @endphp
 <style>
     .company-hero {
@@ -134,6 +138,20 @@ $dashboardDate = static fn ($value, string $format = 'Y-m-d') => $value instance
     @endforeach
 </div>
 <div class="row g-4" dir="rtl">
+
+    <div class="col-xl-4">
+        <div class="dashboard-card card card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3"><h2 class="h5 mb-0">الاشتراك الحالي</h2><x-subscription.health-badge :health="$subscriptionHealth" /></div>
+            <div class="info-row"><span class="text-muted">الباقة</span><strong>{{ $subscriptionPlan?->name_ar ?: $subscriptionPlan?->name ?: '—' }}</strong></div>
+            <div class="info-row"><span class="text-muted">شهري أو سنوي</span><strong>{{ $subscription?->billing_cycle ?: '—' }}</strong></div>
+            <div class="info-row"><span class="text-muted">تاريخ البداية</span><strong>{{ $dashboardDate($subscriptionAccess['period_start']) }}</strong></div>
+            <div class="info-row"><span class="text-muted">تاريخ الانتهاء</span><strong>{{ $dashboardDate($subscriptionAccess['period_end']) }}</strong></div>
+            <div class="info-row"><span class="text-muted">الأيام المتبقية</span><strong>{{ $subscriptionAccess['days_remaining'] ?? '—' }}</strong></div>
+            <div class="info-row"><span class="text-muted">Auto Renew</span><strong>{{ $subscription?->auto_renew ? 'مفعل' : 'غير مفعل' }}</strong></div>
+            <a class="btn btn-primary w-100 mt-3" href="{{ route('company.subscriptions.index', $company) }}">إدارة الاشتراك</a>
+        </div>
+    </div>
+
     <div class="col-xl-5">
         <div class="dashboard-card card card-body">
             <h2 class="h5 mb-3">ملف المنشأة</h2>
@@ -149,6 +167,18 @@ $dashboardDate = static fn ($value, string $format = 'Y-m-d') => $value instance
         </div>
     </div>
    
+    <div class="col-xl-6">
+        <div class="dashboard-card card card-body">
+            <h2 class="h5 mb-3">آخر الفواتير</h2>
+            @forelse(($stats['recent_invoices'] ?? collect()) as $invoice)
+                <div class="timeline-item"><strong>{{ data_get($invoice, 'invoice_number', '—') }}</strong>
+                    <div class="text-muted small">{{ data_get($invoice, 'customer_name', '—') }} — {{ data_get($invoice, 'status', '—') }} — {{ data_get($invoice, 'grand_total', '0.000') }} {{ data_get($invoice, 'currency', 'JOD') }}</div>
+                </div>
+            @empty
+                <div class="empty-soft">لا توجد فواتير حديثة.</div>
+            @endforelse
+        </div>
+    </div>
 
     <div class="col-xl-6">
         <div class="dashboard-card card card-body">
