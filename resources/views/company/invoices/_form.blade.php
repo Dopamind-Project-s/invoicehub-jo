@@ -4,17 +4,16 @@
     $secondary = $branding['secondary_color'] ?? '#12c2b2';
     $rows = old('items', $invoice->items?->toArray() ?: [['description'=>'','quantity'=>'1','unit_price'=>'0','discount_amount'=>'0','tax_percent'=>'0']]);
     $templateSlug = $branding['template']?->slug ?? 'arabic-classic';
+    $contactOptions = $contacts->map(fn($contact) => ['id' => $contact->id, 'name' => $contact->name_ar]);
+    $productOptions = $products->map(fn($product) => ['id' => $product->id, 'name' => $product->name_ar, 'description' => $product->description ?: $product->name_ar, 'unit_price' => $product->price ?? $product->default_price ?? 0, 'discount_amount' => 0, 'tax_percent' => $product->taxProfile?->tax_percent ?? $product->taxCategory?->tax_rate ?? 0]);
 @endphp
 <style>
-.invoice-form-shell{--invoice-primary:{{ $primary }};--invoice-secondary:{{ $secondary }};border:1px solid #e5eef4;border-radius:24px;overflow:hidden;box-shadow:0 16px 36px rgba(15,23,42,.07);background:#fff}.invoice-form-shell.theme-arabic-classic{border:5px double var(--invoice-primary);border-radius:10px}.invoice-form-shell.theme-arabic-modern .invoice-form-banner{border-radius:0 0 28px 28px}.invoice-form-shell.theme-bilingual-ar-en{direction:rtl;border-inline-start:10px solid var(--invoice-secondary)}.invoice-form-shell.theme-retail-receipt{max-width:760px;margin:auto;border-style:dashed;border-radius:14px}.invoice-form-shell.theme-corporate-tax{border-top:10px solid var(--invoice-primary);border-radius:8px}.invoice-form-banner{background:linear-gradient(135deg,var(--invoice-primary),var(--invoice-secondary));color:#fff;padding:22px 24px}.invoice-form-body{padding:24px}.form-section{border:1px solid #e8f0f5;border-radius:18px;padding:18px;background:#fff;margin-bottom:18px}.form-section-title{display:flex;align-items:center;gap:8px;font-weight:800;margin-bottom:15px;color:#172033}.invoice-form-shell .form-control,.invoice-form-shell .form-select{border-radius:14px;border-color:#dbe7ee}.invoice-form-shell .form-control:focus,.invoice-form-shell .form-select:focus{border-color:var(--invoice-primary);box-shadow:0 0 0 .2rem rgba(0,169,196,.12)}.items-table th{background:#f7fbfc;color:#475569}.form-actions{background:#f8fbfc;border-top:1px solid #e5eef4;padding:18px 24px}.form-actions .btn{border-radius:999px;min-width:150px;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:6px}.template-chip{display:inline-flex;align-items:center;gap:6px;background:#f1f9fb;color:#0f6170;border:1px solid #d7eef3;border-radius:999px;padding:7px 12px}
+.invoice-form-shell{--invoice-primary:{{ $primary }};--invoice-secondary:{{ $secondary }};border:1px solid #e5eef4;border-radius:24px;overflow:hidden;box-shadow:0 16px 36px rgba(15,23,42,.07);background:#fff}.invoice-form-shell.theme-arabic-classic{border:5px double var(--invoice-primary);border-radius:10px}.invoice-form-shell.theme-arabic-modern .invoice-form-banner{border-radius:0 0 28px 28px}.invoice-form-shell.theme-bilingual-ar-en{direction:rtl;border-inline-start:10px solid var(--invoice-secondary)}.invoice-form-shell.theme-retail-receipt{max-width:760px;margin:auto;border-style:dashed;border-radius:14px}.invoice-form-shell.theme-corporate-tax{border-top:10px solid var(--invoice-primary);border-radius:8px}.invoice-form-banner{background:linear-gradient(135deg,var(--invoice-primary),var(--invoice-secondary));color:#fff;padding:22px 24px}.invoice-form-body{padding:24px}.form-section{border:1px solid #e8f0f5;border-radius:18px;padding:18px;background:#fff;margin-bottom:18px}.form-section-title{display:flex;align-items:center;gap:8px;font-weight:800;margin-bottom:15px;color:#172033}.invoice-form-shell .form-control,.invoice-form-shell .form-select{border-radius:14px;border-color:#dbe7ee}.invoice-form-shell .form-control:focus,.invoice-form-shell .form-select:focus{border-color:var(--invoice-primary);box-shadow:0 0 0 .2rem rgba(0,169,196,.12)}.items-table th{background:#f7fbfc;color:#475569}.items-table td{min-width:130px}.items-table td:first-child{min-width:260px}.form-actions{background:#f8fbfc;border-top:1px solid #e5eef4;padding:18px 24px}.form-actions .btn{border-radius:999px;min-width:150px;height:42px;display:inline-flex;align-items:center;justify-content:center;gap:6px}.template-chip{display:inline-flex;align-items:center;gap:6px;background:#f1f9fb;color:#0f6170;border:1px solid #d7eef3;border-radius:999px;padding:7px 12px}.combo-box{position:relative}.combo-menu{position:absolute;z-index:30;top:100%;right:0;left:0;max-height:230px;overflow:auto;background:#fff;border:1px solid #dbe7ee;border-radius:14px;box-shadow:0 12px 28px rgba(15,23,42,.12);padding:6px;margin-top:4px;display:none}.combo-box.is-open .combo-menu{display:block}.combo-option{width:100%;border:0;background:#fff;text-align:right;padding:9px 11px;border-radius:10px}.combo-option:hover{background:#f1f9fb}.totals-card{max-width:440px;margin-right:auto;background:#f8fbfc;border:1px solid #e5eef4;border-radius:18px;padding:14px}.totals-card .row-line{display:flex;justify-content:space-between;gap:12px;padding:7px 0}.totals-card .grand{font-weight:900;color:#0f6170;font-size:1.1rem;border-top:1px solid #dbe7ee;margin-top:6px;padding-top:12px}.remove-item{min-width:auto!important}
 </style>
 
-<div class="invoice-form-shell theme-{{ $templateSlug }}" dir="rtl">
+<div class="invoice-form-shell theme-{{ $templateSlug }}" dir="rtl" data-invoice-form data-products='@json($productOptions)' data-contacts='@json($contactOptions)'>
     <div class="invoice-form-banner d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
-        <div>
-            <h2 class="h4 mb-1">🧾 بيانات الفاتورة</h2>
-            <p class="mb-0 opacity-75">املأ البيانات الأساسية والبنود، وسيتم تطبيق قالب الطباعة الافتراضي عند المعاينة أو التنزيل.</p>
-        </div>
+        <div><h2 class="h4 mb-1">🧾 بيانات الفاتورة</h2><p class="mb-0 opacity-75">املأ البيانات الأساسية والبنود، وسيتم تطبيق قالب الطباعة الافتراضي عند المعاينة أو التنزيل.</p></div>
         <span class="template-chip bg-white text-dark">🎨 {{ $branding['template']?->name ?? 'Arabic Classic' }}</span>
     </div>
 
@@ -22,7 +21,7 @@
         <section class="form-section">
             <div class="form-section-title">👤 بيانات العميل والفاتورة</div>
             <div class="row g-3">
-                <div class="col-md-4"><label class="form-label">جهة الاتصال</label><select name="contact_id" class="form-select" required><option value="">اختر العميل</option>@foreach($contacts as $contact)<option value="{{ $contact->id }}" @selected((string) old('contact_id', $invoice->contact_id)===(string) $contact->id)>{{ $contact->name_ar }}</option>@endforeach</select></div>
+                <div class="col-md-4"><label class="form-label">العميل</label><div class="combo-box" data-combo="contact"><input class="form-control combo-input" autocomplete="off" placeholder="ابحث أو اكتب اسم عميل جديد" value="{{ old('contact_name', $invoice->contact?->name_ar) }}" required><input type="hidden" name="contact_id" value="{{ old('contact_id', $invoice->contact_id) }}"><input type="hidden" name="contact_name" value="{{ old('contact_name') }}"><div class="combo-menu"></div></div></div>
                 <div class="col-md-4"><label class="form-label">نوع الفاتورة</label><select name="invoice_type" class="form-select">@foreach(['tax_invoice'=>'فاتورة ضريبية','simplified_invoice'=>'فاتورة مبسطة','credit_note'=>'إشعار دائن','debit_note'=>'إشعار مدين'] as $value => $label)<option value="{{ $value }}" @selected(old('invoice_type', $invoice->invoice_type)===$value)>{{ $label }}</option>@endforeach</select></div>
                 <div class="col-md-2"><label class="form-label">تاريخ الإصدار</label><input name="issue_date" type="date" class="form-control" value="{{ old('issue_date', optional($invoice->issue_date)->format('Y-m-d') ?: now()->format('Y-m-d')) }}" required></div>
                 <div class="col-md-2"><label class="form-label">تاريخ الاستحقاق</label><input name="due_date" type="date" class="form-control" value="{{ old('due_date', optional($invoice->due_date)->format('Y-m-d')) }}"></div>
@@ -33,30 +32,32 @@
 
         <section class="form-section">
             <div class="form-section-title">📦 بنود الفاتورة</div>
-            <div class="table-responsive">
-                <table class="table items-table align-middle">
-                    <thead><tr><th>المنتج</th><th>الوصف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الضريبة %</th></tr></thead>
-                    <tbody>
-                    @foreach($rows as $i => $row)
-                        <tr>
-                            <td><select name="items[{{ $i }}][product_id]" class="form-select"><option value="">بدون</option>@foreach($products as $product)<option value="{{ $product->id }}" @selected((string)($row['product_id'] ?? '')===(string)$product->id)>{{ $product->name_ar }}</option>@endforeach</select></td>
-                            <td><input name="items[{{ $i }}][description]" class="form-control" value="{{ $row['description'] ?? '' }}" required></td>
-                            <td><input name="items[{{ $i }}][quantity]" type="number" step="0.000001" class="form-control" value="{{ $row['quantity'] ?? 1 }}" required></td>
-                            <td><input name="items[{{ $i }}][unit_price]" type="number" step="0.000001" class="form-control" value="{{ $row['unit_price'] ?? 0 }}" required></td>
-                            <td><input name="items[{{ $i }}][discount_amount]" type="number" step="0.000001" class="form-control" value="{{ $row['discount_amount'] ?? $row['discount'] ?? 0 }}"></td>
-                            <td><input name="items[{{ $i }}][tax_percent]" type="number" step="0.000001" class="form-control" value="{{ $row['tax_percent'] ?? 0 }}"></td>
-                        </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
-            <p class="text-muted mb-0">💡 يمكنك الحفظ كمسودة للمتابعة لاحقاً، أو تجهيز الفاتورة عندما تصبح جاهزة للإرسال.</p>
+            <div class="table-responsive"><table class="table items-table align-middle"><thead><tr><th>المنتج</th><th>الوصف</th><th>الكمية</th><th>السعر</th><th>الخصم</th><th>الضريبة %</th><th></th></tr></thead><tbody data-items-body>
+            @foreach($rows as $i => $row)
+                <tr data-item-row><td><div class="combo-box" data-combo="product"><input class="form-control combo-input" autocomplete="off" placeholder="ابحث أو اكتب منتج جديد" value="{{ old("items.$i.product_name", optional($products->firstWhere('id', $row['product_id'] ?? null))->name_ar) }}"><input type="hidden" name="items[{{ $i }}][product_id]" value="{{ $row['product_id'] ?? '' }}"><input type="hidden" name="items[{{ $i }}][product_name]" value="{{ old("items.$i.product_name") }}"><div class="combo-menu"></div></div></td><td><input name="items[{{ $i }}][description]" class="form-control line-field" value="{{ $row['description'] ?? '' }}" required></td><td><input name="items[{{ $i }}][quantity]" type="number" step="0.000001" class="form-control line-field" value="{{ $row['quantity'] ?? 1 }}" required></td><td><input name="items[{{ $i }}][unit_price]" type="number" step="0.000001" class="form-control line-field" value="{{ $row['unit_price'] ?? 0 }}" required></td><td><input name="items[{{ $i }}][discount_amount]" type="number" step="0.000001" class="form-control line-field" value="{{ $row['discount_amount'] ?? $row['discount'] ?? 0 }}"></td><td><input name="items[{{ $i }}][tax_percent]" type="number" step="0.000001" class="form-control line-field" value="{{ $row['tax_percent'] ?? 0 }}"></td><td><button type="button" class="btn btn-sm btn-outline-danger remove-item">حذف</button></td></tr>
+            @endforeach
+            </tbody></table></div>
+            <button type="button" class="btn btn-outline-primary" data-add-item>➕ إضافة منتج</button>
+            <div class="totals-card mt-3"><div class="row-line"><span>المجموع قبل الخصم</span><strong data-total="subtotal">0.000</strong></div><div class="row-line"><span>إجمالي الخصم</span><strong data-total="discount">0.000</strong></div><div class="row-line"><span>إجمالي الضريبة</span><strong data-total="tax">0.000</strong></div><div class="row-line grand"><span>الإجمالي النهائي</span><strong data-total="grand">0.000</strong></div></div>
+            <p class="text-muted mb-0 mt-3">💡 يمكنك البحث عن منتج أو عميل موجود، أو كتابة اسم جديد ثم اختيار زر الإضافة من القائمة.</p>
         </section>
     </div>
 
-    <div class="form-actions d-flex flex-wrap gap-2">
-        <button class="btn btn-outline-primary" name="save_action" value="draft">💾 حفظ كمسودة</button>
-        <button class="btn btn-primary" name="save_action" value="ready">🚀 حفظ وتجهيز</button>
-        <a class="btn btn-outline-secondary" href="{{ route('company.invoices.index', $company) }}">↩️ إلغاء</a>
-    </div>
+    <div class="form-actions d-flex flex-wrap gap-2"><button class="btn btn-outline-primary" name="save_action" value="draft">💾 حفظ كمسودة</button><button class="btn btn-primary" name="save_action" value="ready">🚀 حفظ وتجهيز</button><a class="btn btn-outline-secondary" href="{{ route('company.invoices.index', $company) }}">↩️ إلغاء</a></div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const shell = document.querySelector('[data-invoice-form]'); if (!shell) return;
+    const products = JSON.parse(shell.dataset.products || '[]'); const contacts = JSON.parse(shell.dataset.contacts || '[]'); const body = shell.querySelector('[data-items-body]');
+    const fmt = n => (Math.round((Number(n) + Number.EPSILON) * 1000) / 1000).toFixed(3);
+    function initCombo(box){ const type=box.dataset.combo, input=box.querySelector('.combo-input'), id=box.querySelector('input[name$="[product_id]"],input[name="contact_id"]'), name=box.querySelector('input[name$="[product_name]"],input[name="contact_name"]'), menu=box.querySelector('.combo-menu'); const source=type==='product'?products:contacts;
+        function render(){ const q=input.value.trim().toLowerCase(); const matches=source.filter(o => o.name.toLowerCase().includes(q)).slice(0,8); menu.innerHTML=''; matches.forEach(o=>{ const b=document.createElement('button'); b.type='button'; b.className='combo-option'; b.textContent=o.name; b.addEventListener('click',()=>{ input.value=o.name; id.value=o.id; name.value=''; box.classList.remove('is-open'); if(type==='product') fillProduct(box.closest('[data-item-row]'), o); }); menu.appendChild(b); }); if(q && !source.some(o=>o.name.toLowerCase()===q)){ const b=document.createElement('button'); b.type='button'; b.className='combo-option text-primary fw-bold'; b.textContent='➕ إضافة "'+input.value.trim()+'" كـ '+(type==='product'?'منتج جديد':'عميل جديد'); b.addEventListener('click',()=>{ id.value=''; name.value=input.value.trim(); box.classList.remove('is-open'); }); menu.appendChild(b); } box.classList.add('is-open'); }
+        input.addEventListener('input',()=>{ id.value=''; name.value=input.value.trim(); render(); }); input.addEventListener('focus', render); document.addEventListener('click', e => { if(!box.contains(e.target)) box.classList.remove('is-open'); }); }
+    function fillProduct(row,p){ row.querySelector('[name$="[description]"]').value=p.description||p.name; row.querySelector('[name$="[unit_price]"]').value=p.unit_price||0; row.querySelector('[name$="[discount_amount]"]').value=p.discount_amount||0; row.querySelector('[name$="[tax_percent]"]').value=p.tax_percent||0; calculate(); }
+    function reindex(){ [...body.querySelectorAll('[data-item-row]')].forEach((row,i)=> row.querySelectorAll('[name]').forEach(el=> el.name=el.name.replace(/items\[\d+\]/, 'items['+i+']'))); }
+    function calculate(){ let subtotal=0, discount=0, tax=0; body.querySelectorAll('[data-item-row]').forEach(row=>{ const q=parseFloat(row.querySelector('[name$="[quantity]"]').value)||0, price=parseFloat(row.querySelector('[name$="[unit_price]"]').value)||0, disc=parseFloat(row.querySelector('[name$="[discount_amount]"]').value)||0, pct=parseFloat(row.querySelector('[name$="[tax_percent]"]').value)||0; const sub=q*price, taxable=Math.max(sub-disc,0); subtotal+=sub; discount+=disc; tax+=taxable*pct/100; }); shell.querySelector('[data-total="subtotal"]').textContent=fmt(subtotal); shell.querySelector('[data-total="discount"]').textContent=fmt(discount); shell.querySelector('[data-total="tax"]').textContent=fmt(tax); shell.querySelector('[data-total="grand"]').textContent=fmt(subtotal-discount+tax); }
+    shell.querySelectorAll('.combo-box').forEach(initCombo); shell.addEventListener('input', e=>{ if(e.target.classList.contains('line-field')) calculate(); }); shell.addEventListener('click', e=>{ if(e.target.matches('[data-add-item]')){ const clone=body.querySelector('[data-item-row]').cloneNode(true); clone.querySelectorAll('input').forEach(input=>{ if(input.type==='hidden'||input.classList.contains('combo-input')||input.name.includes('[description]')) input.value=''; else if(input.name.includes('[quantity]')) input.value='1'; else input.value='0'; }); body.appendChild(clone); reindex(); clone.querySelectorAll('.combo-box').forEach(initCombo); calculate(); } if(e.target.classList.contains('remove-item') && body.children.length>1){ e.target.closest('[data-item-row]').remove(); reindex(); calculate(); }});
+    calculate();
+});
+</script>

@@ -242,6 +242,7 @@ class InvoiceEngineController extends Controller
     /** @param array<string, mixed> $data */
     private function fillAndSave(Invoice $invoice, Company $company, array $data): void
     {
+        $data = $this->createInlineRecords($company, $data);
         $totals = $this->calculator->calculate($data['items']);
         $invoice->forceFill([
             'company_id' => $company->id,
@@ -316,17 +317,60 @@ class InvoiceEngineController extends Controller
 
     private function formData(Company $company, Invoice $invoice): array
     {
-        return ['company' => $company, 'invoice' => $invoice, 'contacts' => Contact::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'products' => Product::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'branding' => $this->branding->settings($company), 'templates' => \App\Models\InvoiceTemplate::query()->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $company->id))->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get()];
+        return ['company' => $company, 'invoice' => $invoice, 'contacts' => Contact::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'products' => Product::with(['taxCategory', 'taxProfile'])->where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'branding' => $this->branding->settings($company), 'templates' => \App\Models\InvoiceTemplate::query()->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $company->id))->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get()];
+    }
+
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function createInlineRecords(Company $company, array $data): array
+    {
+        if (empty($data['contact_id']) && filled($data['contact_name'] ?? null)) {
+            $contact = Contact::create([
+                'company_id' => $company->id,
+                'type' => Contact::TYPE_CUSTOMER,
+                'name_ar' => trim((string) $data['contact_name']),
+                'country' => 'JO',
+                'is_active' => true,
+            ]);
+            $data['contact_id'] = $contact->id;
+        }
+
+        foreach ($data['items'] as $index => $item) {
+            if (! empty($item['product_id']) || blank($item['product_name'] ?? null)) {
+                continue;
+            }
+
+            $product = Product::create([
+                'company_id' => $company->id,
+                'unit_id' => DB::table('units')->value('id'),
+                'tax_category_id' => DB::table('tax_categories')->value('id'),
+                'type' => Product::TYPE_PRODUCT,
+                'name_ar' => trim((string) $item['product_name']),
+                'description' => $item['description'] ?? null,
+                'item_code' => 'INLINE-'.$company->id.'-'.Str::upper(Str::random(8)),
+                'default_price' => $item['unit_price'] ?? 0,
+                'price' => $item['unit_price'] ?? 0,
+                'is_active' => true,
+            ]);
+
+            $data['items'][$index]['product_id'] = $product->id;
+        }
+
+        return $data;
     }
 
     private function validated(Request $request, Company $company, ?Invoice $invoice = null): array
     {
         return $request->validate([
-            'contact_id' => ['required', Rule::exists('contacts', 'id')->where('company_id', $company->id)],
+            'contact_id' => ['nullable', 'required_without:contact_name', Rule::exists('contacts', 'id')->where('company_id', $company->id)],
+            'contact_name' => ['nullable', 'required_without:contact_id', 'string', 'max:255'],
             'invoice_type' => ['required', Rule::in([Invoice::TYPE_TAX_INVOICE, Invoice::TYPE_SIMPLIFIED_INVOICE, Invoice::TYPE_CREDIT_NOTE, Invoice::TYPE_DEBIT_NOTE])],
             'issue_date' => ['required', 'date'], 'due_date' => ['nullable', 'date', 'after_or_equal:issue_date'], 'currency' => ['required', 'size:3'], 'notes' => ['nullable', 'string'],
             'save_action' => ['nullable', Rule::in(['draft', 'ready'])],
-            'items' => ['required', 'array', 'min:1'], 'items.*.product_id' => ['nullable', Rule::exists('products', 'id')->where('company_id', $company->id)], 'items.*.description' => ['required', 'string'], 'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price' => ['required', 'numeric', 'min:0'], 'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'], 'items.*.tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'items' => ['required', 'array', 'min:1'], 'items.*.product_id' => ['nullable', Rule::exists('products', 'id')->where('company_id', $company->id)], 'items.*.product_name' => ['nullable', 'string', 'max:255'], 'items.*.description' => ['required', 'string'], 'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price' => ['required', 'numeric', 'min:0'], 'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'], 'items.*.tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
     }
 }
