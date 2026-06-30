@@ -31,6 +31,11 @@ class Product extends Model
         return $this->belongsTo(Unit::class);
     }
 
+    public function taxCategory(): BelongsTo
+    {
+        return $this->belongsTo(TaxCategory::class);
+    }
+
     public function taxProfile(): BelongsTo
     {
         return $this->belongsTo(TaxProfile::class);
