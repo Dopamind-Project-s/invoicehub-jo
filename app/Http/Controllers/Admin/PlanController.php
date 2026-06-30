@@ -27,7 +27,7 @@ class PlanController extends Controller
                 ->latest()
                 ->paginate(12)
                 ->withQueryString(),
-            'plan' => new Plan(['billing_cycle' => 'monthly', 'is_active' => true, 'monthly_price' => 0, 'yearly_price' => 0, 'sort_order' => 0]),
+            'plan' => new Plan(['billing_cycle' => 'monthly', 'is_active' => true, 'monthly_price' => 0, 'yearly_price' => 0, 'sort_order' => 0, 'plan_rank' => 0]),
             'features' => FeatureKey::where('is_active', true)->orderBy('category')->orderBy('code')->get(),
             'enabledFeatureIds' => [],
             'comparisonPlans' => Plan::query()->with('featureKeys')->where('is_active', true)->orderBy('sort_order')->get(),
@@ -90,6 +90,7 @@ class PlanController extends Controller
             'monthly_price' => ['required', 'numeric', 'min:0'],
             'yearly_price' => ['required', 'numeric', 'min:0'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
+            'plan_rank' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
             'is_recommended' => ['nullable', 'boolean'],
             'feature_keys' => ['array'],
@@ -105,6 +106,7 @@ class PlanController extends Controller
         $data['price'] = $data['monthly_price'];
         $data['billing_cycle'] = 'monthly';
         $data['sort_order'] = (int) ($data['sort_order'] ?? 0);
+        $data['plan_rank'] = (int) ($data['plan_rank'] ?? $data['sort_order']);
         $data['is_active'] = $request->boolean('is_active');
         $data['is_recommended'] = $request->boolean('is_recommended');
 

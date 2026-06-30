@@ -1,4 +1,5 @@
 <section id="pricing" class="sp" style="background:var(--bg2)" dir="rtl">
+    <style>.pxx{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#ef4444;color:#fff;font-weight:900;margin-inline-end:6px}.pchk{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#34d399;color:#071d22;font-weight:900;margin-inline-end:6px}</style>
     <div class="container">
         <div class="text-center mb-5">
             <span class="slbl">الباقات</span>
@@ -35,8 +36,10 @@
                         <div class="pamt mb-1"><span class="pv" data-m="{{ $monthlyPrice }}" data-y="{{ $yearlyPrice }}">{{ $monthlyPrice }}</span><sup>د.أ</sup></div>
                         <div class="pper" style="font-size:.82rem;color:var(--tx3)" data-monthly-label="شهرياً" data-yearly-label="سنوياً">شهرياً</div>
                         <p style="font-size:.875rem;color:var(--tx2);margin:14px 0 20px;padding-bottom:20px;border-bottom:1px solid var(--bd)">{{ data_get($plan, 'description_ar') ?: data_get($plan, 'description') }}</p>
-                        @foreach(data_get($plan, 'features', []) as $feature)
-                            <div class="pfl"><span class="pchk">✓</span>{{ data_get($feature, 'name_ar') ?: data_get($feature, 'name') }}</div>
+                        @php($planFeatureIds = data_get($plan, 'feature_ids', collect(data_get($plan, 'features', []))->pluck('id')->all()))
+                        @foreach((count($allFeatures ?? []) ? $allFeatures : data_get($plan, 'features', [])) as $feature)
+                            @php($hasFeature = in_array(data_get($feature, 'id'), $planFeatureIds, true))
+                            <div class="pfl"><span class="{{ $hasFeature ? 'pchk' : 'pxx' }}">{{ $hasFeature ? '✓' : '×' }}</span>{{ data_get($feature, 'name_ar') ?: data_get($feature, 'name') }}</div>
                         @endforeach
                         <a class="bgrd btn w-100 py-2 mt-4" href="{{ route('login') }}">اختر الباقة</a>
                     </div>
