@@ -328,13 +328,16 @@ class InvoiceEngineController extends Controller
     private function createInlineRecords(Company $company, array $data): array
     {
         if (empty($data['contact_id']) && filled($data['contact_name'] ?? null)) {
-            $contact = Contact::create([
-                'company_id' => $company->id,
-                'type' => Contact::TYPE_CUSTOMER,
-                'name_ar' => trim((string) $data['contact_name']),
-                'country' => 'JO',
-                'is_active' => true,
-            ]);
+            $contactName = trim((string) $data['contact_name']);
+            $contact = Contact::firstOrCreate(
+                ['company_id' => $company->id, 'name_ar' => $contactName],
+                ['type' => Contact::TYPE_CUSTOMER, 'country' => 'JO', 'is_active' => true]
+            );
+
+            if (! $contact->is_active) {
+                $contact->forceFill(['is_active' => true])->save();
+            }
+
             $data['contact_id'] = $contact->id;
         }
 
@@ -343,18 +346,24 @@ class InvoiceEngineController extends Controller
                 continue;
             }
 
-            $product = Product::create([
-                'company_id' => $company->id,
-                'unit_id' => DB::table('units')->value('id'),
-                'tax_category_id' => DB::table('tax_categories')->value('id'),
-                'type' => Product::TYPE_PRODUCT,
-                'name_ar' => trim((string) $item['product_name']),
-                'description' => $item['description'] ?? null,
-                'item_code' => 'INLINE-'.$company->id.'-'.Str::upper(Str::random(8)),
-                'default_price' => $item['unit_price'] ?? 0,
-                'price' => $item['unit_price'] ?? 0,
-                'is_active' => true,
-            ]);
+            $productName = trim((string) $item['product_name']);
+            $product = Product::firstOrCreate(
+                ['company_id' => $company->id, 'name_ar' => $productName],
+                [
+                    'unit_id' => DB::table('units')->where('company_id', $company->id)->orWhereNull('company_id')->value('id') ?: DB::table('units')->value('id'),
+                    'tax_category_id' => DB::table('tax_categories')->value('id'),
+                    'type' => Product::TYPE_PRODUCT,
+                    'description' => $item['description'] ?? null,
+                    'item_code' => 'INLINE-'.$company->id.'-'.Str::upper(Str::random(8)),
+                    'default_price' => $item['unit_price'] ?? 0,
+                    'price' => $item['unit_price'] ?? 0,
+                    'is_active' => true,
+                ]
+            );
+
+            if (! $product->is_active) {
+                $product->forceFill(['is_active' => true])->save();
+            }
 
             $data['items'][$index]['product_id'] = $product->id;
         }

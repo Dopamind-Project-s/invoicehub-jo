@@ -26,6 +26,7 @@
             <li class="side-item {{ request()->routeIs('company.dashboard') || request()->routeIs('workspace.companies.show') ? 'selected' : '' }}"><a href="{{ route('company.dashboard', $routeCompany) }}"><span>🏠</span><span>لوحة التحكم</span></a></li>
             <li class="side-item {{ request()->routeIs('company.invoices.*') ? 'selected' : '' }}"><a href="{{ route('company.invoices.index', $routeCompany) }}"><span>🧾</span><span>الفواتير</span></a></li>
             <li class="side-item {{ request()->routeIs('company.products.*') ? 'selected' : '' }}"><a href="{{ route('company.products.index', $routeCompany) }}"><span>📦</span><span>المنتجات</span></a></li>
+            <li class="side-item {{ request()->routeIs('company.product-categories.*') ? 'selected' : '' }}"><a href="{{ route('company.product-categories.index', $routeCompany) }}"><span>🗂️</span><span>الأصناف</span></a></li>
             <li class="side-item {{ request()->routeIs('company.contacts.*') ? 'selected' : '' }}"><a href="{{ route('company.contacts.index', $routeCompany) }}"><span>🤝</span><span>العملاء والموردون</span></a></li>
             <li class="side-item {{ request()->routeIs('company.invoice-templates.*') ? 'selected' : '' }}"><a href="{{ route('company.invoice-templates.index', $routeCompany) }}"><span>📄</span><span>القوالب</span></a></li>
             <li class="side-item {{ request()->routeIs('company.subscriptions.*') ? 'selected' : '' }}"><a href="{{ route('company.subscriptions.index', $routeCompany) }}"><span>🔁</span><span>الاشتراك</span></a></li>

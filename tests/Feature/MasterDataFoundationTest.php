@@ -163,7 +163,7 @@ class MasterDataFoundationTest extends TestCase
         $this->actingAs($user);
 
         $this->get(route('company.settings.edit', $company))->assertOk()->assertSee('إعدادات المنشأة')->assertSee('حالة بيانات الربط')->assertSee('محفوظة ومكتملة')->assertDontSee('client-secret-value')->assertDontSee('super-secret-key');
-        $this->get(route('company.dashboard', $company))->assertOk()->assertSee('لوحة تحكم المنشأة')->assertSee('ملف المنشأة')->assertSee('إنشاء فاتورة');
+        $this->get(route('company.dashboard', $company))->assertOk()->assertSee('لوحة تحكم المنشأة')->assertSee('ملف المنشأة')->assertSee('إنشاء فاتورة')->assertSee('الأصناف')->assertSee(route('company.product-categories.index', $company));
         $this->get(route('dashboard'))->assertOk()->assertSee('لوحة تحكم المنشأة')->assertDontSee('super-secret-key');
     }
 
