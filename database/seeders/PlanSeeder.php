@@ -93,6 +93,7 @@ class PlanSeeder extends Seeder
                 'yearly_price' => $yearly,
                 'billing_cycle' => 'monthly',
                 'sort_order' => $sortOrder,
+                'plan_rank' => $sortOrder,
                 'is_active' => true,
                 'is_recommended' => $recommended,
                 'limits' => $this->limitsFor($slug),

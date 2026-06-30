@@ -11,6 +11,8 @@ use App\Services\Audit\AuditLogger;
 use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class CompanySettingsController extends Controller
 {
@@ -19,15 +21,25 @@ class CompanySettingsController extends Controller
     public function edit(Company $company)
     {
         $settings = $company->settings->keyBy('key');
+        $currencies = DB::table('currencies')
+            ->select('code', 'name')
+            ->where('is_active', true)
+            ->orderByRaw("CASE WHEN code = 'JOD' THEN 0 ELSE 1 END")
+            ->orderBy('code')
+            ->get();
 
-        return view('company.settings.edit', ['company' => $company, 'settings' => $settings, 'categories' => $this->definitions()]);
+        return view('company.settings.edit', ['company' => $company, 'settings' => $settings, 'categories' => $this->definitions(), 'currencies' => $currencies]);
     }
 
     public function update(Request $request, Company $company): RedirectResponse
     {
+        $currencyCodes = DB::table('currencies')->where('is_active', true)->pluck('code')->all();
+
         $data = $request->validate([
             'settings' => ['array'],
             'settings.*' => ['nullable', 'string', 'max:2000'],
+            'settings.default_language' => ['nullable', Rule::in(['ar', 'en'])],
+            'settings.default_currency' => ['nullable', 'string', Rule::in($currencyCodes ?: ['JOD', 'USD', 'EUR'])],
             'company_logo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'invoice_logo_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'invoice_stamp_image_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
@@ -46,6 +58,11 @@ class CompanySettingsController extends Controller
                 CompanySetting::updateOrCreate(['company_id' => $company->id, 'key' => $key], ['category' => $category, 'value' => $value]);
             }
         }
+        $company->forceFill([
+            'default_language' => $data['settings']['default_language'] ?? $company->default_language,
+            'default_currency' => $data['settings']['default_currency'] ?? $company->default_currency,
+        ])->save();
+
         $after = $company->settings()->pluck('value', 'key')->all();
         $this->audit->record('company.settings.updated', $company, $before, $after, $request);
         CompanyDashboardStatsService::forget($company);

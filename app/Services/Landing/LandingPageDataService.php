@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Landing;
 
+use App\Models\FeatureKey;
 use App\Models\LandingFaq;
 use App\Models\Plan;
 use App\Models\SiteSetting;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Schema;
 
 class LandingPageDataService
 {
-    public const CACHE_KEY_AR = 'landing:home:v2:ar';
+    public const CACHE_KEY_AR = 'landing:home:v3:ar';
     public const LEGACY_CACHE_KEY_AR = 'landing:home:ar';
 
     /** @return array{settings: array<string, string|null>, faqs: array<int, array<string, mixed>>, plans: array<int, array<string, mixed>>} */
@@ -22,7 +23,7 @@ class LandingPageDataService
         Cache::forget(self::LEGACY_CACHE_KEY_AR);
 
         if (! Schema::hasTable('site_settings') || ! Schema::hasTable('landing_faqs') || ! Schema::hasTable('plans')) {
-            return ['settings' => [], 'faqs' => [], 'plans' => []];
+            return ['settings' => [], 'faqs' => [], 'plans' => [], 'allFeatures' => []];
         }
 
         /** @var array{settings: array<string, string|null>, faqs: array<int, array<string, mixed>>, plans: array<int, array<string, mixed>>} $data */
@@ -30,6 +31,7 @@ class LandingPageDataService
             'settings' => $this->settings(),
             'faqs' => $this->faqs(),
             'plans' => $this->plans(),
+            'allFeatures' => $this->features(),
         ]);
 
         $data['settings'] = $this->settingsForDataGet($data['settings'] ?? []);
@@ -78,6 +80,7 @@ class LandingPageDataService
             ->with(['featureKeys' => fn ($query) => $query->where('is_active', true)->orderBy('category')->orderBy('code')])
             ->where('is_active', true)
             ->orderBy('sort_order')
+            ->orderBy('plan_rank')
             ->orderBy('monthly_price')
             ->get()
             ->map(fn (Plan $plan): array => [
@@ -89,11 +92,27 @@ class LandingPageDataService
                 'monthly_price' => (float) $plan->monthly_price,
                 'yearly_price' => (float) $plan->yearly_price,
                 'is_recommended' => (bool) $plan->is_recommended,
+                'feature_ids' => $plan->featureKeys->pluck('id')->map(fn ($id) => (int) $id)->all(),
                 'features' => $plan->featureKeys->map(fn ($feature): array => [
                     'id' => (int) $feature->id,
                     'name' => $feature->name,
                     'name_ar' => $feature->name_ar,
                 ])->all(),
+            ])
+            ->all();
+    }
+
+    private function features(): array
+    {
+        return FeatureKey::query()
+            ->where('is_active', true)
+            ->orderBy('category')
+            ->orderBy('code')
+            ->get(['id', 'name', 'name_ar'])
+            ->map(fn (FeatureKey $feature): array => [
+                'id' => (int) $feature->id,
+                'name' => $feature->name,
+                'name_ar' => $feature->name_ar,
             ])
             ->all();
     }

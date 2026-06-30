@@ -102,6 +102,7 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
 
     Route::get('activity', [ActivityController::class, 'index'])->middleware('permission:reports.view')->name('activity.index');
     Route::get('subscriptions', [CompanySubscriptionController::class, 'index'])->name('subscriptions.index');
+    Route::get('subscriptions/plans', [CompanySubscriptionController::class, 'plans'])->name('subscriptions.plans');
     Route::post('subscriptions/requests', [CompanySubscriptionController::class, 'requestChange'])->name('subscriptions.requests.store');
 
 

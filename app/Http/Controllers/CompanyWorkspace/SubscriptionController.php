@@ -6,6 +6,7 @@ namespace App\Http\Controllers\CompanyWorkspace;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\FeatureKey;
 use App\Models\Plan;
 use App\Models\SubscriptionChangeRequest;
 use App\Services\Subscriptions\SubscriptionAccessService;
@@ -21,10 +22,12 @@ class SubscriptionController extends Controller
     {
         $company->load(['subscriptions.plan.featureKeys']);
         $access = $subscriptions->resolve($company);
+        $plans = $this->activePlans();
+
         return view('company.subscriptions.index', [
             'company' => $company,
             'subscriptionAccess' => $access,
-            'plans' => Plan::where('is_active', true)->with('featureKeys')->orderBy('sort_order')->orderBy('name')->get(),
+            'plans' => $plans,
             'history' => $company->subscriptions()->with('plan')->latest('current_period_start_at')->latest('id')->get(),
             'requests' => SubscriptionChangeRequest::with('requestedPlan')->where('company_id', $company->id)->latest()->get(),
             'events' => \App\Models\SubscriptionEvent::where('company_id', $company->id)->latest('occurred_at')->limit(20)->get(),
@@ -32,7 +35,36 @@ class SubscriptionController extends Controller
             'health' => $presenter->health($access['subscription'], $access['effective_status']),
             'renewalSummary' => $presenter->renewalSummary($access['subscription']),
             'paymentMethods' => $presenter->paymentMethods(),
+            'allFeatures' => $this->activeFeatures(),
         ]);
+    }
+
+    public function plans(Company $company, SubscriptionAccessService $subscriptions)
+    {
+        $company->load(['subscriptions.plan.featureKeys']);
+        $access = $subscriptions->resolve($company);
+
+        return view('company.subscriptions.plans', [
+            'company' => $company,
+            'subscriptionAccess' => $access,
+            'plans' => $this->activePlans(),
+            'allFeatures' => $this->activeFeatures(),
+        ]);
+    }
+
+    private function activePlans()
+    {
+        return Plan::where('is_active', true)
+            ->with('featureKeys')
+            ->orderBy('sort_order')
+            ->orderBy('plan_rank')
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function activeFeatures()
+    {
+        return FeatureKey::where('is_active', true)->orderBy('category')->orderBy('code')->get();
     }
 
     public function requestChange(Request $request, Company $company, SubscriptionAccessService $subscriptions, SubscriptionEventLogger $events): RedirectResponse

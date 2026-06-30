@@ -6,7 +6,7 @@
     @include('landing.sections.partners')
     @include('landing.sections.features')
     @include('landing.sections.integrations')
-    @include('landing.sections.pricing', ['plans' => $plans])
+    @include('landing.sections.pricing', ['plans' => $plans, 'allFeatures' => $allFeatures ?? []])
     @include('landing.sections.testimonials')
     @include('landing.sections.faq', ['faqs' => $faqs])
     @include('landing.sections.cta', ['settings' => $settings])
