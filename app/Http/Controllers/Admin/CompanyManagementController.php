@@ -113,7 +113,8 @@ class CompanyManagementController extends Controller
     {
         $company->load(['subscriptions.plan.featureKeys']);
         $subscriptionAccess = $this->subscriptions->resolve($company);
-        $plans = Plan::where('is_active', true)->with('featureKeys')->orderBy('sort_order')->orderBy('name')->get();
+        $plans = Plan::where('is_active', true)->with('featureKeys')->orderBy('sort_order')->orderBy('plan_rank')->orderBy('name')->get();
+        $allFeatures = FeatureKey::where('is_active', true)->orderBy('category')->orderBy('code')->get();
         $history = $company->subscriptions()->with('plan')->latest('current_period_start_at')->latest('id')->paginate(15);
         $events = \App\Models\SubscriptionEvent::with('actor')->where('company_id', $company->id)->latest('occurred_at')->latest('id')->limit(30)->get();
         $timeline = $this->subscriptionPresenter->timeline($subscriptionAccess['subscription'], $subscriptionAccess['effective_status']);
@@ -122,7 +123,7 @@ class CompanyManagementController extends Controller
         $paymentMethods = $this->subscriptionPresenter->paymentMethods();
         $changePreview = $this->subscriptionPresenter->changePreview($subscriptionAccess['subscription'], $plans->firstWhere('id', '!=', $subscriptionAccess['plan']?->id));
 
-        return view('admin.companies.subscriptions.index', compact('company', 'subscriptionAccess', 'plans', 'history', 'events', 'timeline', 'health', 'renewalSummary', 'paymentMethods', 'changePreview'));
+        return view('admin.companies.subscriptions.index', compact('company', 'subscriptionAccess', 'plans', 'allFeatures', 'history', 'events', 'timeline', 'health', 'renewalSummary', 'paymentMethods', 'changePreview'));
     }
 
     public function toggleAutoRenew(Request $request, Company $company): RedirectResponse
