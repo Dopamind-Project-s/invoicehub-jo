@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\TaxProfile;
 use App\Services\Audit\AuditLogger;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class TaxProfileController extends Controller
 {
@@ -30,6 +31,10 @@ class TaxProfileController extends Controller
         $taxProfile = TaxProfile::create($this->validated($request) + ['company_id' => $company->id]);
         if ($taxProfile->is_default) TaxProfile::where('company_id', $company->id)->whereKeyNot($taxProfile->id)->update(['is_default' => false]);
         $this->audit->record('master_data.tax_profile.created', $taxProfile, [], $taxProfile->toArray(), $request);
+        if ($request->input('save_action') === 'save_another') {
+            return redirect()->route('company.tax-profiles.create', $company)->with('status', 'تم حفظ الضريبة، يمكنك إضافة ضريبة أخرى.');
+        }
+
         return redirect()->route('company.tax-profiles.index', $company)->with('status', 'تم إنشاء ملف الضريبة.');
     }
 
@@ -54,6 +59,6 @@ class TaxProfileController extends Controller
 
     private function validated(Request $request): array
     {
-        return $request->validate(['name' => ['required', 'string', 'max:255'], 'tax_type' => ['required', 'string', 'max:50'], 'tax_percent' => ['required', 'numeric', 'min:0', 'max:100'], 'jofotara_tax_code' => ['nullable', 'string', 'max:50'], 'is_default' => ['nullable', 'boolean'], 'is_active' => ['nullable', 'boolean']]) + ['is_default' => $request->boolean('is_default'), 'is_active' => $request->boolean('is_active')];
+        return $request->validate(['name' => ['required', 'string', 'max:255', 'not_regex:/^\s*$/u'], 'tax_type' => ['required', 'string', 'max:50', 'not_regex:/^\s*$/u'], 'tax_percent' => ['required', 'numeric', 'min:0', 'max:100'], 'jofotara_tax_code' => ['nullable', 'string', 'max:50'], 'is_default' => ['nullable', 'boolean'], 'is_active' => ['nullable', 'boolean'], 'save_action' => ['nullable', Rule::in(['save', 'save_another'])]]) + ['is_default' => $request->boolean('is_default'), 'is_active' => $request->boolean('is_active')];
     }
 }

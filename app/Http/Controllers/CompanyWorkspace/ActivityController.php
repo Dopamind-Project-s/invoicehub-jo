@@ -24,8 +24,11 @@ class ActivityController extends Controller
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->integer('user_id'));
         }
-        if ($request->filled('date')) {
-            $query->whereDate('created_at', $request->date('date'));
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date('date_to'));
         }
 
         return view('company.activity.index', ['company' => $company, 'activities' => $query->paginate(20)->withQueryString(), 'users' => $company->users()->orderBy('name')->get()]);

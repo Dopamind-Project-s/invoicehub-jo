@@ -10,6 +10,7 @@ use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\Product;
 use App\Services\Audit\AuditLogger;
+use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
 use App\Services\Invoices\InvoiceCalculator;
 use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceBrandingService;
@@ -38,7 +39,7 @@ class InvoiceEngineController extends Controller
             ->when($request->filled('source'), fn ($q) => $q->where('source', $request->source))
             ->latest()->paginate(15)->withQueryString();
 
-        return view('company.invoices.index', compact('company', 'invoices'));
+        return view('company.invoices.index', ['company' => $company, 'invoices' => $invoices, 'branding' => $this->branding->settings($company)]);
     }
 
     public function create(Company $company)
@@ -63,13 +64,15 @@ class InvoiceEngineController extends Controller
             return $invoice;
         });
 
+        CompanyDashboardStatsService::forget($company);
+
         return redirect()->route('company.invoices.show', [$company, $invoice])->with('status', $invoice->status === Invoice::STATUS_READY ? 'تم حفظ الفاتورة وتجهيزها للإرسال.' : 'تم حفظ الفاتورة كمسودة.');
     }
 
-    public function show(Company $company, Invoice $invoice, JoFotaraPreparationService $preparer)
+    public function show(Company $company, Invoice $invoice)
     {
         $this->authorizeCompany($company, $invoice);
-        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice->load(['contact', 'items.product', 'submissionLogs']), 'jofotaraDiagnostic' => $preparer->diagnostics($invoice)]);
+        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice->load(['contact', 'items.product', 'submissionLogs']), 'branding' => $this->branding->settings($company)]);
     }
 
     public function jofotaraUat(Company $company, JoFotaraPreparationService $preparer)
@@ -118,6 +121,8 @@ class InvoiceEngineController extends Controller
             $this->audit->record('invoice.edited', $invoice, $before, $invoice->load('items')->toArray(), $request);
         });
 
+        CompanyDashboardStatsService::forget($company);
+
         return redirect()->route('company.invoices.show', [$company, $invoice])->with('status', $invoice->status === Invoice::STATUS_READY ? 'تم تحديث الفاتورة وتجهيزها للإرسال.' : 'تم تحديث الفاتورة كمسودة.');
     }
 
@@ -128,6 +133,8 @@ class InvoiceEngineController extends Controller
         $before = $invoice->only('status');
         $invoice->update(['status' => Invoice::STATUS_READY]);
         $this->audit->record('invoice.ready', $invoice, $before, $invoice->only('status'), $request);
+
+        CompanyDashboardStatsService::forget($company);
 
         return back()->with('status', 'تم تجهيز الفاتورة للإرسال إلى نظام الفوترة الوطني.');
     }
@@ -141,6 +148,8 @@ class InvoiceEngineController extends Controller
         $this->audit->record('invoice.approved', $invoice, $before, $invoice->only('status', 'approved_by', 'approved_at'), $request);
         $this->notifications->record($invoice, 'approved', Auth::id());
 
+        CompanyDashboardStatsService::forget($company);
+
         return back()->with('status', 'تمت المراجعة الداخلية وأصبحت الفاتورة جاهزة للإرسال.');
     }
 
@@ -153,6 +162,8 @@ class InvoiceEngineController extends Controller
         $this->audit->record('invoice.cancelled', $invoice, $before, $invoice->only('status'), $request);
         $this->notifications->record($invoice, 'cancelled', Auth::id());
 
+        CompanyDashboardStatsService::forget($company);
+
         return back()->with('status', 'تم إلغاء الفاتورة.');
     }
 
@@ -163,6 +174,8 @@ class InvoiceEngineController extends Controller
         $before = $invoice->only('status');
         $invoice->update(['status' => Invoice::STATUS_DRAFT]);
         $this->audit->record('invoice.returned_to_draft', $invoice, $before, $invoice->only('status'), $request);
+
+        CompanyDashboardStatsService::forget($company);
 
         return back()->with('status', 'تم إرجاع الفاتورة إلى مسودة.');
     }
@@ -186,16 +199,22 @@ class InvoiceEngineController extends Controller
                 $this->notifications->record($invoice, 'submitted', Auth::id());
                 $this->audit->record('invoice.jofotara.submitted', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_validation_result', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message'), $request);
 
+                CompanyDashboardStatsService::forget($company);
+
                 return back()->with('status', 'تم إرسال الفاتورة إلى نظام الفوترة الوطني بنجاح'.PHP_EOL.'حالة جوفوتارا: '.$invoice->jofotara_status.PHP_EOL.'نتيجة التحقق: '.($invoice->jofotara_validation_result ?: '—'));
             }
 
             $invoice->forceFill(['status' => Invoice::STATUS_READY])->save();
             $this->audit->record('invoice.jofotara.failed', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_validation_result', 'jofotara_uuid', 'jofotara_qr', 'jofotara_error_message'), $request);
 
+            CompanyDashboardStatsService::forget($company);
+
             return back()->withErrors(['jofotara' => $invoice->jofotara_error_message ?: 'لم يتم إرسال الفاتورة إلى نظام الفوترة الوطني.']);
         } catch (RuntimeException $exception) {
             $invoice->forceFill(['status' => Invoice::STATUS_READY, 'jofotara_status' => 'ERROR', 'jofotara_error_message' => $exception->getMessage(), 'jofotara_submitted_at' => now()])->save();
             $this->audit->record('invoice.jofotara.failed', $invoice, $before, $invoice->only('jofotara_status', 'jofotara_error_message'), $request);
+
+            CompanyDashboardStatsService::forget($company);
 
             return back()->withErrors(['jofotara' => $exception->getMessage()]);
         }
@@ -210,15 +229,20 @@ class InvoiceEngineController extends Controller
         return response($png, 200)->header('Content-Type', 'image/png');
     }
 
-    public function printable(Company $company, Invoice $invoice, InvoicePdfService $pdf)
+    public function printable(Request $request, Company $company, Invoice $invoice, InvoicePdfService $pdf)
     {
         $this->authorizeCompany($company, $invoice);
+        if ($request->boolean('preview')) {
+            return $pdf->preview($invoice);
+        }
+
         return $pdf->download($invoice);
     }
 
     /** @param array<string, mixed> $data */
     private function fillAndSave(Invoice $invoice, Company $company, array $data): void
     {
+        $data = $this->createInlineRecords($company, $data);
         $totals = $this->calculator->calculate($data['items']);
         $invoice->forceFill([
             'company_id' => $company->id,
@@ -293,17 +317,69 @@ class InvoiceEngineController extends Controller
 
     private function formData(Company $company, Invoice $invoice): array
     {
-        return ['company' => $company, 'invoice' => $invoice, 'contacts' => Contact::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'products' => Product::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'branding' => $this->branding->settings($company), 'templates' => \App\Models\InvoiceTemplate::query()->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $company->id))->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get()];
+        return ['company' => $company, 'invoice' => $invoice, 'contacts' => Contact::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'products' => Product::with(['taxCategory', 'taxProfile'])->where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'branding' => $this->branding->settings($company), 'templates' => \App\Models\InvoiceTemplate::query()->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $company->id))->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get()];
+    }
+
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function createInlineRecords(Company $company, array $data): array
+    {
+        if (empty($data['contact_id']) && filled($data['contact_name'] ?? null)) {
+            $contactName = trim((string) $data['contact_name']);
+            $contact = Contact::firstOrCreate(
+                ['company_id' => $company->id, 'name_ar' => $contactName],
+                ['type' => Contact::TYPE_CUSTOMER, 'country' => 'JO', 'is_active' => true]
+            );
+
+            if (! $contact->is_active) {
+                $contact->forceFill(['is_active' => true])->save();
+            }
+
+            $data['contact_id'] = $contact->id;
+        }
+
+        foreach ($data['items'] as $index => $item) {
+            if (! empty($item['product_id']) || blank($item['product_name'] ?? null)) {
+                continue;
+            }
+
+            $productName = trim((string) $item['product_name']);
+            $product = Product::firstOrCreate(
+                ['company_id' => $company->id, 'name_ar' => $productName],
+                [
+                    'unit_id' => DB::table('units')->where('company_id', $company->id)->orWhereNull('company_id')->value('id') ?: DB::table('units')->value('id'),
+                    'tax_category_id' => DB::table('tax_categories')->value('id'),
+                    'type' => Product::TYPE_PRODUCT,
+                    'description' => $item['description'] ?? null,
+                    'item_code' => 'INLINE-'.$company->id.'-'.Str::upper(Str::random(8)),
+                    'default_price' => $item['unit_price'] ?? 0,
+                    'price' => $item['unit_price'] ?? 0,
+                    'is_active' => true,
+                ]
+            );
+
+            if (! $product->is_active) {
+                $product->forceFill(['is_active' => true])->save();
+            }
+
+            $data['items'][$index]['product_id'] = $product->id;
+        }
+
+        return $data;
     }
 
     private function validated(Request $request, Company $company, ?Invoice $invoice = null): array
     {
         return $request->validate([
-            'contact_id' => ['required', Rule::exists('contacts', 'id')->where('company_id', $company->id)],
+            'contact_id' => ['nullable', 'required_without:contact_name', Rule::exists('contacts', 'id')->where('company_id', $company->id)],
+            'contact_name' => ['nullable', 'required_without:contact_id', 'string', 'max:255'],
             'invoice_type' => ['required', Rule::in([Invoice::TYPE_TAX_INVOICE, Invoice::TYPE_SIMPLIFIED_INVOICE, Invoice::TYPE_CREDIT_NOTE, Invoice::TYPE_DEBIT_NOTE])],
             'issue_date' => ['required', 'date'], 'due_date' => ['nullable', 'date', 'after_or_equal:issue_date'], 'currency' => ['required', 'size:3'], 'notes' => ['nullable', 'string'],
             'save_action' => ['nullable', Rule::in(['draft', 'ready'])],
-            'items' => ['required', 'array', 'min:1'], 'items.*.product_id' => ['nullable', Rule::exists('products', 'id')->where('company_id', $company->id)], 'items.*.description' => ['required', 'string'], 'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price' => ['required', 'numeric', 'min:0'], 'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'], 'items.*.tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'items' => ['required', 'array', 'min:1'], 'items.*.product_id' => ['nullable', Rule::exists('products', 'id')->where('company_id', $company->id)], 'items.*.product_name' => ['nullable', 'string', 'max:255'], 'items.*.description' => ['required', 'string'], 'items.*.quantity' => ['required', 'numeric', 'gt:0'], 'items.*.unit_price' => ['required', 'numeric', 'min:0'], 'items.*.discount_amount' => ['nullable', 'numeric', 'min:0'], 'items.*.tax_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
     }
 }

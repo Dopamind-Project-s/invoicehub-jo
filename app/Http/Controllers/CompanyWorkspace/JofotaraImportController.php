@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Services\Audit\AuditLogger;
+use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -79,6 +80,10 @@ class JofotaraImportController extends Controller
 
             $this->audit->record('invoice.jofotara.imported', $invoice, [], $invoice->only('invoice_number', 'jofotara_uuid', 'jofotara_status'), $request);
             $created++;
+        }
+
+        if ($created > 0) {
+            CompanyDashboardStatsService::forget($company);
         }
 
         return back()->with('status', "تم استيراد {$created} فاتورة وتجاوز {$skipped} فاتورة مكررة.");

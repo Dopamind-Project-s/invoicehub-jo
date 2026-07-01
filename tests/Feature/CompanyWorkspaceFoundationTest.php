@@ -7,9 +7,13 @@ namespace Tests\Feature;
 use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\CompanySetting;
+use App\Models\Contact;
+use App\Models\Invoice;
 use App\Models\User;
 use App\Services\Company\CompanyRoleSeeder;
+use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -108,5 +112,84 @@ class CompanyWorkspaceFoundationTest extends TestCase
         $user = User::factory()->create(['company_id' => $company->id, 'status' => 'active']);
 
         $this->actingAs($user)->get(route('dashboard'))->assertOk();
+    }
+
+    public function test_company_dashboard_returns_ok_with_fresh_and_cached_array_stats(): void
+    {
+        $company = Company::create(['legal_name_ar' => 'شركة داش', 'name_ar' => 'شركة داش', 'tax_number' => '707']);
+        $contact = Contact::create(['company_id' => $company->id, 'type' => Contact::TYPE_CUSTOMER, 'name_ar' => 'عميل داش', 'country' => 'JO']);
+        Invoice::create([
+            'company_id' => $company->id,
+            'contact_id' => $contact->id,
+            'supplier_id' => $company->id,
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'invoice_number' => 'INV-DASH-1',
+            'icv' => 707001,
+            'invoice_type' => Invoice::TYPE_TAX_INVOICE,
+            'issue_date' => now()->toDateString(),
+            'issue_time' => now()->format('H:i:s'),
+            'currency' => 'JOD',
+            'currency_code' => 'JOD',
+            'status' => Invoice::STATUS_SUBMITTED,
+            'grand_total' => 10,
+            'tax_total' => 0,
+            'jofotara_submitted_at' => now(),
+            'jofotara_status' => 'SUBMITTED',
+        ]);
+        AuditLog::create(['user_id' => null, 'action' => 'dashboard.checked', 'auditable_type' => Company::class, 'auditable_id' => $company->id]);
+        $user = User::factory()->create(['company_id' => $company->id, 'status' => 'active']);
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+
+        $this->actingAs($user)->get(route('dashboard'))->assertOk()->assertSee('INV-DASH-1');
+        $this->actingAs($user)->get(route('company.dashboard', $company))->assertOk()->assertSee('INV-DASH-1');
+
+        $cachedStats = app(CompanyDashboardStatsService::class)->get($company);
+        $this->assertIsArray($cachedStats['recent_invoices'][0]);
+        $this->assertStringContainsString('v2', CompanyDashboardStatsService::key($company));
+        $this->assertTrue(Cache::has(CompanyDashboardStatsService::key($company)));
+        $this->assertFalse(Cache::has(CompanyDashboardStatsService::legacyKey($company)));
+
+        $this->actingAs($user)->get(route('dashboard'))->assertOk()->assertSee('عميل داش');
+        $this->actingAs($user)->get(route('company.dashboard', $company))->assertOk()->assertSee('dashboard.checked');
+    }
+
+    public function test_company_dashboard_cached_stats_remain_company_isolated(): void
+    {
+        $companyA = Company::create(['legal_name_ar' => 'شركة أ داش', 'tax_number' => '808']);
+        $companyB = Company::create(['legal_name_ar' => 'شركة ب داش', 'tax_number' => '809']);
+        $userA = User::factory()->create(['company_id' => $companyA->id, 'status' => 'active']);
+        $this->withoutMiddleware(\Spatie\Permission\Middleware\PermissionMiddleware::class);
+
+        Cache::put(CompanyDashboardStatsService::key($companyA), $this->dashboardStatsPayload('INV-A-ONLY'), 600);
+        Cache::put(CompanyDashboardStatsService::key($companyB), $this->dashboardStatsPayload('INV-B-ONLY'), 600);
+
+        $this->actingAs($userA)->get(route('dashboard'))->assertOk()->assertSee('INV-A-ONLY')->assertDontSee('INV-B-ONLY');
+        $this->actingAs($userA)->get(route('company.dashboard', $companyA))->assertOk()->assertSee('INV-A-ONLY')->assertDontSee('INV-B-ONLY');
+    }
+
+    private function dashboardStatsPayload(string $invoiceNumber): array
+    {
+        return [
+            'product_count' => 0,
+            'contact_count' => 0,
+            'invoice_count' => 1,
+            'draft_invoices' => 0,
+            'ready_invoices' => 0,
+            'submitted_invoices' => 1,
+            'jofotara_error_invoices' => 0,
+            'sales_total' => 10.0,
+            'tax_total' => 0.0,
+            'recent_invoices' => [[
+                'invoice_number' => $invoiceNumber,
+                'customer_name' => 'عميل مخبأ',
+                'issue_date' => '2026-06-22',
+                'status' => 'submitted',
+                'grand_total' => '10.000',
+                'currency' => 'JOD',
+            ]],
+            'last_submitted_invoice' => null,
+            'last_activity' => ['action' => 'cached.activity', 'created_at' => '2026-06-22 10:00', 'user_name' => 'النظام'],
+            'recent_activities' => [['action' => 'cached.activity', 'created_at' => '2026-06-22 10:00', 'user_name' => 'النظام']],
+        ];
     }
 }

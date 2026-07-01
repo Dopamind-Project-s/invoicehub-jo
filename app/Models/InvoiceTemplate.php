@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InvoiceTemplate extends Model
 {
-    protected $fillable = ['company_id', 'name', 'slug', 'language', 'layout_type', 'is_default', 'is_active'];
+    protected $fillable = ['company_id', 'name', 'slug', 'language', 'layout_type', 'preview_image', 'view_path', 'is_default', 'is_active'];
     protected $casts = ['is_default' => 'boolean', 'is_active' => 'boolean'];
 
     public function company(): BelongsTo

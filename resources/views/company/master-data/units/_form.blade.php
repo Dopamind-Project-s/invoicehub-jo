@@ -1,2 +1,127 @@
 @csrf
-<div class="row g-3" dir="rtl"><div class="col-md-6"><label class="form-label">الكود</label><textarea name="code" class="form-control">{{ old('code', $unit->code) }}</textarea>@error('code')<div class="text-danger small">{{ $message }}</div>@enderror</div><div class="col-md-6"><label class="form-label">الاسم العربي</label><textarea name="name_ar" class="form-control">{{ old('name_ar', $unit->name_ar) }}</textarea>@error('name_ar')<div class="text-danger small">{{ $message }}</div>@enderror</div><div class="col-md-6"><label class="form-label">الاسم الإنجليزي</label><textarea name="name_en" class="form-control">{{ old('name_en', $unit->name_en) }}</textarea>@error('name_en')<div class="text-danger small">{{ $message }}</div>@enderror</div><div class="col-md-6"><label class="form-label">الرمز</label><textarea name="symbol" class="form-control">{{ old('symbol', $unit->symbol) }}</textarea>@error('symbol')<div class="text-danger small">{{ $message }}</div>@enderror</div><div class="col-md-6"><label class="form-label">الوصف</label><textarea name="description" class="form-control">{{ old('description', $unit->description) }}</textarea>@error('description')<div class="text-danger small">{{ $message }}</div>@enderror</div><div class="col-md-3"><label class="form-check mt-4"><input name="is_active" value="1" type="checkbox" class="form-check-input" @checked(old('is_active', $unit->is_active ?? true))> نشط</label></div></div><button class="btn btn-primary mt-4">حفظ</button>
+@php($mode = $mode ?? 'create')
+<style>
+    .master-form {
+        border: 1px solid #e5eef4;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 16px 36px rgba(15, 23, 42, .07);
+        background: #fff
+    }
+
+    .master-form-head {
+        background: linear-gradient(135deg, #00a9c4, #12c2b2);
+        color: #fff;
+        padding: 22px 24px
+    }
+
+    .master-form-body {
+        padding: 24px
+    }
+
+    .master-section {
+        border: 1px solid #e8f0f5;
+        border-radius: 18px;
+        padding: 18px;
+        background: #fff;
+        margin-bottom: 18px
+    }
+
+    .master-section-title {
+        font-weight: 800;
+        margin-bottom: 14px
+    }
+
+    .master-form .form-control {
+        border-radius: 14px
+    }
+
+    .form-text {
+        font-size: .8rem
+    }
+
+    .master-actions {
+        background: #f8fbfc;
+        border-top: 1px solid #e5eef4;
+        padding: 18px 24px
+    }
+
+    .master-actions .btn {
+        border-radius: 999px;
+        min-width: 140px
+    }
+
+    .validation-summary {
+        display: none;
+        border-radius: 14px
+    }
+
+    .status-card {
+        border-radius: 16px;
+        background: #f8fdff;
+        border: 1px solid #d7eef3;
+        padding: 14px
+    }
+</style>
+<div class="master-form" dir="rtl">
+    <div class="master-form-head">
+        <h2 class="h4 mb-1">{{ $mode === 'edit' ? 'تعديل بيانات الوحدة' : 'وحدة قياس جديدة' }}</h2>
+        <p class="mb-0 opacity-75">استخدم وحدة واضحة لتوحيد قياس المنتجات والخدمات في الفواتير.</p>
+    </div>
+    <div class="master-form-body">
+        <div class="alert alert-danger validation-summary" data-validation-summary></div>
+        <section class="master-section">
+            <div class="master-section-title">1. بيانات الوحدة</div>
+            <div class="row g-3">
+                <div class="col-md-5"><label class="form-label">الاسم العربي</label><input name="name_ar" class="form-control" placeholder="مثال: قطعة" value="{{ old('name_ar', $unit->name_ar) }}" required>
+                    <div class="form-text">اسم الوحدة الذي يظهر لفريق العمل.</div>@error('name_ar')<div class="text-danger small">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-5"><label class="form-label">الاسم الإنجليزي</label><input name="name_en" class="form-control" placeholder="Example: Piece" value="{{ old('name_en', $unit->name_en) }}">@error('name_en')<div class="text-danger small">{{ $message }}</div>@enderror</div>
+                <div class="col-md-3"><label class="form-label">الكود</label><input name="code" class="form-control" placeholder="مثال: PCS" value="{{ old('code', $unit->code) }}" required>
+                    <div class="form-text">كود مختصر وفريد داخل المنشأة.</div>@error('code')<div class="text-danger small">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-3"><label class="form-label">الرمز</label><input name="symbol" class="form-control" placeholder="مثال: pc" value="{{ old('symbol', $unit->symbol) }}">@error('symbol')<div class="text-danger small">{{ $message }}</div>@enderror</div>
+                
+            </div>
+        </section>
+        <section class="master-section">
+            <div class="master-section-title">2. الوصف</div><textarea name="description" class="form-control" rows="5" placeholder="اكتب ملاحظة داخلية توضح استخدام هذه الوحدة">{{ old('description', $unit->description) }}</textarea>
+            <div class="form-text">اختياري، مثل: تستخدم للمنتجات الفردية أو الخدمات حسب الساعة.</div>@error('description')<div class="text-danger small">{{ $message }}</div>@enderror
+        </section>
+        <section class="master-section">
+           <div class="col-md-3"><label class="form-label">الحالة</label>
+                    <div class="status-card"><label class="form-check mb-0"><input name="is_active" value="1" type="checkbox" class="form-check-input" @checked(old('is_active', $unit->is_active ?? true))> نشطة ومتاحة للمنتجات</label></div>
+                </div>
+        </section>
+    </div>
+    <div class="master-actions d-flex flex-wrap gap-2"><button class="btn btn-primary" name="save_action" value="save">{{ $mode === 'edit' ? 'حفظ التعديلات' : 'حفظ' }}</button>@if($mode !== 'edit')<button class="btn btn-outline-primary" name="save_action" value="save_another">حفظ وإضافة أخرى</button>@endif<a class="btn btn-outline-secondary" href="{{ route('company.units.index', ['company' => $routeCompanyId]) }}">إلغاء</a></div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-unit-form]').forEach(function(form) {
+            var summary = form.querySelector('[data-validation-summary]');
+
+            function showErrors(errors) {
+                summary.style.display = errors.length ? 'block' : 'none';
+                summary.innerHTML = errors.map(function(e) {
+                    return '<div>' + e + '</div>';
+                }).join('');
+            }
+            form.addEventListener('submit', function(event) {
+                var errors = [];
+                var nameAr = form.querySelector('[name="name_ar"]');
+                var code = form.querySelector('[name="code"]');
+                if (!nameAr.value.trim()) errors.push('الاسم العربي مطلوب ولا يمكن تركه فارغاً.');
+                if (!code.value.trim()) errors.push('كود الوحدة مطلوب ولا يمكن تركه فارغاً.');
+                if (errors.length) {
+                    event.preventDefault();
+                    showErrors(errors);
+                    window.scrollTo({
+                        top: form.offsetTop - 20,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    });
+</script>

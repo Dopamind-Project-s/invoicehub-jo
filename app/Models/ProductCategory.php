@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductCategory extends Model
 {
-    protected $fillable = ['company_id', 'name_ar', 'name_en', 'code', 'description', 'is_active'];
+    protected $fillable = ['company_id', 'name_ar', 'name_en', 'code', 'description', 'icon', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
 

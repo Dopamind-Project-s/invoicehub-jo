@@ -53,6 +53,39 @@ class InvoiceEngineV1Test extends TestCase
         $this->assertSame('تم حفظ الفاتورة كمسودة.', $invoice);
     }
 
+
+    public function test_invoice_creation_persists_inline_contact_and_product_master_data(): void
+    {
+        [$company] = $this->foundation();
+
+        app(InvoiceEngineController::class)->store(Request::create('/invoice-test', 'POST', [
+            'contact_name' => 'عميل جديد من الفاتورة',
+            'invoice_type' => Invoice::TYPE_TAX_INVOICE,
+            'issue_date' => now()->format('Y-m-d'),
+            'due_date' => now()->addDays(15)->format('Y-m-d'),
+            'currency' => 'JOD',
+            'items' => [[
+                'product_name' => 'منتج جديد من الفاتورة',
+                'description' => 'وصف المنتج الجديد',
+                'quantity' => 2,
+                'unit_price' => 7.5,
+                'discount_amount' => 0,
+                'tax_percent' => 0,
+            ]],
+        ]), $company);
+
+        $contact = Contact::where('company_id', $company->id)->where('name_ar', 'عميل جديد من الفاتورة')->firstOrFail();
+        $product = Product::where('company_id', $company->id)->where('name_ar', 'منتج جديد من الفاتورة')->firstOrFail();
+        $invoice = Invoice::where('company_id', $company->id)->latest('id')->firstOrFail();
+
+        $this->assertSame(Contact::TYPE_CUSTOMER, $contact->type);
+        $this->assertTrue($contact->is_active);
+        $this->assertSame(Product::TYPE_PRODUCT, $product->type);
+        $this->assertTrue($product->is_active);
+        $this->assertSame($contact->id, $invoice->contact_id);
+        $this->assertDatabaseHas('invoice_items', ['invoice_id' => $invoice->id, 'product_id' => $product->id, 'description' => 'وصف المنتج الجديد']);
+    }
+
     public function test_invoice_can_be_marked_ready_and_submitted_invoices_are_read_only(): void
     {
         [$company, $contact, $product] = $this->foundation();
