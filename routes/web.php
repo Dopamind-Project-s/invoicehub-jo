@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\Admin\RoleManagementController;
 use App\Http\Controllers\Admin\LandingCms\LandingFaqController;
 use App\Http\Controllers\Admin\LandingCms\SiteSettingController;
+use App\Http\Controllers\Admin\BlogController as AdminBlogController;
+use App\Http\Controllers\Public\BlogController as PublicBlogController;
 use App\Services\Landing\LandingPageDataService;
 use App\Http\Controllers\CompanyWorkspace\ActivityController;
 use App\Http\Controllers\CompanyWorkspace\CompanyRoleController;
@@ -34,6 +36,8 @@ Route::get('/', function (LandingPageDataService $landing) {
     return view('welcome', $landing->home('ar'));
 })->name('home');
 Route::get('/shared/invoices/{token}', PublicInvoiceShareController::class)->name('invoices.shared.show');
+Route::get('/blog', [PublicBlogController::class, 'index'])->name('blogs.index');
+Route::get('/blog/{slug}', [PublicBlogController::class, 'show'])->name('blogs.show');
 Route::get('/subscription-request', [PublicSubscriptionRequestController::class, 'create'])->name('subscription-requests.create');
 Route::post('/subscription-request', [PublicSubscriptionRequestController::class, 'store'])->name('subscription-requests.store');
 Route::get('/subscription-request/thank-you', [PublicSubscriptionRequestController::class, 'thankYou'])->name('subscription-requests.thank-you');
@@ -90,6 +94,10 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::put('subscription-requests/{subscriptionRequest}', [AdminSubscriptionRequestController::class, 'update'])->name('subscription-requests.update');
     Route::get('subscription-requests/{subscriptionRequest}/provision', [AdminSubscriptionRequestController::class, 'provisionCreate'])->name('subscription-requests.provision.create');
     Route::post('subscription-requests/{subscriptionRequest}/provision', [AdminSubscriptionRequestController::class, 'provisionStore'])->name('subscription-requests.provision.store');
+    Route::resource('blogs', AdminBlogController::class);
+    Route::post('blogs/{blog}/publish', [AdminBlogController::class, 'publish'])->name('blogs.publish');
+    Route::post('blogs/{blog}/draft', [AdminBlogController::class, 'draft'])->name('blogs.draft');
+    Route::post('blogs/{id}/restore', [AdminBlogController::class, 'restore'])->name('blogs.restore');
     Route::resource('plans', PlanController::class)->except(['show', 'destroy']);
     Route::post('plans/{plan}/activate', [PlanController::class, 'activate'])->name('plans.activate');
     Route::post('plans/{plan}/deactivate', [PlanController::class, 'deactivate'])->name('plans.deactivate');

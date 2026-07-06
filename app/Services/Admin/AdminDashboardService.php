@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Admin;
 
 use App\Models\AuditLog;
+use App\Models\Blog;
 use App\Models\Company;
 use App\Models\Subscription;
 use App\Models\SubscriptionRequest;
@@ -14,10 +15,13 @@ class AdminDashboardService
 {
     public function get(): array
     {
-        return Cache::remember('admin-dashboard:v1', 300, function (): array {
+        return Cache::remember('admin-dashboard:v2', 300, function (): array {
             $now = now();
             return [
                 'total_companies' => Company::count(),
+                'blogs_total' => Blog::count(),
+                'blogs_published' => Blog::where('status', Blog::STATUS_PUBLISHED)->count(),
+                'blogs_drafts' => Blog::where('status', Blog::STATUS_DRAFT)->count(),
                 'active_companies' => Company::where('status', 'active')->where('is_active', true)->count(),
                 'inactive_companies' => Company::where('status', '!=', 'active')->orWhere('is_active', false)->count(),
                 'pending_requests' => SubscriptionRequest::where('status', 'pending')->count(),

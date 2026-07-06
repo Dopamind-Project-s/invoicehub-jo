@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             FeatureKeySeeder::class,
             PlanSeeder::class,
             LandingSeeder::class,
+            BlogSeeder::class,
         ]);
 
         foreach (['DRAFT', 'GENERATED', 'SIGNED', 'SUBMITTED', 'ACCEPTED', 'REJECTED', 'ERROR'] as $i => $status) {

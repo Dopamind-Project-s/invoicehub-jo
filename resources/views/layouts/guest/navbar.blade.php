@@ -16,6 +16,7 @@
                 <a href="{{ $sectionHref('features') }}" class="nav-link">المزايا</a>
                 <a href="{{ $sectionHref('integrations') }}" class="nav-link">التكاملات</a>
                 <a href="{{ $sectionHref('pricing') }}" class="nav-link">الباقات</a>
+                <a href="{{ route('blogs.index') }}" class="nav-link">المدونة</a>
                 <a href="{{ $sectionHref('faq') }}" class="nav-link">الأسئلة الشائعة</a>
             </div>
             <div class="d-flex align-items-center gap-2">
@@ -36,6 +37,7 @@
                 <a href="{{ $sectionHref('features') }}" class="nav-link">المزايا</a>
                 <a href="{{ $sectionHref('integrations') }}" class="nav-link">التكاملات</a>
                 <a href="{{ $sectionHref('pricing') }}" class="nav-link">الباقات</a>
+                <a href="{{ route('blogs.index') }}" class="nav-link">المدونة</a>
                 <a href="{{ $sectionHref('faq') }}" class="nav-link">الأسئلة الشائعة</a>
                 @auth
                     <a class="bgrd btn w-100 py-2 mt-2" href="{{ $workspaceUrl }}">لوحة التحكم</a>
