@@ -18,6 +18,8 @@ use App\Http\Controllers\CompanyWorkspace\JofotaraImportController;
 use App\Http\Controllers\CompanyWorkspace\WorkspaceDashboardController;
 use App\Http\Controllers\CompanyWorkspace\SubscriptionController as CompanySubscriptionController;
 use App\Http\Controllers\PublicInvoiceShareController;
+use App\Http\Controllers\Public\SubscriptionRequestController as PublicSubscriptionRequestController;
+use App\Http\Controllers\Admin\SubscriptionRequestController as AdminSubscriptionRequestController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ContactController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductCategoryController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductController;
@@ -30,6 +32,9 @@ Route::get('/', function (LandingPageDataService $landing) {
     return view('welcome', $landing->home('ar'));
 })->name('home');
 Route::get('/shared/invoices/{token}', PublicInvoiceShareController::class)->name('invoices.shared.show');
+Route::get('/subscription-request', [PublicSubscriptionRequestController::class, 'create'])->name('subscription-requests.create');
+Route::post('/subscription-request', [PublicSubscriptionRequestController::class, 'store'])->name('subscription-requests.store');
+Route::get('/subscription-request/thank-you', [PublicSubscriptionRequestController::class, 'thankYou'])->name('subscription-requests.thank-you');
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
@@ -74,6 +79,9 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::get('landing-cms/settings', [SiteSettingController::class, 'edit'])->name('landing-cms.settings.edit');
     Route::put('landing-cms/settings', [SiteSettingController::class, 'update'])->name('landing-cms.settings.update');
     Route::resource('landing-cms/faqs', LandingFaqController::class)->parameters(['faqs' => 'faq'])->names('landing-cms.faqs');
+    Route::get('subscription-requests', [AdminSubscriptionRequestController::class, 'index'])->name('subscription-requests.index');
+    Route::get('subscription-requests/{subscriptionRequest}', [AdminSubscriptionRequestController::class, 'show'])->name('subscription-requests.show');
+    Route::put('subscription-requests/{subscriptionRequest}', [AdminSubscriptionRequestController::class, 'update'])->name('subscription-requests.update');
     Route::resource('plans', PlanController::class)->except(['show', 'destroy']);
     Route::post('plans/{plan}/activate', [PlanController::class, 'activate'])->name('plans.activate');
     Route::post('plans/{plan}/deactivate', [PlanController::class, 'deactivate'])->name('plans.deactivate');

@@ -87,6 +87,7 @@ class LandingPageDataService
                 'id' => (int) $plan->id,
                 'name' => $plan->name,
                 'name_ar' => $plan->name_ar,
+                'slug' => $plan->slug,
                 'description' => $plan->description,
                 'description_ar' => $plan->description_ar,
                 'monthly_price' => (float) $plan->monthly_price,

@@ -1,0 +1,5 @@
+.subscription-request-hero{background:linear-gradient(135deg,#063f52,#00a9c4 58%,#12c2b2);color:#fff;border-radius:28px;padding:32px;box-shadow:0 20px 50px rgba(15,23,42,.14)}
+.subscription-request-card{border:1px solid var(--bd,#e7f0f4);border-radius:26px;background:var(--sf,#fff);box-shadow:0 14px 36px rgba(15,23,42,.07)}
+.subscription-request-card .form-control,.subscription-request-card .form-select{border-radius:14px;padding:.8rem 1rem}
+.subscription-plan-pill{display:inline-flex;align-items:center;gap:.5rem;border:1px solid rgba(18,194,178,.35);background:rgba(18,194,178,.12);color:#063f52;border-radius:999px;padding:.55rem 1rem;font-weight:800}
+.subscription-request-admin-card{border:1px solid #e7f0f4;border-radius:24px;background:#fff;box-shadow:0 14px 36px rgba(15,23,42,.07)}

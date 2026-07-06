@@ -41,7 +41,7 @@
                             @php($hasFeature = in_array(data_get($feature, 'id'), $planFeatureIds, true))
                             <div class="pfl"><span class="{{ $hasFeature ? 'pchk' : 'pxx' }}">{{ $hasFeature ? '✓' : '×' }}</span>{{ data_get($feature, 'name_ar') ?: data_get($feature, 'name') }}</div>
                         @endforeach
-                        <a class="bgrd btn w-100 py-2 mt-4" href="{{ route('login') }}">اختر الباقة</a>
+                        <a class="bgrd btn w-100 py-2 mt-4" href="{{ route('subscription-requests.create', ['plan' => data_get($plan, 'slug') ?: data_get($plan, 'id')]) }}">طلب الاشتراك</a>
                     </div>
                 </div>
             @empty
