@@ -13,6 +13,7 @@ class AuditLog extends Model
     public const UPDATED_AT = null;
 
     protected $fillable = [
+        'company_id',
         'user_id',
         'action',
         'auditable_type',

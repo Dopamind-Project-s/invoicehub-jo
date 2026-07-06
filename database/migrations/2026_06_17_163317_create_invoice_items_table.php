@@ -16,12 +16,14 @@ return new class extends Migration
             $table->decimal('quantity', 18, 6);
             $table->decimal('unit_price', 18, 6);
             $table->decimal('discount', 18, 6)->default(0);
+            $table->decimal('discount_amount', 18, 6)->default(0);
             $table->decimal('line_extension_amount', 18, 6)->default(0);
             $table->string('tax_category');
             $table->decimal('tax_percent', 9, 6)->default(0);
             $table->decimal('tax_amount', 18, 6)->default(0);
             $table->decimal('line_total', 18, 6)->default(0);
             $table->timestamps();
+            $table->index(['invoice_id', 'product_id']);
         });
         Schema::create('invoice_xml_logs', function (Blueprint $table) {
             $table->id();
@@ -46,6 +48,7 @@ return new class extends Migration
             $table->unsignedInteger('attempt')->default(1);
             $table->timestamp('submitted_at')->nullable();
             $table->timestamps();
+            $table->index(['invoice_id', 'status']);
         });
     }
 

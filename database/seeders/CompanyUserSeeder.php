@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use App\Services\Company\CompanyRoleSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -15,7 +16,7 @@ class CompanyUserSeeder extends Seeder
             return;
         }
 
-        $this->ensureDefaultRoles((int) $company->id);
+        app(CompanyRoleSeeder::class)->seed(\App\Models\Company::findOrFail((int) $company->id));
 
         DB::table('users')->updateOrInsert(
             ['email' => 'company@invosync.local'],
@@ -48,28 +49,4 @@ class CompanyUserSeeder extends Seeder
         }
     }
 
-    private function ensureDefaultRoles(int $companyId): void
-    {
-        $allPermissions = DB::table('permissions')->where('guard_name', 'web')->pluck('name')->all();
-
-        $rolePermissions = [
-            'Owner' => $allPermissions,
-            'Accountant' => ['contacts.manage', 'invoices.view', 'invoices.create', 'invoices.approve', 'invoices.submit', 'reports.view'],
-            'Reviewer' => ['invoices.view', 'invoices.approve', 'reports.view'],
-            'Sales' => ['contacts.manage', 'invoices.view', 'invoices.create'],
-            'Viewer' => ['invoices.view', 'reports.view'],
-        ];
-
-        foreach ($rolePermissions as $roleName => $permissions) {
-            DB::table('roles')->updateOrInsert(
-                ['company_id' => $companyId, 'name' => $roleName, 'guard_name' => 'web'],
-                ['updated_at' => now(), 'created_at' => now()]
-            );
-            $roleId = DB::table('roles')->where('company_id', $companyId)->where('name', $roleName)->where('guard_name', 'web')->value('id');
-            $permissionIds = DB::table('permissions')->whereIn('name', $permissions)->where('guard_name', 'web')->pluck('id');
-            foreach ($permissionIds as $permissionId) {
-                DB::table('role_has_permissions')->updateOrInsert(['permission_id' => $permissionId, 'role_id' => $roleId]);
-            }
-        }
-    }
 }

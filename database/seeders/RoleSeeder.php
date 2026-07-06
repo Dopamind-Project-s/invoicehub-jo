@@ -8,6 +8,6 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        $this->call(SuperAdminSeeder::class);
+        $this->call(RolesAndPermissionsSeeder::class);
     }
 }

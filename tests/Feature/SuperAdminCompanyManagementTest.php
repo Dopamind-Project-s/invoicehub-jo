@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\FeatureKey;
 use App\Models\User;
+use Database\Seeders\FeatureKeySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,6 +26,7 @@ class SuperAdminCompanyManagementTest extends TestCase
 
     public function test_super_admin_can_create_company_assign_features_and_audit_changes(): void
     {
+        $this->seed(FeatureKeySeeder::class);
         $admin = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
         $features = FeatureKey::whereIn('code', ['INVOICES', 'JOFOTARA_SUBMIT'])->pluck('id')->all();
 

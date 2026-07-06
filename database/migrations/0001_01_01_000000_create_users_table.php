@@ -13,12 +13,19 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('company_id')->nullable()->index();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('phone', 50)->nullable()->index();
+            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active')->index();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('role', 50)->default('user')->index();
             $table->rememberToken();
             $table->timestamps();
+
+            $table->index(['company_id', 'email']);
+            $table->index(['company_id', 'status']);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

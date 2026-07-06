@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
             $table->string('company_name');
             $table->string('applicant_name');
-            $table->string('email');
-            $table->string('phone', 50);
+            $table->string('email')->index();
+            $table->string('phone', 50)->index();
             $table->string('whatsapp', 50)->nullable();
             $table->foreignId('plan_id')->constrained('plans')->restrictOnDelete();
             $table->enum('billing_cycle', ['monthly', 'yearly']);
@@ -29,7 +29,8 @@ return new class extends Migration
             $table->foreignId('provisioned_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->index(['plan_id', 'billing_cycle']);
-            $table->index(['created_at', 'status']);
+            $table->index(['billing_cycle', 'status']);
+            $table->index(['status', 'created_at']);
         });
     }
 

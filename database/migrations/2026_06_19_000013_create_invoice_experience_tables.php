@@ -15,10 +15,13 @@ return new class extends Migration
             $table->string('slug');
             $table->string('language', 10)->default('ar');
             $table->string('layout_type')->default('classic');
+            $table->string('preview_image')->nullable();
+            $table->string('view_path')->nullable();
             $table->boolean('is_default')->default(false);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->unique(['company_id', 'slug']);
+            $table->index(['company_id', 'is_active']);
         });
 
         Schema::create('invoice_shares', function (Blueprint $table): void {
@@ -33,6 +36,7 @@ return new class extends Migration
             $table->timestamp('last_accessed_at')->nullable();
             $table->timestamps();
             $table->index(['company_id', 'channel']);
+            $table->index(['invoice_id', 'channel']);
         });
 
         if (! Schema::hasTable('notifications')) {

@@ -74,7 +74,7 @@ class JofotaraMvpIntegrationTest extends TestCase
             ]],
         ]);
 
-        $invoice = Invoice::where('company_id', $company->id)->where('invoice_type', Invoice::TYPE_TAX_INVOICE)->latest()->firstOrFail();
+        $invoice = Invoice::where('company_id', $company->id)->where('invoice_type', Invoice::TYPE_TAX_INVOICE)->latest('id')->firstOrFail();
         $response->assertRedirect(route('company.invoices.show', [$company, $invoice]));
         $this->assertSame(Invoice::TYPE_TAX_INVOICE, $invoice->invoice_type);
     }

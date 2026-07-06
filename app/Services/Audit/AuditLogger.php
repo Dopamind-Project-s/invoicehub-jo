@@ -21,6 +21,7 @@ class AuditLogger
         $request ??= request();
 
         return AuditLog::create([
+            'company_id' => $this->companyIdFor($model),
             'user_id' => $userId ?? Auth::id(),
             'action' => $action,
             'auditable_type' => $model?->getMorphClass(),
@@ -36,6 +37,19 @@ class AuditLogger
      * @param  array<string, mixed>  $values
      * @return array<string, mixed>
      */
+    private function companyIdFor(?Model $model): ?int
+    {
+        if (! $model) {
+            return Auth::user()?->company_id;
+        }
+
+        if ($model instanceof \App\Models\Company) {
+            return (int) $model->getKey();
+        }
+
+        return isset($model->company_id) ? (int) $model->company_id : Auth::user()?->company_id;
+    }
+
     private function sanitize(array $values): array
     {
         $blocked = [

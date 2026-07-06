@@ -12,6 +12,7 @@ use App\Models\Invoice;
 use App\Models\User;
 use App\Services\Company\CompanyRoleSeeder;
 use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Permission;
@@ -23,6 +24,12 @@ use function setPermissionsTeamId;
 class CompanyWorkspaceFoundationTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolesAndPermissionsSeeder::class);
+    }
 
     public function test_permission_configuration_uses_teams_with_company_id(): void
     {
