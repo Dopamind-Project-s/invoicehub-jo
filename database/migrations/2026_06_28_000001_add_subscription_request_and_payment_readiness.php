@@ -24,8 +24,16 @@ return new class extends Migration
             $table->foreignId('reviewed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
-            $table->index(['company_id', 'status']);
-            $table->index(['requested_plan_id', 'billing_cycle']);
+           
+            $table->index(
+                ['company_id', 'status'],
+                'scr_company_status_idx'
+            );
+
+            $table->index(
+                ['requested_plan_id', 'billing_cycle'],
+                'scr_plan_cycle_idx'
+            );
         });
     }
 
