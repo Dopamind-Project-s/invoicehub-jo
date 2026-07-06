@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\CompanyManagementController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\FeatureKeyController;
 use App\Http\Controllers\Admin\PlanController;
+use App\Http\Controllers\Admin\UserManagementController;
+use App\Http\Controllers\Admin\RoleManagementController;
 use App\Http\Controllers\Admin\LandingCms\LandingFaqController;
 use App\Http\Controllers\Admin\LandingCms\SiteSettingController;
 use App\Services\Landing\LandingPageDataService;
@@ -67,6 +69,10 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/', AdminDashboardController::class)->name('dashboard');
     Route::get('dashboard', AdminDashboardController::class)->name('dashboard.show');
+    Route::resource('users', UserManagementController::class);
+    Route::post('users/{user}/activate', [UserManagementController::class, 'activate'])->name('users.activate');
+    Route::post('users/{user}/suspend', [UserManagementController::class, 'suspend'])->name('users.suspend');
+    Route::resource('roles', RoleManagementController::class);
     Route::resource('companies', CompanyManagementController::class);
     Route::post('companies/{company}/activate', [CompanyManagementController::class, 'activate'])->name('companies.activate');
     Route::post('companies/{company}/suspend', [CompanyManagementController::class, 'suspend'])->name('companies.suspend');

@@ -11,7 +11,9 @@ use Spatie\Permission\Models\Role;
 class CompanyRoleSeeder
 {
     public const DEFAULT_ROLES = [
-        'Owner' => ['users.manage', 'products.manage', 'contacts.manage', 'invoices.view', 'invoices.create', 'invoices.approve', 'invoices.submit', 'settings.manage', 'reports.view'],
+        'Owner' => ['users.manage', 'products.manage', 'contacts.manage', 'invoices.view', 'invoices.create', 'invoices.approve', 'invoices.submit', 'settings.manage', 'reports.view', 'view_company_dashboard', 'manage_company_users', 'manage_company_settings', 'manage_jofotara_credentials', 'view_reports'],
+        'Company Admin' => ['users.manage', 'products.manage', 'contacts.manage', 'invoices.view', 'invoices.create', 'invoices.approve', 'invoices.submit', 'settings.manage', 'reports.view', 'view_company_dashboard', 'manage_company_users', 'manage_company_settings', 'manage_jofotara_credentials', 'view_reports'],
+        'Company Data Entry' => ['invoices.view', 'invoices.create', 'contacts.manage', 'products.manage', 'view_company_dashboard', 'create_invoices', 'view_customers', 'view_products'],
         'Accountant' => ['contacts.manage', 'invoices.view', 'invoices.create', 'invoices.approve', 'invoices.submit', 'reports.view'],
         'Reviewer' => ['invoices.view', 'invoices.approve', 'reports.view'],
         'Sales' => ['contacts.manage', 'invoices.view', 'invoices.create'],

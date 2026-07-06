@@ -18,6 +18,8 @@
         @if($isAdmin)
             <li class="side-item {{ request()->routeIs('admin.dashboard*') ? 'selected' : '' }}"><a href="{{ route('admin.dashboard') }}"><span>📊</span><span>لوحة التحكم</span></a></li>
             <li class="side-item {{ request()->routeIs('admin.companies.*') ? 'selected' : '' }}"><a href="{{ route('admin.companies.index') }}"><span>🏢</span><span>المنشآت</span></a></li>
+            <li class="side-item {{ request()->routeIs('admin.users.*') ? 'selected' : '' }}"><a href="{{ route('admin.users.index') }}"><span>👥</span><span>المستخدمون</span></a></li>
+            <li class="side-item {{ request()->routeIs('admin.roles.*') ? 'selected' : '' }}"><a href="{{ route('admin.roles.index') }}"><span>🛡️</span><span>الأدوار والصلاحيات</span></a></li>
             <li class="side-item {{ request()->routeIs('admin.plans.*') ? 'selected' : '' }}"><a href="{{ route('admin.plans.index') }}"><span>💳</span><span>الباقات</span></a></li>
             <li class="side-item {{ request()->routeIs('admin.subscription-requests.*') ? 'selected' : '' }}"><a href="{{ route('admin.subscription-requests.index') }}"><span>📨</span><span>طلبات الاشتراك</span></a></li>
             <li class="side-item {{ request()->routeIs('admin.companies.subscriptions.*') ? 'selected' : '' }}"><a href="{{ route('admin.companies.index') }}"><span>🔁</span><span>الاشتراكات</span></a></li>

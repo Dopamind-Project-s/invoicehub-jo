@@ -42,6 +42,13 @@ class SuperAdminSeeder extends Seeder
             ]);
         }
 
+        if ($roleId) {
+            $permissionIds = DB::table('permissions')->where('guard_name', 'web')->pluck('id');
+            foreach ($permissionIds as $permissionId) {
+                DB::table('role_has_permissions')->updateOrInsert(['permission_id' => $permissionId, 'role_id' => $roleId]);
+            }
+        }
+
         if (class_exists(\Spatie\Permission\PermissionRegistrar::class)) {
             app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
         }

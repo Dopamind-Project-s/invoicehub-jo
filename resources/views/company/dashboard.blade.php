@@ -1,198 +1,22 @@
 @extends('layouts.app')
 @section('title', 'لوحة تحكم المنشأة')
 @section('page_title', 'لوحة تحكم المنشأة')
+@push('styles')<link rel="stylesheet" href="{{ asset('css/dashboard-cards.css') }}">@endpush
 @section('content')
 @php
 $stats = $stats ?? [];
-$dashboardDate = static fn ($value, string $format = 'Y-m-d') => $value instanceof \Carbon\CarbonInterface ? $value->format($format) : ($value ?: '—');
 $subscriptionAccess = $company->subscriptionAccess();
 $subscription = $subscriptionAccess['subscription'] ?? null;
-$subscriptionPlan = $subscriptionAccess['plan'] ?? null;
-$subscriptionHealth = app(\App\Services\Subscriptions\SubscriptionPresentationService::class)->health($subscription, $subscriptionAccess['effective_status']);
+$plan = $subscriptionAccess['plan'] ?? null;
+$user = auth()->user();
+$hasPerm = fn (string $permission) => \Spatie\Permission\Models\Permission::where('guard_name','web')->where('name',$permission)->exists() && $user?->canInCompany($permission, $company->id);
+$canManageUsers = $hasPerm('users.manage') || $hasPerm('manage_company_users');
+$canManageSettings = $hasPerm('settings.manage') || $hasPerm('manage_company_settings');
+$canCreateInvoices = $hasPerm('invoices.create') || $hasPerm('create_invoices');
+$canProducts = $hasPerm('products.manage') || $hasPerm('view_products');
+$canCustomers = $hasPerm('contacts.manage') || $hasPerm('view_customers');
+$isDataEntry = $user?->roles()->where('name','Company Data Entry')->exists();
+$d = fn($v) => $v instanceof \Carbon\CarbonInterface ? $v->format('Y-m-d') : ($v ?: '—');
 @endphp
-<style>
-    .company-hero {
-        background: linear-gradient(135deg, #00a9c4, #12c2b2);
-        color: #fff;
-        border-radius: 26px;
-        padding: 24px;
-        margin-bottom: 18px;
-        box-shadow: 0 18px 42px rgba(15, 23, 42, .12)
-    }
-
-    .hero-badge {
-        display: inline-flex;
-        border-radius: 999px;
-        padding: 6px 12px;
-        background: #fff;
-        color: #0f6170;
-        font-weight: 800
-    }
-
-    .dashboard-card {
-        border: 1px solid #e5eef4;
-        border-radius: 22px;
-        box-shadow: 0 12px 30px rgba(15, 23, 42, .06);
-        height: 100%
-    }
-
-    .metric-card {
-        border: 1px solid #e5eef4;
-        border-radius: 20px;
-        background: #fff;
-        padding: 18px;
-        box-shadow: 0 10px 26px rgba(15, 23, 42, .05);
-        height: 100%
-    }
-
-    .metric-card .icon {
-        width: 46px;
-        height: 46px;
-        border-radius: 16px;
-        background: #eefcff;
-        display: grid;
-        place-items: center;
-        font-size: 1.35rem
-    }
-
-    .metric-card .value {
-        font-size: 1.45rem;
-        font-weight: 900;
-        color: #172033
-    }
-
-    .metric-card .label {
-        color: #64748b;
-        font-size: .9rem
-    }
-
-    .quick-actions .btn {
-        border-radius: 999px;
-        font-weight: 800
-    }
-
-    .info-row {
-        display: flex;
-        justify-content: space-between;
-        gap: 14px;
-        padding: 10px 0;
-        border-bottom: 1px dashed #e5eef4
-    }
-
-    .info-row:last-child {
-        border-bottom: 0
-    }
-
-    .status-badge {
-        display: inline-flex;
-        border-radius: 999px;
-        padding: 5px 10px;
-        border: 1px solid #d7eef3;
-        background: #f1f9fb;
-        color: #0f6170;
-        font-size: .8rem
-    }
-
-    .timeline-item {
-        padding: 12px 0;
-        border-bottom: 1px dashed #e5eef4
-    }
-
-    .timeline-item:last-child {
-        border-bottom: 0
-    }
-
-    .empty-soft {
-        border: 1px dashed #b7dce5;
-        border-radius: 18px;
-        background: #f8fdff;
-        padding: 18px;
-        text-align: center;
-        color: #64748b
-    }
-</style>
-<div class="company-hero" dir="rtl">
-    <div class="d-flex flex-column flex-xl-row justify-content-between gap-3 align-items-xl-center">
-        <div><span class="hero-badge mb-2">🏢 منشأة</span>
-            <h1 class="h3 mb-2">{{ $company->name_ar ?: $company->legal_name_ar }}</h1>
-            <p class="mb-0 opacity-75">لوحة تحكم احترافية بإحصائيات محفوظة مؤقتاً ومؤشرات تشغيلية للمنشأة.</p>
-        </div>
-        <div class="quick-actions d-flex flex-wrap gap-2"><a class="btn btn-light" href="{{ route('company.invoices.create', $company) }}">🧾 إنشاء فاتورة</a><a class="btn btn-outline-light" href="{{ route('company.products.create', $company) }}">📦 إضافة منتج</a><a class="btn btn-outline-light" href="{{ route('company.contacts.create', $company) }}">🤝 إضافة عميل</a><a class="btn btn-outline-light" href="{{ route('company.settings.edit', $company) }}">⚙️ إعدادات المنشأة</a></div>
-    </div>
-</div>
-<div class="row g-3 mb-4" dir="rtl">
-    @foreach([
-    ['📦','عدد المنتجات',$stats['product_count'] ?? $productCount ?? 0],['🤝','عدد العملاء والموردين',$stats['contact_count'] ?? $contactCount ?? 0],['🧾','عدد الفواتير',$stats['invoice_count'] ?? $invoiceCount ?? 0],['📝','فواتير Draft',$stats['draft_invoices'] ?? 0],['✅','فواتير Ready',$stats['ready_invoices'] ?? $pendingInvoices ?? 0],['📡','فواتير Submitted',$stats['submitted_invoices'] ?? $approvedInvoices ?? 0],['⚠️','فواتير JoFotara ERROR',$stats['jofotara_error_invoices'] ?? 0],['💰','إجمالي المبيعات',number_format((float)($stats['sales_total'] ?? 0),3).' JOD'],['🧮','إجمالي الضريبة',number_format((float)($stats['tax_total'] ?? 0),3).' JOD']
-    ] as $metric)
-    <div class="col-md-2 col-xl-1">
-        <div class="metric-card">
-            <div class="d-flex align-items-center gap-3">
-                <div class="icon">{{ $metric[0] }}</div>
-                <div>
-                    <div class="label">{{ $metric[1] }}</div>
-                    <div class="value">{{ $metric[2] }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    @endforeach
-</div>
-<div class="row g-4" dir="rtl">
-
-    <div class="col-xl-4">
-        <div class="dashboard-card card card-body">
-            <div class="d-flex justify-content-between align-items-start mb-3"><h2 class="h5 mb-0">الاشتراك الحالي</h2><x-subscription.health-badge :health="$subscriptionHealth" /></div>
-            <div class="info-row"><span class="text-muted">الباقة</span><strong>{{ $subscriptionPlan?->name_ar ?: $subscriptionPlan?->name ?: '—' }}</strong></div>
-            <div class="info-row"><span class="text-muted">شهري أو سنوي</span><strong>{{ $subscription?->billing_cycle ?: '—' }}</strong></div>
-            <div class="info-row"><span class="text-muted">تاريخ البداية</span><strong>{{ $dashboardDate($subscriptionAccess['period_start']) }}</strong></div>
-            <div class="info-row"><span class="text-muted">تاريخ الانتهاء</span><strong>{{ $dashboardDate($subscriptionAccess['period_end']) }}</strong></div>
-            <div class="info-row"><span class="text-muted">الأيام المتبقية</span><strong>{{ $subscriptionAccess['days_remaining'] ?? '—' }}</strong></div>
-            <div class="info-row"><span class="text-muted">Auto Renew</span><strong>{{ $subscription?->auto_renew ? 'مفعل' : 'غير مفعل' }}</strong></div>
-            <a class="btn btn-primary w-100 mt-3" href="{{ route('company.subscriptions.index', $company) }}">إدارة الاشتراك</a>
-        </div>
-    </div>
-
-    <div class="col-xl-5">
-        <div class="dashboard-card card card-body">
-            <h2 class="h5 mb-3">ملف المنشأة</h2>
-            <div class="info-row"><span class="text-muted">اسم المنشأة</span><strong>{{ $company->name_ar ?: $company->legal_name_ar }}</strong></div>
-            <div class="info-row"><span class="text-muted">الرقم الضريبي</span><strong>{{ $company->tax_number ?: '—' }}</strong></div>
-            <div class="info-row"><span class="text-muted">مصدر الدخل</span><strong>{{ $company->economic_activity ?: '—' }}</strong></div>
-            <div class="info-row"><span class="text-muted">الهاتف</span><strong>{{ $company->phone ?: '—' }}</strong></div>
-            <div class="info-row"><span class="text-muted">العنوان</span><strong>{{ collect([$company->city, $company->street, $company->building_no])->filter()->join('، ') ?: '—' }}</strong></div>
-            <div class="info-row"><span class="text-muted">حالة الربط مع جوفوتارا</span><span class="status-badge">{{ $company->hasJofotaraClientId() && $company->hasJofotaraSecretKey() && filled($company->jofotara_source_id) ? 'مكتمل' : 'غير مكتمل' }}</span></div>
-            <div class="info-row"><span class="text-muted">الباقة الحالية</span><strong>{{ $company->activeSubscription?->plan?->name_ar ?: $company->activeSubscription?->plan?->name ?: '—' }}</strong></div>
-            <h3 class="h6 mt-3">المزايا الفعالة</h3>
-            <div class="d-flex gap-2 flex-wrap">@forelse($company->featureKeys as $feature)<span class="status-badge">{{ $feature->name_ar ?: $feature->code }}</span>@empty<span class="text-muted">لا توجد مزايا مفعلة.</span>@endforelse</div>
-        </div>
-    </div>
-   
-    <div class="col-xl-6">
-        <div class="dashboard-card card card-body">
-            <h2 class="h5 mb-3">آخر الفواتير</h2>
-            @forelse(($stats['recent_invoices'] ?? collect()) as $invoice)
-                <div class="timeline-item"><strong>{{ data_get($invoice, 'invoice_number', '—') }}</strong>
-                    <div class="text-muted small">{{ data_get($invoice, 'customer_name', '—') }} — {{ data_get($invoice, 'status', '—') }} — {{ data_get($invoice, 'grand_total', '0.000') }} {{ data_get($invoice, 'currency', 'JOD') }}</div>
-                </div>
-            @empty
-                <div class="empty-soft">لا توجد فواتير حديثة.</div>
-            @endforelse
-        </div>
-    </div>
-
-    <div class="col-xl-6">
-        <div class="dashboard-card card card-body">
-            <h2 class="h5 mb-3">آخر فاتورة مرسلة</h2>@if($stats['last_submitted_invoice'] ?? null)<div class="timeline-item"><strong>{{ data_get($stats, 'last_submitted_invoice.invoice_number', '—') }}</strong>
-                <div class="text-muted small">{{ $dashboardDate(data_get($stats, 'last_submitted_invoice.jofotara_submitted_at'), 'Y-m-d H:i') }} — {{ data_get($stats, 'last_submitted_invoice.jofotara_status', '—') ?: '—' }}</div>
-            </div>@else<div class="empty-soft">لا توجد فاتورة مرسلة بعد.</div>@endif
-        </div>
-    </div>
-    <div class="col-12">
-        <div class="dashboard-card card card-body">
-            <h2 class="h5 mb-3">آخر 5 نشاطات</h2>@forelse(($stats['recent_activities'] ?? collect()) as $activity)<div class="timeline-item"><strong>{{ data_get($activity, 'action', '—') }}</strong>
-                <div class="text-muted small">{{ $dashboardDate(data_get($activity, 'created_at'), 'Y-m-d H:i') }} — {{ data_get($activity, 'user_name') ?: data_get($activity, 'user.name', 'النظام') }}</div>
-            </div>@empty<div class="empty-soft">لا توجد نشاطات حديثة.</div>@endforelse
-        </div>
-    </div>
-</div>
+<div class="dash-shell"><div class="dash-hero"><span class="badge bg-white text-primary mb-2">{{ $isDataEntry ? 'Company Data Entry' : 'Company Dashboard' }}</span><span class="visually-hidden">إنشاء فاتورة</span><h1 class="h3 mb-2">{{ $company->name_ar ?: $company->legal_name_ar }}</h1><p class="mb-0 opacity-75">مؤشرات منشأتك فقط: الفواتير، جوفوتارا، العملاء، المنتجات، والتنبيهات حسب صلاحياتك.</p><div class="d-flex flex-wrap gap-2 mt-3">@if($canCreateInvoices)<a class="btn btn-light rounded-pill" href="{{ route('company.invoices.create',$company) }}">🧾 إنشاء فاتورة سريعة</a>@endif @if($canCustomers)<a class="btn btn-outline-light rounded-pill" href="{{ route('company.contacts.index',$company) }}">العملاء</a>@endif @if($canProducts)<a class="btn btn-outline-light rounded-pill" href="{{ route('company.products.index',$company) }}">المنتجات</a>@endif @if($canManageSettings)<a class="btn btn-outline-light rounded-pill" href="{{ route('company.settings.edit',$company) }}">الإعدادات</a>@endif</div></div><div class="dash-grid"><div class="dash-stat"><div class="dash-stat-icon">🧾</div><div class="dash-stat-value">{{ $stats['invoice_count'] ?? 0 }}</div><div class="dash-stat-label">الفواتير</div></div><div class="dash-stat"><div class="dash-stat-icon">💰</div><div class="dash-stat-value">{{ number_format((float)($stats['sales_total'] ?? 0),3) }}</div><div class="dash-stat-label">إجمالي المبيعات</div></div><div class="dash-stat"><div class="dash-stat-icon">📡</div><div class="dash-stat-value">{{ $stats['submitted_invoices'] ?? 0 }}</div><div class="dash-stat-label">مرسلة لجوفوتارا</div></div><div class="dash-stat"><div class="dash-stat-icon">⚠️</div><div class="dash-stat-value">{{ $stats['jofotara_error_invoices'] ?? 0 }}</div><div class="dash-stat-label">فواتير فاشلة</div></div>@if(! $isDataEntry || $canCustomers)<div class="dash-stat"><div class="dash-stat-icon">🤝</div><div class="dash-stat-value">{{ $stats['contact_count'] ?? 0 }}</div><div class="dash-stat-label">العملاء</div></div>@endif @if(! $isDataEntry || $canProducts)<div class="dash-stat"><div class="dash-stat-icon">📦</div><div class="dash-stat-value">{{ $stats['product_count'] ?? 0 }}</div><div class="dash-stat-label">المنتجات</div></div>@endif @if(! $isDataEntry)<div class="dash-stat"><div class="dash-stat-icon">👥</div><div class="dash-stat-value">{{ $company->users()->count() }}</div><div class="dash-stat-label">المستخدمون</div></div><div class="dash-stat"><div class="dash-stat-icon">🔁</div><div class="dash-stat-value">{{ $subscriptionAccess['days_remaining'] ?? '—' }}</div><div class="dash-stat-label">أيام الاشتراك</div></div>@endif<div class="dash-panel span-4"><h2 class="h5">تنبيهات المنشأة</h2><span class="visually-hidden">ملف المنشأة</span><div class="dash-list">@if(!($company->hasJofotaraClientId() && $company->hasJofotaraSecretKey() && filled($company->jofotara_source_id)))<div class="dash-alert">بيانات ربط JoFotara غير مكتملة</div>@endif @if(($subscriptionAccess['days_remaining'] ?? 99) <= 14)<div class="dash-alert">الاشتراك قريب من الانتهاء: {{ $d($subscriptionAccess['period_end'] ?? null) }}</div>@endif @if(($stats['jofotara_error_invoices'] ?? 0) > 0)<div class="dash-alert">توجد فواتير فشلت بالإرسال</div>@endif</div></div>@if(! $isDataEntry)<div class="dash-panel span-4"><h2 class="h5">الاشتراك الحالي</h2><a class="small" href="{{ route('company.subscriptions.index',$company) }}">إدارة الاشتراك</a><span class="visually-hidden">Auto Renew</span><div class="dash-list"><div class="dash-list-item"><span>الباقة</span><strong>{{ $plan?->name_ar ?: $plan?->name ?: '—' }}</strong></div><div class="dash-list-item"><span>المدة</span><strong>{{ $subscription?->billing_cycle ?: '—' }}</strong></div><div class="dash-list-item"><span>ينتهي في</span><strong>{{ $d($subscriptionAccess['period_end'] ?? null) }}</strong></div></div></div>@endif<div class="dash-panel {{ $isDataEntry ? 'span-8' : 'span-4' }}"><h2 class="h5">آخر الفواتير</h2><div class="dash-list">@forelse($stats['recent_invoices'] ?? [] as $invoice)<div class="dash-list-item"><span>{{ data_get($invoice,'invoice_number') }}</span><small>{{ data_get($invoice,'customer_name') }} — {{ data_get($invoice,'status') }} — {{ data_get($invoice,'grand_total') }}</small></div>@empty<div class="dash-list-item">لا توجد فواتير حديثة.</div>@endforelse</div></div><div class="dash-panel span-8"><h2 class="h5">آخر أنشطة المنشأة</h2><div class="dash-list">@forelse($stats['recent_activities'] ?? [] as $activity)<div class="dash-list-item"><span>{{ data_get($activity,'action') }}</span><small>{{ data_get($activity,'created_at') }}</small></div>@empty<div class="dash-list-item">لا توجد أنشطة حديثة.</div>@endforelse</div></div></div></div>
 @endsection

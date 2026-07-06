@@ -19,6 +19,7 @@ class SetCompanyPermissionTeam
         $companyId = $company instanceof Company ? $company->id : ($company ? (int) $company : null);
 
         if ($companyId !== null) {
+            abort_if($request->user() && ! $request->user()->isSuperAdmin() && (int) $request->user()->company_id !== (int) $companyId, 404);
             setPermissionsTeamId($companyId);
         }
 
