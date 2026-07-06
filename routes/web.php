@@ -82,6 +82,8 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::get('subscription-requests', [AdminSubscriptionRequestController::class, 'index'])->name('subscription-requests.index');
     Route::get('subscription-requests/{subscriptionRequest}', [AdminSubscriptionRequestController::class, 'show'])->name('subscription-requests.show');
     Route::put('subscription-requests/{subscriptionRequest}', [AdminSubscriptionRequestController::class, 'update'])->name('subscription-requests.update');
+    Route::get('subscription-requests/{subscriptionRequest}/provision', [AdminSubscriptionRequestController::class, 'provisionCreate'])->name('subscription-requests.provision.create');
+    Route::post('subscription-requests/{subscriptionRequest}/provision', [AdminSubscriptionRequestController::class, 'provisionStore'])->name('subscription-requests.provision.store');
     Route::resource('plans', PlanController::class)->except(['show', 'destroy']);
     Route::post('plans/{plan}/activate', [PlanController::class, 'activate'])->name('plans.activate');
     Route::post('plans/{plan}/deactivate', [PlanController::class, 'deactivate'])->name('plans.deactivate');
