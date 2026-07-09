@@ -9,6 +9,7 @@ use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\InvoiceTemplate;
 use Illuminate\Support\Collection;
+
 class InvoiceTemplateData
 {
     public function __construct(
@@ -23,5 +24,6 @@ class InvoiceTemplateData
         public InvoiceTemplate $template,
         public string $language,
         public string $direction,
+        public array $doc = [],
     ) {}
 }

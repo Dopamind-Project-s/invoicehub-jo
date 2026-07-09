@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Company;
+use App\Models\CompanySetting;
 use App\Models\Invoice;
 use App\Models\InvoiceShare;
 use App\Models\InvoiceTemplate;
+use App\Models\User;
 use App\Services\Invoices\InvoiceNotificationService;
+use App\Services\Invoices\InvoicePdfRenderer;
 use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceShareService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -53,11 +56,10 @@ class InvoiceExperienceLayerTest extends TestCase
         $invoice = $this->makeInvoice();
         $html = app(InvoicePdfService::class)->html($invoice);
         $this->assertStringContainsString($invoice->invoice_number, $html);
-        $this->assertStringContainsString('QR Code will appear after submission to the National E-Invoicing System', $html);
+        $this->assertStringContainsString('رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني', $html);
         $this->assertStringContainsString('فاتورة ضريبية', $html);
         $this->assertStringNotContainsString('@vite', $html);
     }
-
 
     public function test_company_can_select_default_template_and_preview_qr_states(): void
     {
@@ -65,16 +67,80 @@ class InvoiceExperienceLayerTest extends TestCase
         $company = $invoice->company;
         $template = InvoiceTemplate::where('slug', 'corporate-tax')->firstOrFail();
 
-        \App\Models\CompanySetting::updateOrCreate(['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id'], ['value' => (string) $template->id]);
+        CompanySetting::updateOrCreate(['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id'], ['value' => (string) $template->id]);
         $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id', 'value' => (string) $template->id]);
 
-        $html = app(\App\Services\Invoices\InvoicePdfRenderer::class)->html($invoice, $template);
-        $this->assertStringContainsString('QR Code will appear after submission to the National E-Invoicing System', $html);
+        $html = app(InvoicePdfRenderer::class)->html($invoice, $template);
+        $this->assertStringContainsString('رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني', $html);
 
-        $invoice->forceFill(['jofotara_qr' => 'QR-EXACT-VALUE', 'jofotara_uuid' => 'UUID-1'])->save();
-        $htmlWithQr = app(\App\Services\Invoices\InvoicePdfRenderer::class)->html($invoice->refresh(), $template);
-        $this->assertStringContainsString('QR-EXACT-VALUE', $htmlWithQr);
+        $invoice->forceFill(['jofotara_status' => 'SUBMITTED', 'jofotara_validation_result' => 'PASS', 'jofotara_qr' => 'QR-EXACT-VALUE', 'jofotara_uuid' => 'UUID-1'])->save();
+        $htmlWithQr = app(InvoicePdfRenderer::class)->html($invoice->refresh(), $template);
+        $this->assertStringContainsString('data:image/svg+xml;base64', $htmlWithQr);
+        $this->assertStringNotContainsString('QR-EXACT-VALUE</small>', $htmlWithQr);
         $this->assertSame('QR-EXACT-VALUE', $invoice->refresh()->jofotara_qr);
+    }
+
+    public function test_invoice_document_sanitizes_json_array_xml_and_keeps_arabic_mixed_items(): void
+    {
+        $invoice = $this->makeInvoice();
+        $invoice->forceFill(['notes' => json_encode(['source' => 'api', 'note' => 'ملاحظة نصية فقط'], JSON_UNESCAPED_UNICODE)])->save();
+        $invoice->items()->create([
+            'description' => 'خدمة عربية / English service طويلة للتحقق من كسر النص',
+            'quantity' => '2.000000',
+            'unit_price' => '5.000000',
+            'discount' => '0.000000',
+            'discount_amount' => '1.000000',
+            'tax_category' => 'S',
+            'tax_percent' => '16.000000',
+            'line_extension_amount' => '10.000000',
+            'tax_amount' => '1.440000',
+            'line_total' => '10.440000',
+        ]);
+
+        $html = app(InvoicePdfService::class)->html($invoice->refresh());
+
+        $this->assertStringContainsString('ملاحظة نصية فقط', $html);
+        $this->assertStringContainsString('خدمة عربية / English service', $html);
+        foreach (['{"source"', 'Array', '[object Object]', '<Invoice', '<?xml'] as $forbidden) {
+            $this->assertStringNotContainsString($forbidden, $html);
+        }
+    }
+
+    public function test_official_jofotara_qr_is_source_of_truth_and_no_qr_before_success(): void
+    {
+        $invoice = $this->makeInvoice();
+        $company = $invoice->company;
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+
+        $this->actingAs($user)->get(route('company.invoices.qr', [$company, $invoice]))->assertNotFound();
+
+        $invoice->forceFill([
+            'qr_code' => 'LOCAL-LEGACY-QR-MUST-NOT-WIN',
+            'jofotara_status' => 'SUBMITTED',
+            'jofotara_validation_result' => 'PASS',
+            'jofotara_uuid' => 'OFFICIAL-UUID',
+            'jofotara_qr' => 'OFFICIAL-JOFOTARA-PAYLOAD',
+        ])->save();
+
+        $html = app(InvoicePdfService::class)->html($invoice->refresh());
+        $this->assertStringContainsString('data:image/svg+xml;base64', $html);
+        $this->assertStringNotContainsString('LOCAL-LEGACY-QR-MUST-NOT-WIN', $html);
+
+        $response = $this->actingAs($user)->get(route('company.invoices.qr', [$company, $invoice]));
+        $response->assertOk()->assertHeader('Content-Type', 'image/svg+xml');
+        $this->assertStringContainsString('svg', $response->getContent());
+    }
+
+    public function test_pdf_endpoint_is_authorized_and_outputs_pdf_for_arabic_invoice(): void
+    {
+        $invoice = $this->makeInvoice();
+        $company = $invoice->company;
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+
+        $this->get(route('company.invoices.printable', [$company, $invoice]))->assertRedirect();
+        $response = $this->actingAs($user)->get(route('company.invoices.printable', [$company, $invoice]));
+        $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 
     public function test_no_vite_is_used_in_invoice_templates(): void

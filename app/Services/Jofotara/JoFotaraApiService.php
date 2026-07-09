@@ -7,8 +7,8 @@ namespace App\Services\Jofotara;
 use App\Models\Invoice;
 use App\Models\InvoiceSubmissionLog;
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -69,7 +69,7 @@ class JoFotaraApiService
         $preparedInvoice->forceFill([
             'submission_uuid' => $submissionUuid,
             'submission_response' => $safeResponse,
-            'qr_code' => $parsed['qr'] ?: $preparedInvoice->qr_code,
+            'qr_code' => $parsed['qr'] ?: null,
             'submitted_at' => now(),
             'accepted_at' => $status === 'ACCEPTED' ? now() : null,
             'jofotara_status' => $status,
@@ -144,8 +144,10 @@ class JoFotaraApiService
 
     private function isSuccessfulSubmission(string $status, array $parsed): bool
     {
+        $validation = strtoupper((string) ($parsed['validation_result'] ?? ''));
+
         return in_array($status, ['ACCEPTED', 'SUBMITTED'], true)
-            && strtoupper((string) ($parsed['validation_result'] ?? '')) === 'PASS'
+            && ($validation === 'PASS' || ($status === 'ACCEPTED' && $validation === ''))
             && filled($parsed['qr'] ?? null)
             && filled($parsed['uuid'] ?? null)
             && blank($parsed['error_summary'] ?? null);

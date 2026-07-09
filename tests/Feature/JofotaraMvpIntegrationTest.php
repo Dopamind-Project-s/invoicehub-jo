@@ -6,12 +6,14 @@ use App\Models\Company;
 use App\Models\Contact;
 use App\Models\FeatureKey;
 use App\Models\Invoice;
+use App\Models\InvoiceTemplate;
 use App\Models\Plan;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class JofotaraMvpIntegrationTest extends TestCase
@@ -33,11 +35,10 @@ class JofotaraMvpIntegrationTest extends TestCase
         $this->actingAs($user)->get(route('company.invoices.index', $company))->assertOk();
         $this->actingAs($user)->get(route('company.invoices.create', $company))->assertOk()->assertSee('حفظ');
 
-        foreach (\App\Models\InvoiceTemplate::query()->whereNull('company_id')->get() as $template) {
+        foreach (InvoiceTemplate::query()->whereNull('company_id')->get() as $template) {
             $this->actingAs($user)->get(route('company.invoice-templates.preview', [$company, $template]))->assertOk();
         }
     }
-
 
     public function test_internal_and_legacy_invoice_types_can_be_stored(): void
     {
@@ -114,7 +115,6 @@ class JofotaraMvpIntegrationTest extends TestCase
         $this->assertDatabaseHas('subscriptions', ['company_id' => $company->id, 'plan_id' => $professional->id, 'status' => 'active']);
     }
 
-
     public function test_jofotara_submit_action_visibility_rules_are_clear(): void
     {
         [$company, $user] = $this->companyUser();
@@ -138,7 +138,6 @@ class JofotaraMvpIntegrationTest extends TestCase
             ->assertOk()
             ->assertSee('بيانات الربط مع نظام الفوترة غير مكتملة', false);
     }
-
 
     public function test_future_issue_date_blocks_before_http_call(): void
     {
@@ -261,15 +260,15 @@ class JofotaraMvpIntegrationTest extends TestCase
 
         $this->actingAs($user)->get(route('company.invoices.show', [$company, $invoice]))
             ->assertOk()
-            ->assertSee('حالة الفاتورة المحلية', false)
-            ->assertSee('حالة جوفوتارا', false)
+            ->assertSee('بيانات الفاتورة', false)
+            ->assertSee('JoFotara', false)
             ->assertSee('نتيجة التحقق', false)
             ->assertSee('رمز QR', false)
             ->assertSee(route('company.invoices.qr', [$company, $invoice]), false);
 
         $this->actingAs($user)->get(route('company.invoices.qr', [$company, $invoice]))
             ->assertOk()
-            ->assertHeader('Content-Type', 'image/png');
+            ->assertHeader('Content-Type', 'image/svg+xml');
     }
 
     public function test_jofotara_import_prevents_duplicate_external_invoices(): void
@@ -381,7 +380,6 @@ class JofotaraMvpIntegrationTest extends TestCase
         $this->actingAs($user)->get(route('company.invoices.jofotara.uat', $company))->assertNotFound();
     }
 
-
     /** @return array<string,mixed> */
     private function invoicePayload(Company $company, string $type, int $index): array
     {
@@ -389,7 +387,7 @@ class JofotaraMvpIntegrationTest extends TestCase
             'company_id' => $company->id,
             'supplier_id' => $company->id,
             'invoice_number' => 'TYPE-'.str_replace('_', '-', $type).'-'.$index,
-            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'uuid' => (string) Str::uuid(),
             'icv' => 1000 + $index,
             'invoice_type' => $type,
             'invoice_subtype' => str_starts_with($type, 'credit') || $type === Invoice::TYPE_CREDIT_NOTE ? 'CREDIT_NOTE' : 'SALE',

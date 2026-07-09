@@ -8,27 +8,29 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Invoice;
+use App\Models\InvoiceTemplate;
 use App\Models\Product;
 use App\Services\Audit\AuditLogger;
 use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
-use App\Services\Invoices\InvoiceCalculator;
-use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceBrandingService;
+use App\Services\Invoices\InvoiceCalculator;
+use App\Services\Invoices\InvoiceDisplayDataFactory;
 use App\Services\Invoices\InvoiceNotificationService;
+use App\Services\Invoices\InvoicePdfService;
 use App\Services\Jofotara\JoFotaraApiService;
 use App\Services\Jofotara\JoFotaraPreparationService;
 use App\Services\Jofotara\QRCodeService;
-use RuntimeException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use RuntimeException;
 
 class InvoiceEngineController extends Controller
 {
-    public function __construct(private readonly InvoiceCalculator $calculator, private readonly AuditLogger $audit, private readonly InvoiceNotificationService $notifications, private readonly InvoiceBrandingService $branding) {}
+    public function __construct(private readonly InvoiceCalculator $calculator, private readonly AuditLogger $audit, private readonly InvoiceNotificationService $notifications, private readonly InvoiceBrandingService $branding, private readonly InvoiceDisplayDataFactory $displayData) {}
 
     public function index(Request $request, Company $company)
     {
@@ -72,7 +74,9 @@ class InvoiceEngineController extends Controller
     public function show(Company $company, Invoice $invoice)
     {
         $this->authorizeCompany($company, $invoice);
-        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice->load(['contact', 'items.product', 'submissionLogs']), 'branding' => $this->branding->settings($company)]);
+        $invoice->load(['contact', 'items.product', 'submissionLogs']);
+
+        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice, 'doc' => $this->displayData->make($invoice), 'branding' => $this->branding->settings($company)]);
     }
 
     public function jofotaraUat(Company $company, JoFotaraPreparationService $preparer)
@@ -108,6 +112,7 @@ class InvoiceEngineController extends Controller
     {
         $this->authorizeCompany($company, $invoice);
         abort_if($invoice->isReadOnly() || ! in_array($invoice->status, [Invoice::STATUS_DRAFT, Invoice::STATUS_READY], true), 403, 'يمكن تعديل المسودات والفواتير الجاهزة فقط.');
+
         return view('company.invoices.edit', $this->formData($company, $invoice->load('items')));
     }
 
@@ -223,10 +228,10 @@ class InvoiceEngineController extends Controller
     public function qr(Company $company, Invoice $invoice, QRCodeService $qr)
     {
         $this->authorizeCompany($company, $invoice);
-        $png = $qr->png($invoice);
-        abort_if($png === null, 404);
+        $image = $qr->image($invoice);
+        abort_if($image === null, 404);
 
-        return response($png, 200)->header('Content-Type', 'image/png');
+        return response($image['bytes'], 200)->header('Content-Type', $image['mime']);
     }
 
     public function printable(Request $request, Company $company, Invoice $invoice, InvoicePdfService $pdf)
@@ -253,7 +258,9 @@ class InvoiceEngineController extends Controller
             'uuid' => $invoice->uuid ?: (string) Str::uuid(),
             'icv' => $invoice->icv ?: $this->nextInternalIcv($company),
             'invoice_type' => $data['invoice_type'],
-            'invoice_subtype' => match ($data['invoice_type']) { Invoice::TYPE_CREDIT_NOTE => 'CREDIT_NOTE', Invoice::TYPE_DEBIT_NOTE => 'DEBIT_NOTE', default => 'SALE' },
+            'invoice_subtype' => match ($data['invoice_type']) {
+                Invoice::TYPE_CREDIT_NOTE => 'CREDIT_NOTE', Invoice::TYPE_DEBIT_NOTE => 'DEBIT_NOTE', default => 'SALE'
+            },
             'invoice_scope' => 'local',
             'payment_type' => 'receivable',
             'taxpayer_type' => 'income',
@@ -317,12 +324,11 @@ class InvoiceEngineController extends Controller
 
     private function formData(Company $company, Invoice $invoice): array
     {
-        return ['company' => $company, 'invoice' => $invoice, 'contacts' => Contact::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'products' => Product::with(['taxCategory', 'taxProfile'])->where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'branding' => $this->branding->settings($company), 'templates' => \App\Models\InvoiceTemplate::query()->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $company->id))->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get()];
+        return ['company' => $company, 'invoice' => $invoice, 'contacts' => Contact::where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'products' => Product::with(['taxCategory', 'taxProfile'])->where('company_id', $company->id)->where('is_active', true)->orderBy('name_ar')->get(), 'branding' => $this->branding->settings($company), 'templates' => InvoiceTemplate::query()->where(fn ($q) => $q->whereNull('company_id')->orWhere('company_id', $company->id))->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get()];
     }
 
-
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     private function createInlineRecords(Company $company, array $data): array

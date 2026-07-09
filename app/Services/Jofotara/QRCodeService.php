@@ -5,22 +5,56 @@ declare(strict_types=1);
 namespace App\Services\Jofotara;
 
 use App\Models\Invoice;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class QRCodeService
 {
+    public function hasOfficialQr(Invoice $invoice): bool
+    {
+        return filled($this->officialValue($invoice));
+    }
+
+    public function officialValue(Invoice $invoice): ?string
+    {
+        $status = strtoupper((string) $invoice->jofotara_status);
+        $validation = strtoupper((string) $invoice->jofotara_validation_result);
+        if (! in_array($status, ['ACCEPTED', 'SUBMITTED'], true) || ($validation !== '' && $validation !== 'PASS')) {
+            return null;
+        }
+        if (blank($invoice->jofotara_uuid) || blank($invoice->jofotara_qr)) {
+            return null;
+        }
+
+        return trim((string) $invoice->jofotara_qr);
+    }
+
     public function raw(Invoice $invoice): string
     {
-        return (string) ($invoice->jofotara_qr ?: $invoice->qr_code);
+        return (string) ($this->officialValue($invoice) ?: '');
+    }
+
+    /** @return array{mime:string,bytes:string}|null */
+    public function image(Invoice $invoice, int $size = 180): ?array
+    {
+        $value = $this->officialValue($invoice);
+        if (blank($value)) {
+            return null;
+        }
+        $decoded = $this->decodeImage($value);
+        if ($decoded !== null && in_array($decoded['mime'], ['image/png', 'image/svg+xml'], true)) {
+            return $decoded;
+        }
+        $payload = $decoded !== null && $decoded['mime'] === 'text/plain' ? $decoded['bytes'] : $value;
+        $svg = (string) QrCode::format('svg')->encoding('UTF-8')->size($size)->margin(1)->generate($payload);
+
+        return ['mime' => 'image/svg+xml', 'bytes' => $svg];
     }
 
     public function png(Invoice $invoice, int $scale = 6): ?string
     {
-        $value = $this->raw($invoice);
-        if (blank($value)) {
-            return null;
-        }
+        $image = $this->image($invoice, max(120, $scale * 36));
 
-        return $this->pngFromValue($value, $scale);
+        return $image && $image['mime'] === 'image/png' ? $image['bytes'] : null;
     }
 
     public function pngBase64(Invoice $invoice, int $scale = 6): ?string
@@ -32,67 +66,33 @@ class QRCodeService
 
     public function dataUri(Invoice $invoice, int $scale = 6): ?string
     {
-        $base64 = $this->pngBase64($invoice, $scale);
+        $image = $this->image($invoice, max(120, $scale * 36));
 
-        return $base64 === null ? null : 'data:image/png;base64,'.$base64;
+        return $image === null ? null : 'data:'.$image['mime'].';base64,'.base64_encode($image['bytes']);
     }
 
-    /**
-     * Deterministic PNG fallback used when no QR composer package is available in the deployment.
-     * It renders finder markers and a data matrix derived from the accepted JoFotara QR value,
-     * so the UI/PDF displays a QR image without exposing raw text.
-     */
-    public function pngFromValue(string $value, int $scale = 6): string
+    /** @return array{mime:string,bytes:string}|null */
+    private function decodeImage(string $value): ?array
     {
-        $modules = 33;
-        $quiet = 4;
-        $size = ($modules + ($quiet * 2)) * $scale;
-        $image = imagecreatetruecolor($size, $size);
-        $white = imagecolorallocate($image, 255, 255, 255);
-        $black = imagecolorallocate($image, 0, 0, 0);
-        imagefill($image, 0, 0, $white);
+        $value = trim($value);
+        if (preg_match('#^data:(image/(?:png|svg\+xml));base64,(.+)$#i', $value, $matches)) {
+            $bytes = base64_decode($matches[2], true);
 
-        $bits = $this->bits($value, $modules * $modules);
-        for ($y = 0; $y < $modules; $y++) {
-            for ($x = 0; $x < $modules; $x++) {
-                if ($this->isFinder($x, $y, $modules) || $bits[$y * $modules + $x] === '1') {
-                    imagefilledrectangle($image, ($x + $quiet) * $scale, ($y + $quiet) * $scale, ($x + $quiet + 1) * $scale - 1, ($y + $quiet + 1) * $scale - 1, $black);
-                }
+            return $bytes === false ? null : ['mime' => strtolower($matches[1]), 'bytes' => $bytes];
+        }
+        if (str_starts_with($value, '<svg')) {
+            return ['mime' => 'image/svg+xml', 'bytes' => $value];
+        }
+        $bytes = base64_decode($value, true);
+        if ($bytes !== false) {
+            if (str_starts_with($bytes, "\x89PNG\r\n\x1a\n")) {
+                return ['mime' => 'image/png', 'bytes' => $bytes];
+            }
+            if (str_starts_with(ltrim($bytes), '<svg')) {
+                return ['mime' => 'image/svg+xml', 'bytes' => $bytes];
             }
         }
 
-        ob_start();
-        imagepng($image);
-        imagedestroy($image);
-
-        return (string) ob_get_clean();
-    }
-
-    private function bits(string $value, int $length): string
-    {
-        $bits = '';
-        $counter = 0;
-        while (strlen($bits) < $length) {
-            foreach (str_split(hash('sha256', $value.'|'.$counter, true)) as $char) {
-                $bits .= str_pad(decbin(ord($char)), 8, '0', STR_PAD_LEFT);
-            }
-            $counter++;
-        }
-
-        return substr($bits, 0, $length);
-    }
-
-    private function isFinder(int $x, int $y, int $modules): bool
-    {
-        foreach ([[0, 0], [$modules - 7, 0], [0, $modules - 7]] as [$fx, $fy]) {
-            if ($x >= $fx && $x < $fx + 7 && $y >= $fy && $y < $fy + 7) {
-                $dx = $x - $fx;
-                $dy = $y - $fy;
-
-                return $dx === 0 || $dx === 6 || $dy === 0 || $dy === 6 || ($dx >= 2 && $dx <= 4 && $dy >= 2 && $dy <= 4);
-            }
-        }
-
-        return false;
+        return null;
     }
 }
