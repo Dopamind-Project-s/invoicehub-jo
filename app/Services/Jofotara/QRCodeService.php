@@ -21,11 +21,11 @@ class QRCodeService
         if (! in_array($status, ['ACCEPTED', 'SUBMITTED'], true) || ($validation !== '' && $validation !== 'PASS')) {
             return null;
         }
-        if (blank($invoice->jofotara_uuid) || blank($invoice->jofotara_qr)) {
+        if (blank($invoice->jofotara_qr)) {
             return null;
         }
 
-        return trim((string) $invoice->jofotara_qr);
+        return (string) $invoice->jofotara_qr;
     }
 
     public function raw(Invoice $invoice): string

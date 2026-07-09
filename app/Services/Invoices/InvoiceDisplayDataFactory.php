@@ -6,6 +6,7 @@ namespace App\Services\Invoices;
 
 use App\Models\Invoice;
 use App\Services\Jofotara\QRCodeService;
+use Illuminate\Contracts\Support\Arrayable;
 use Stringable;
 
 class InvoiceDisplayDataFactory
@@ -84,6 +85,12 @@ class InvoiceDisplayDataFactory
         if ($value instanceof Stringable) {
             $value = (string) $value;
         }
+        if ($value instanceof Arrayable) {
+            $value = $value->toArray();
+        }
+        if (is_bool($value)) {
+            return $value ? 'نعم' : 'لا';
+        }
         if (! is_scalar($value)) {
             return null;
         }
@@ -97,13 +104,16 @@ class InvoiceDisplayDataFactory
 
     private function notes(mixed $value): ?string
     {
-        if (is_array($value)) {
-            $value = data_get($value, 'note') ?: data_get($value, 'notes') ?: data_get($value, 'text');
+        if ($value instanceof Arrayable) {
+            $value = $value->toArray();
         }
-        if (is_string($value) && $this->looksStructured($value)) {
+        if (is_array($value)) {
+            $value = $this->extractTextField($value);
+        }
+        if (is_string($value) && $this->isJsonString($value)) {
             $decoded = json_decode($value, true);
             if (is_array($decoded)) {
-                $value = data_get($decoded, 'note') ?: data_get($decoded, 'notes') ?: data_get($decoded, 'text');
+                $value = $this->extractTextField($decoded);
             }
         }
 
@@ -114,7 +124,44 @@ class InvoiceDisplayDataFactory
     {
         $trim = trim($text);
 
-        return $trim === 'Array' || $trim === '[object Object]' || str_starts_with($trim, '<Invoice') || str_starts_with($trim, '<?xml') || ((str_starts_with($trim, '{') && str_ends_with($trim, '}')) || (str_starts_with($trim, '[') && str_ends_with($trim, ']')));
+        return $trim === 'Array'
+            || $trim === '[object Object]'
+            || str_starts_with($trim, '<Invoice')
+            || str_starts_with($trim, '<?xml')
+            || $this->isJsonString($trim);
+    }
+
+    private function isJsonString(string $text): bool
+    {
+        $trim = trim($text);
+        if (! ((str_starts_with($trim, '{') && str_ends_with($trim, '}')) || (str_starts_with($trim, '[') && str_ends_with($trim, ']')))) {
+            return false;
+        }
+
+        json_decode($trim, true);
+
+        return json_last_error() === JSON_ERROR_NONE;
+    }
+
+    private function extractTextField(array $data): mixed
+    {
+        foreach (['note', 'notes', 'text', 'description', 'message'] as $key) {
+            $value = data_get($data, $key);
+            if (is_scalar($value) || $value instanceof Stringable) {
+                return $value;
+            }
+        }
+
+        foreach ($data as $value) {
+            if (is_array($value)) {
+                $found = $this->extractTextField($value);
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
     }
 
     private function join(array $parts): ?string

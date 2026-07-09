@@ -4,16 +4,21 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\CompanySetting;
+use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\InvoiceShare;
 use App\Models\InvoiceTemplate;
 use App\Models\User;
+use App\Services\Invoices\InvoiceDisplayDataFactory;
 use App\Services\Invoices\InvoiceNotificationService;
 use App\Services\Invoices\InvoicePdfRenderer;
 use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceShareService;
+use App\Services\Jofotara\QRCodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Stringable;
 use Tests\TestCase;
 
 class InvoiceExperienceLayerTest extends TestCase
@@ -141,6 +146,193 @@ class InvoiceExperienceLayerTest extends TestCase
         $response = $this->actingAs($user)->get(route('company.invoices.printable', [$company, $invoice]));
         $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_legacy_qr_uuid_url_and_hash_do_not_render_without_official_jofotara_success_state(): void
+    {
+        $invoice = $this->makeInvoice();
+        $company = $invoice->company;
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+        $pdf = app(InvoicePdfService::class);
+
+        foreach ([
+            ['qr_code' => 'LEGACY-QR-ONLY'],
+            ['uuid' => '11111111-1111-4111-8111-111111111111', 'jofotara_qr' => 'LOCAL-UUID-ONLY'],
+            ['jofotara_qr' => route('company.invoices.show', [$company, $invoice])],
+            ['jofotara_qr' => hash('sha256', $invoice->invoice_number)],
+        ] as $attributes) {
+            $invoice->forceFill(array_merge([
+                'jofotara_status' => null,
+                'jofotara_validation_result' => null,
+                'jofotara_uuid' => null,
+                'jofotara_qr' => null,
+                'qr_code' => null,
+            ], $attributes))->save();
+
+            $html = $pdf->html($invoice->refresh());
+            $this->assertStringContainsString('رمز QR الرسمي غير متوفر', $html);
+            $this->assertStringNotContainsString('data:image/', $html);
+            $this->actingAs($user)->get(route('company.invoices.qr', [$company, $invoice]))->assertNotFound();
+        }
+
+        $officialPayload = " OFFICIAL-JOFOTARA-PAYLOAD\nبالعربية ";
+        $invoice->forceFill([
+            'jofotara_status' => 'SUBMITTED',
+            'jofotara_validation_result' => 'PASS',
+            'jofotara_uuid' => null,
+            'jofotara_qr' => $officialPayload,
+            'qr_code' => 'LEGACY-QR-MUST-NOT-WIN',
+        ])->save();
+
+        $this->assertSame($officialPayload, app(QRCodeService::class)->officialValue($invoice->refresh()));
+        $html = $pdf->html($invoice->refresh());
+        $this->assertStringContainsString('data:image/svg+xml;base64', $html);
+        $this->assertStringNotContainsString('LEGACY-QR-MUST-NOT-WIN', $html);
+    }
+
+    public function test_invoice_notes_preserve_valid_text_and_extract_only_business_text_from_structured_values(): void
+    {
+        $invoice = $this->makeInvoice();
+        $factory = app(InvoiceDisplayDataFactory::class);
+
+        foreach ([
+            'ملاحظة عربية صالحة',
+            'English commercial note',
+            'يرجى مراجعة {العقد} قبل الدفع',
+            '{not-json-but-valid-business-note',
+            '[not-json-but-valid-business-note',
+        ] as $note) {
+            $invoice->setAttribute('notes', $note);
+            $this->assertSame($note, $factory->make($invoice)['invoice']['notes']);
+        }
+
+        foreach ([
+            json_encode(['source' => 'api', 'note' => 'ملاحظة من note'], JSON_UNESCAPED_UNICODE) => 'ملاحظة من note',
+            json_encode(['source' => 'api', 'notes' => 'ملاحظة من notes'], JSON_UNESCAPED_UNICODE) => 'ملاحظة من notes',
+            json_encode(['source' => 'api', 'text' => 'ملاحظة من text'], JSON_UNESCAPED_UNICODE) => 'ملاحظة من text',
+            json_encode(['metadata' => ['nested' => ['message' => 'ملاحظة متداخلة']]], JSON_UNESCAPED_UNICODE) => 'ملاحظة متداخلة',
+        ] as $structured => $expected) {
+            $invoice->setAttribute('notes', $structured);
+            $this->assertSame($expected, $factory->make($invoice)['invoice']['notes']);
+        }
+
+        $invoice->setAttribute('notes', collect(['note' => 'ملاحظة من Collection']));
+        $this->assertSame('ملاحظة من Collection', $factory->make($invoice)['invoice']['notes']);
+
+        $invoice->setAttribute('notes', new class implements Stringable
+        {
+            public function __toString(): string
+            {
+                return 'Stringable business note';
+            }
+        });
+        $this->assertSame('Stringable business note', $factory->make($invoice)['invoice']['notes']);
+
+        $invoice->setAttribute('notes', ['source' => 'api']);
+        $this->assertNull($factory->make($invoice)['invoice']['notes']);
+
+        foreach (['Array', '[object Object]', '<Invoice><ID>1</ID></Invoice>', '<?xml version="1.0"?><Invoice/>'] as $forbidden) {
+            $invoice->setAttribute('notes', $forbidden);
+            $this->assertNull($factory->make($invoice)['invoice']['notes']);
+        }
+    }
+
+    public function test_real_arabic_invoice_html_and_pdf_endpoint_include_business_content_and_official_qr(): void
+    {
+        $invoice = $this->makeInvoice();
+        $company = $invoice->company;
+        $company->forceFill([
+            'name_ar' => 'شركة المستقبل للتقنيات والحلول الرقمية',
+            'legal_name_ar' => 'شركة المستقبل للتقنيات والحلول الرقمية',
+            'city' => 'عمّان',
+            'street' => 'شارع الملك عبدالله',
+        ])->save();
+        $contact = Contact::query()->create([
+            'company_id' => $company->id,
+            'type' => Contact::TYPE_CUSTOMER,
+            'name_ar' => 'مؤسسة أحمد الزعبي للتجارة العامة',
+            'tax_number' => '123456789',
+            'phone' => '0790000000',
+            'address' => 'الجبيهة',
+            'city' => 'عمّان',
+            'country' => 'JO',
+            'is_active' => true,
+        ]);
+        $invoice->items()->delete();
+        foreach (['خدمة تطوير نظام إلكتروني', 'اشتراك شهري لمنصة InvoSync', 'Technical Support خدمة دعم فني'] as $description) {
+            $invoice->items()->create([
+                'description' => $description,
+                'quantity' => '1.000000',
+                'unit_price' => '10.000000',
+                'discount' => '0.000000',
+                'discount_amount' => '0.000000',
+                'tax_category' => 'S',
+                'tax_percent' => '16.000000',
+                'line_extension_amount' => '10.000000',
+                'tax_amount' => '1.600000',
+                'line_total' => '11.600000',
+            ]);
+        }
+        $invoice->forceFill([
+            'contact_id' => $contact->id,
+            'notes' => 'شكرًا لتعاملكم معنا، يرجى الاحتفاظ بالفاتورة.',
+            'subtotal' => '30.000000',
+            'taxable_amount' => '30.000000',
+            'tax_amount' => '4.800000',
+            'tax_total' => '4.800000',
+            'payable_amount' => '34.800000',
+            'grand_total' => '34.800000',
+            'jofotara_status' => 'SUBMITTED',
+            'jofotara_validation_result' => 'PASS',
+            'jofotara_qr' => 'OFFICIAL-ARABIC-PDF-PAYLOAD',
+        ])->save();
+
+        $html = app(InvoicePdfService::class)->html($invoice->refresh());
+        foreach ([
+            'شركة المستقبل للتقنيات والحلول الرقمية',
+            'مؤسسة أحمد الزعبي للتجارة العامة',
+            'خدمة تطوير نظام إلكتروني',
+            'اشتراك شهري لمنصة InvoSync',
+            'Technical Support خدمة دعم فني',
+            'شكرًا لتعاملكم معنا، يرجى الاحتفاظ بالفاتورة.',
+            'data:image/svg+xml;base64',
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $html);
+        }
+        foreach (['{"', 'Array', '[object Object]', '<Invoice', '<?xml'] as $forbidden) {
+            $this->assertStringNotContainsString($forbidden, $html);
+        }
+
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+        $response = $this->actingAs($user)->get(route('company.invoices.printable', [$company, $invoice]));
+        $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_company_invoice_routes_enforce_tenant_isolation(): void
+    {
+        $company = Company::where('tax_number', '9578331')->firstOrFail();
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+        $otherCompany = Company::query()->create([
+            'name_ar' => 'شركة أخرى',
+            'legal_name_ar' => 'شركة أخرى',
+            'tax_number' => '99887766',
+            'country_code' => 'JO',
+            'status' => 'active',
+            'is_active' => true,
+        ]);
+        $otherInvoice = $this->makeInvoice();
+        $otherInvoice->forceFill(['company_id' => $otherCompany->id, 'supplier_id' => $otherCompany->id])->save();
+
+        $this->actingAs($user)->get(route('company.invoices.show', [$company, $otherInvoice]))->assertNotFound();
+        $this->actingAs($user)->get(route('company.invoices.printable', [$company, $otherInvoice]))->assertNotFound();
+        $this->actingAs($user)->get(route('company.invoices.qr', [$company, $otherInvoice]))->assertNotFound();
+    }
+
+    public function test_seeded_schema_contains_plan_multilingual_columns_required_by_fresh_seed(): void
+    {
+        $this->assertTrue(Schema::hasColumns('plans', ['name', 'name_ar', 'name_en', 'slug']));
+        $this->assertDatabaseHas('plans', ['slug' => 'starter', 'name_ar' => 'باقة البداية']);
     }
 
     public function test_no_vite_is_used_in_invoice_templates(): void
