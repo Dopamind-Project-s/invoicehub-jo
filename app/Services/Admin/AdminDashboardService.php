@@ -15,8 +15,9 @@ class AdminDashboardService
 {
     public function get(): array
     {
-        return Cache::remember('admin-dashboard:v2', 300, function (): array {
+        return Cache::remember('admin-dashboard:v3', 300, function (): array {
             $now = now();
+
             return [
                 'total_companies' => Company::count(),
                 'blogs_total' => Blog::count(),

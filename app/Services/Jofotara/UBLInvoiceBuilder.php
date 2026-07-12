@@ -40,8 +40,8 @@ class UBLInvoiceBuilder
 
         $this->icvReference($document, $root, (string) $invoice->icv);
         $this->binaryReference($document, $root, 'PIH', $this->previousHash($invoice));
-        if (filter_var(config('services.jofotara.include_qr_in_xml', false), FILTER_VALIDATE_BOOLEAN) || filled($invoice->qr_code)) {
-            $this->binaryReference($document, $root, 'QR', (string) $invoice->qr_code);
+        if (filter_var(config('services.jofotara.include_qr_in_xml', false), FILTER_VALIDATE_BOOLEAN) && filled($invoice->jofotara_qr)) {
+            $this->binaryReference($document, $root, 'QR', (string) $invoice->jofotara_qr);
         }
 
         $this->supplierParty($document, $root, $invoice);

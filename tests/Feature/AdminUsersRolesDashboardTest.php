@@ -6,11 +6,12 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\Contact;
-use App\Models\Product;
+use App\Models\Plan;
 use App\Models\SubscriptionRequest;
 use App\Models\User;
 use App\Services\Company\CompanyRoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -25,7 +26,7 @@ class AdminUsersRolesDashboardTest extends TestCase
     {
         $this->seed();
         $admin = User::where('email', 'admin@invosync.local')->firstOrFail();
-        SubscriptionRequest::create(['company_name' => 'طلب لوحة', 'applicant_name' => 'طالب', 'email' => 'dash@example.com', 'phone' => '079', 'plan_id' => \App\Models\Plan::firstOrFail()->id, 'billing_cycle' => 'yearly', 'status' => 'pending']);
+        SubscriptionRequest::create(['company_name' => 'طلب لوحة', 'applicant_name' => 'طالب', 'email' => 'dash@example.com', 'phone' => '079', 'plan_id' => Plan::firstOrFail()->id, 'billing_cycle' => 'yearly', 'status' => 'pending']);
 
         $this->actingAs($admin)->get(route('admin.dashboard'))
             ->assertOk()
@@ -33,6 +34,34 @@ class AdminUsersRolesDashboardTest extends TestCase
             ->assertSee('إجمالي المنشآت')
             ->assertSee('أحدث طلبات الاشتراك')
             ->assertDontSee('عدد منتجات شركة محددة');
+    }
+
+    public function test_super_admin_dashboard_ignores_stale_scalar_cached_latest_requests(): void
+    {
+        $this->seed();
+        $admin = User::where('email', 'admin@invosync.local')->firstOrFail();
+        Cache::put('admin-dashboard:v3', [
+            'total_companies' => 0,
+            'active_companies' => 0,
+            'pending_requests' => 0,
+            'active_subscriptions' => 0,
+            'expiring_subscriptions' => 0,
+            'expired_subscriptions' => 0,
+            'contacted_requests' => 0,
+            'inactive_companies' => 0,
+            'blogs_total' => 0,
+            'blogs_published' => 0,
+            'blogs_drafts' => 0,
+            'alerts' => [],
+            'latest_requests' => ['stale-company-name'],
+            'latest_companies' => collect(),
+            'latest_audits' => collect(),
+        ], 300);
+
+        $this->actingAs($admin)->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('أحدث طلبات الاشتراك')
+            ->assertDontSee('stale-company-name');
     }
 
     public function test_super_admin_can_create_role_and_user_and_last_super_admin_is_protected(): void

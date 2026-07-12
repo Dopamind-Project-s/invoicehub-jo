@@ -15,7 +15,7 @@ class SuperAdminSeeder extends Seeder
         DB::table('users')->updateOrInsert(
             ['email' => 'admin@invosync.local'],
             [
-                'name' => 'System Administrator',
+                'name' => 'مصعب الزعبي',
                 'email_verified_at' => $now,
                 'password' => Hash::make('password'),
                 'role' => 'super_admin',

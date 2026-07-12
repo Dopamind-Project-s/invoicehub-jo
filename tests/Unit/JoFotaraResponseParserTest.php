@@ -48,4 +48,29 @@ class JoFotaraResponseParserTest extends TestCase
         $this->assertSame('SUB-1', $parsed['uuid']);
         $this->assertSame('QR-VALUE', $parsed['qr']);
     }
+
+    public function test_it_preserves_official_einv_qr_payload_from_top_level_and_nested_response(): void
+    {
+        $payload = " OFFICIAL-EINV-QR\nباللغة العربية ";
+        $parser = new JoFotaraResponseParser;
+
+        $topLevel = $parser->parse(new Response(new PsrResponse(200, [], json_encode([
+            'EINV_INV_UUID' => 'UUID-1',
+            'EINV_QR' => $payload,
+            'EINV_STATUS' => 'SUBMITTED',
+            'EINV_RESULTS' => ['status' => 'PASS'],
+        ], JSON_UNESCAPED_UNICODE))));
+
+        $nested = $parser->parse(new Response(new PsrResponse(200, [], json_encode([
+            'data' => [
+                'EINV_INV_UUID' => 'UUID-2',
+                'EINV_QR' => $payload,
+                'EINV_STATUS' => 'SUBMITTED',
+                'EINV_RESULTS' => ['status' => 'PASS'],
+            ],
+        ], JSON_UNESCAPED_UNICODE))));
+
+        $this->assertSame($payload, $topLevel['qr']);
+        $this->assertSame($payload, $nested['qr']);
+    }
 }
