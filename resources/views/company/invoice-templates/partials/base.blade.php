@@ -8,9 +8,17 @@
         <style>{!! $invoiceStylesheet !!}</style>
     @else
         <link rel="stylesheet" href="{{ asset('css/invoice-document.css') }}?v={{ filemtime(public_path('css/invoice-document.css')) }}">
+        <link rel="stylesheet" href="{{ asset($templatePresentation['stylesheet']) }}?v={{ filemtime(public_path($templatePresentation['stylesheet'])) }}">
     @endif
 </head>
-<body class="invoice-document-body invoice-template-{{ $variant }}">
+<body class="invoice-document-body {{ $templatePresentation['root_class'] }}"
+      data-template="{{ $templatePresentation['slug'] }}"
+      data-layout="{{ $templatePresentation['layout'] }}"
+      data-header="{{ $templatePresentation['header'] }}"
+      data-info="{{ $templatePresentation['info'] }}"
+      data-table="{{ $templatePresentation['table'] }}"
+      data-totals="{{ $templatePresentation['totals'] }}"
+      data-qr="{{ $templatePresentation['qr'] }}">
     <main class="print-preview-shell">
         <div class="invoice-print-page">
             @include('company.invoices.partials.document', ['doc' => $data->doc, 'language' => $data->language, 'direction' => $data->direction])

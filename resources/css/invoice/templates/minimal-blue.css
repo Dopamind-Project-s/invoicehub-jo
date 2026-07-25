@@ -1,0 +1,14 @@
+.invoice-template-minimal-blue{--invoice-primary:#2563eb;--invoice-soft:#fff}
+.invoice-template-minimal-blue .invoice-header{border-bottom:1px solid #2563eb}
+.invoice-template-minimal-blue .invoice-logo-box{border:0;padding:0}
+.invoice-template-minimal-blue .invoice-national-copy{display:none}
+.invoice-template-minimal-blue .invoice-info-grid{gap:28px}
+.invoice-template-minimal-blue .invoice-card{padding:8px 0;border:0;border-top:1px solid #dbeafe;border-radius:0}
+.invoice-template-minimal-blue .kv{border-bottom:0;padding:2px 0}
+.invoice-template-minimal-blue .invoice-item-description{width:45%}
+.invoice-template-minimal-blue .invoice-items{border:0;border-top:2px solid #2563eb;border-bottom:1px solid #93c5fd;border-radius:0}
+.invoice-template-minimal-blue .invoice-items th{background:#fff;color:#1e3a8a}
+.invoice-template-minimal-blue .invoice-closing{grid-template-columns:340px 1fr}
+.invoice-template-minimal-blue .invoice-totals .grand td,.invoice-template-minimal-blue .invoice-totals .grand th{background:#fff;color:#1e3a8a;border-top:2px solid #2563eb}
+.invoice-template-minimal-blue .invoice-qr-block{justify-items:end;opacity:.9}
+.invoice-template-minimal-blue .invoice-qr-block img{width:170px;height:170px}

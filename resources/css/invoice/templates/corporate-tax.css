@@ -1,0 +1,13 @@
+.invoice-template-corporate-tax{--invoice-primary:#1f4f75;--invoice-soft:#eef5fa}
+.invoice-template-corporate-tax .invoice-print-page{border-inline-start:10px solid var(--invoice-primary)}
+.invoice-template-corporate-tax .invoice-header{margin:-10mm -10mm 0;padding:10mm;background:#1f4f75;color:#fff;border:0}
+.invoice-template-corporate-tax .invoice-brand-copy h2,.invoice-template-corporate-tax .invoice-header .muted,.invoice-template-corporate-tax .invoice-title h1,.invoice-template-corporate-tax .invoice-reference span,.invoice-template-corporate-tax .invoice-reference strong{color:#fff}
+.invoice-template-corporate-tax .invoice-heading-row{margin-top:20px}
+.invoice-template-corporate-tax .invoice-info-grid{gap:18px;margin-top:20px}
+.invoice-template-corporate-tax .invoice-card{padding:16px;border:0;border-top:5px solid #1f4f75;box-shadow:0 5px 18px rgb(15 23 42 / 8%)}
+.invoice-template-corporate-tax .invoice-items{margin-top:20px;border:0}
+.invoice-template-corporate-tax .invoice-items th{background:#1f4f75;color:#fff}
+.invoice-template-corporate-tax .invoice-items tbody tr:nth-child(odd){background:#f8fafc}
+.invoice-template-corporate-tax .invoice-closing{grid-template-columns:1fr 300px;margin-top:20px}
+.invoice-template-corporate-tax .invoice-totals{padding:12px;background:#eef5fa}
+.invoice-template-corporate-tax .invoice-qr-block{padding:12px;border:1px solid #b6ccdc;border-radius:12px}

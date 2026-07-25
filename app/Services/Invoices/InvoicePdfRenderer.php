@@ -16,7 +16,7 @@ use Throwable;
 
 class InvoicePdfRenderer
 {
-    public function __construct(private readonly InvoiceTemplateDataFactory $factory) {}
+    public function __construct(private readonly InvoiceTemplateDataFactory $factory, private readonly InvoiceTemplateResolver $resolver) {}
 
     public function html(Invoice $invoice, ?InvoiceTemplate $template = null): string
     {
@@ -101,16 +101,23 @@ class InvoicePdfRenderer
     private function renderHtml(Invoice $invoice, ?InvoiceTemplate $template = null, bool $embedAssets = false): string
     {
         $data = $this->factory->make($invoice, $template);
+        $presentation = $this->resolver->presentation($data->template);
 
         return view($data->template->view_path ?: 'company.invoice-templates.render.arabic-classic', [
             'data' => $data,
-            'invoiceStylesheet' => $embedAssets ? $this->embeddedStylesheet() : null,
+            'templatePresentation' => $presentation,
+            'invoiceStylesheet' => $embedAssets ? $this->embeddedStylesheet($presentation) : null,
         ])->render();
     }
 
-    private function embeddedStylesheet(): string
+    /** @param array<string, string> $presentation */
+    private function embeddedStylesheet(array $presentation): string
     {
         $css = File::get(public_path('css/invoice-document.css'));
+        $templateCss = public_path($presentation['stylesheet']);
+        if (is_file($templateCss)) {
+            $css .= "\n".File::get($templateCss);
+        }
 
         return (string) preg_replace_callback(
             '~url\([\'\"]?\.\./assets/fonts/([^\'\")]+)[\'\"]?\)~',

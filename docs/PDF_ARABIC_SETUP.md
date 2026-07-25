@@ -14,6 +14,12 @@ Printable browser preview and PDF output use the same `print-preview-shell` / `i
 
 The refactor intentionally leaves calculations, XML/UBL generation, validation, submission workflow, API payloads, database schema, and official JoFotara QR generation untouched.
 
+### Template themes
+
+`InvoiceTemplateResolver` is the single presentation map for the eight stable template slugs. Every theme keeps the same `InvoiceTemplateDataFactory` / `InvoiceDisplayDataFactory` contract and A4 base stylesheet, then loads one scoped stylesheet from `public/css/invoice-templates`. The resolver supplies unique header, information, table, totals, QR, density, and layout identifiers, preventing the shared print infrastructure from flattening all templates into one design.
+
+Template-management preview passes the requested `InvoiceTemplate` directly to `InvoicePdfRenderer`; it does not update the company default. Normal invoice print/PDF rendering continues to use the company-selected template, with Arabic Classic as the system fallback.
+
 ## Audit Findings and Root Causes
 
 1. **Arabic PDF rendering was broken by fallback font/runtime behavior.** DomPDF does not reliably shape Arabic contextual glyphs, and the previous fallback used a generic font with no project-level font cache or deterministic font directory.

@@ -1,0 +1,13 @@
+.invoice-template-bilingual-ar-en{--invoice-primary:#0f766e;--invoice-soft:#f8fafc}
+.invoice-template-bilingual-ar-en .invoice-header{border-bottom:1px solid #334155}
+.invoice-template-bilingual-ar-en .invoice-title h1::after{content:" / TAX INVOICE";font-family:InvoiceNumeric;font-size:.62em;color:#475569}
+.invoice-template-bilingual-ar-en .invoice-brand-copy h2{display:flex;justify-content:space-between}
+.invoice-template-bilingual-ar-en .invoice-info-grid{direction:ltr;grid-template-columns:1fr 1fr}
+.invoice-template-bilingual-ar-en .invoice-card{direction:rtl;border-inline-start:4px solid var(--invoice-primary)}
+.invoice-template-bilingual-ar-en .invoice-card:first-child h3::after{content:" / INVOICE DETAILS";direction:ltr;font-family:InvoiceNumeric;font-size:.75em;color:#64748b}
+.invoice-template-bilingual-ar-en .invoice-card:last-child h3::after{content:" / CUSTOMER";direction:ltr;font-family:InvoiceNumeric;font-size:.75em;color:#64748b}
+.invoice-template-bilingual-ar-en .invoice-items th{font-size:9px;background:#e2e8f0}
+.invoice-template-bilingual-ar-en .invoice-items th:first-child::after{content:" / DESCRIPTION";font-family:InvoiceNumeric}
+.invoice-template-bilingual-ar-en .invoice-closing{direction:ltr;border-top:2px solid #334155;padding-top:12px}
+.invoice-template-bilingual-ar-en .invoice-totals,.invoice-template-bilingual-ar-en .invoice-qr-block{direction:rtl}
+.invoice-template-bilingual-ar-en .invoice-qr-block figcaption::after{content:" / OFFICIAL QR";font-family:InvoiceNumeric}

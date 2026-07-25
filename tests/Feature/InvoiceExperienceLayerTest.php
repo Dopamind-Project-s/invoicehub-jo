@@ -14,6 +14,7 @@ use App\Services\Invoices\InvoiceNotificationService;
 use App\Services\Invoices\InvoicePdfRenderer;
 use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceShareService;
+use App\Services\Invoices\InvoiceTemplateResolver;
 use App\Services\Jofotara\QRCodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -99,17 +100,60 @@ class InvoiceExperienceLayerTest extends TestCase
     public function test_every_invoice_template_uses_the_shared_print_contract(): void
     {
         $invoice = $this->makeInvoice();
+        $resolver = app(InvoiceTemplateResolver::class);
+        $signatures = [];
 
         foreach (InvoiceTemplate::query()->where('is_active', true)->get() as $template) {
             $html = app(InvoicePdfRenderer::class)->html($invoice, $template);
+            $presentation = $resolver->presentation($template);
 
             $this->assertStringContainsString('class="print-preview-shell"', $html, $template->slug);
             $this->assertStringContainsString('class="invoice-print-page"', $html, $template->slug);
             $this->assertStringContainsString('class="invoice-page invoice-document"', $html, $template->slug);
             $this->assertStringContainsString('class="invoice-items invoice-items-table"', $html, $template->slug);
+            $this->assertStringContainsString($presentation['root_class'], $html, $template->slug);
+            $this->assertStringContainsString('data-layout="'.$presentation['layout'].'"', $html, $template->slug);
+            $this->assertStringContainsString(asset($presentation['stylesheet']), $html, $template->slug);
             $this->assertStringContainsString('فاتورة ضريبية', $html, $template->slug);
             $this->assertStringNotContainsString('ةيبيرض ةروتاف', $html, $template->slug);
+
+            $signatures[$template->slug] = implode('|', array_intersect_key($presentation, array_flip(['layout', 'header', 'info', 'table', 'totals', 'qr'])));
         }
+
+        $this->assertCount(8, array_unique($signatures));
+    }
+
+    public function test_template_resolver_has_stable_unique_definitions_and_classic_fallback(): void
+    {
+        $resolver = app(InvoiceTemplateResolver::class);
+        $definitions = InvoiceTemplateResolver::definitions();
+
+        $this->assertCount(8, $definitions);
+        $this->assertSame($definitions['arabic-classic'], $resolver->presentation('unknown-template'));
+        $this->assertCount(8, array_unique(array_column($definitions, 'root_class')));
+        $this->assertCount(8, array_unique(array_column($definitions, 'stylesheet')));
+        $this->assertCount(8, array_unique(array_map(fn (array $definition): string => implode('|', array_intersect_key($definition, array_flip(['layout', 'header', 'info', 'table', 'totals', 'qr']))), $definitions)));
+    }
+
+    public function test_template_management_preview_uses_requested_theme_without_changing_default(): void
+    {
+        $invoice = $this->makeInvoice();
+        $company = $invoice->company;
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+        $modern = InvoiceTemplate::where('slug', 'arabic-modern')->firstOrFail();
+        $defaultBefore = CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->value('value');
+
+        $this->actingAs($user)->get(route('company.invoice-templates.index', $company))
+            ->assertOk()
+            ->assertSee('تصميم عربي حديث يبرز هوية المنشأة')
+            ->assertSee('class="template-preview-frame"', false);
+
+        $this->actingAs($user)->get(route('company.invoice-templates.preview', [$company, $modern]))
+            ->assertOk()
+            ->assertSee('invoice-template-arabic-modern', false)
+            ->assertSee('data-layout="modern-asymmetric"', false);
+
+        $this->assertSame($defaultBefore, CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->value('value'));
     }
 
     public function test_company_can_select_default_template_and_preview_qr_states(): void

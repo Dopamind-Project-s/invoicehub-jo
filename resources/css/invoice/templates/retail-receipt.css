@@ -1,0 +1,17 @@
+.invoice-template-retail-receipt{--invoice-primary:#334155;--invoice-soft:#f8fafc;font-size:10.5px}
+.invoice-template-retail-receipt .invoice-header{padding-bottom:7px;border-bottom:2px dashed #334155}
+.invoice-template-retail-receipt .invoice-header-main{min-height:54px}
+.invoice-template-retail-receipt .invoice-logo-box{width:54px;height:54px;flex-basis:54px;padding:4px}
+.invoice-template-retail-receipt .invoice-brand-copy h2{font-size:14px}
+.invoice-template-retail-receipt .invoice-heading-row{margin-top:7px}
+.invoice-template-retail-receipt .invoice-title h1{font-size:18px}
+.invoice-template-retail-receipt .invoice-info-grid{margin-top:7px;gap:5px}
+.invoice-template-retail-receipt .invoice-card{padding:6px;border-radius:2px}
+.invoice-template-retail-receipt .kv{padding:1px 0;font-size:9px}
+.invoice-template-retail-receipt .invoice-items{margin-top:7px;border-radius:0;border-style:dashed}
+.invoice-template-retail-receipt .invoice-items th{padding:4px;font-size:8.5px;background:#334155;color:#fff}
+.invoice-template-retail-receipt .invoice-items td,.invoice-template-retail-receipt .invoice-items td.invoice-number{padding:4px;font-size:10px}
+.invoice-template-retail-receipt .invoice-closing{grid-template-columns:1fr 185px;gap:8px;margin-top:7px}
+.invoice-template-retail-receipt .invoice-totals th,.invoice-template-retail-receipt .invoice-totals td{padding:4px}
+.invoice-template-retail-receipt .invoice-totals .grand td,.invoice-template-retail-receipt .invoice-totals .grand th{font-size:13px;background:#334155}
+.invoice-template-retail-receipt .invoice-qr-block img{width:145px;height:145px}
