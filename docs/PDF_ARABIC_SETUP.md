@@ -33,7 +33,7 @@ Template-management preview passes the requested `InvoiceTemplate` directly to `
 
 ## Fonts
 
-Selected font: **Hasan Alquds Unicode**.
+Preferred UI font: **Cairo**, with the bundled **Hasan Alquds Unicode** font retained as the deterministic embedded fallback when Cairo is not installed on the rendering host. Numeric and monetary values use the bundled Open Sans regular/bold files for clearer tabular Latin digits.
 
 Locations:
 

@@ -57,6 +57,18 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id']);
     }
 
+    public function test_all_invoice_templates_use_cairo_stack_and_clear_numeric_font(): void
+    {
+        $css = file_get_contents(public_path('css/invoice-document.css'));
+
+        $this->assertStringContainsString('--invoice-arabic-font: Cairo, InvoiceArabic', $css);
+        $this->assertStringContainsString('--invoice-numeric-font: InvoiceNumeric', $css);
+        $this->assertStringContainsString('font-variant-numeric: tabular-nums lining-nums', $css);
+        $this->assertStringContainsString('font-feature-settings: "tnum" 1, "lnum" 1', $css);
+        $this->assertStringContainsString('font-family: var(--invoice-arabic-font)', $css);
+        $this->assertStringContainsString('font-family: var(--invoice-numeric-font)', $css);
+    }
+
     public function test_pdf_rendering_uses_template_and_branding(): void
     {
         $invoice = $this->makeInvoice();

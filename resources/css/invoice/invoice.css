@@ -1,4 +1,20 @@
 @font-face {
+    font-family: Cairo;
+    src: local("Cairo"), local("Cairo Regular");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: Cairo;
+    src: local("Cairo Bold"), local("Cairo");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
     font-family: InvoiceArabic;
     src: url('../assets/fonts/ArbFONTS-Hasan-Alquds-Unicode.ttf') format('truetype');
     font-weight: 400;
@@ -31,6 +47,8 @@
 }
 
 :root {
+    --invoice-arabic-font: Cairo, InvoiceArabic, "DejaVu Sans", sans-serif;
+    --invoice-numeric-font: InvoiceNumeric, "DejaVu Sans", Arial, sans-serif;
     --invoice-primary: #0f766e;
     --invoice-primary-dark: #115e59;
     --invoice-ink: #172033;
@@ -56,7 +74,7 @@ body.invoice-document-body {
     margin: 0;
     background: var(--invoice-bg);
     color: var(--invoice-ink);
-    font-family: InvoiceArabic, "DejaVu Sans", Arial, sans-serif;
+    font-family: var(--invoice-arabic-font);
     font-size: 12px;
     line-height: 1.65;
     unicode-bidi: plaintext;
@@ -332,7 +350,7 @@ body.invoice-document-body {
 
 .invoice-number,
 .num {
-    font-family: InvoiceNumeric, "DejaVu Sans", Arial, sans-serif;
+    font-family: var(--invoice-numeric-font);
     font-variant-numeric: tabular-nums lining-nums;
     font-feature-settings: "tnum" 1, "lnum" 1;
     direction: ltr;
@@ -399,7 +417,7 @@ body.invoice-document-body {
     display: inline-block;
     margin-top: 2px;
     color: var(--invoice-muted);
-    font-family: InvoiceNumeric, "DejaVu Sans", Arial, sans-serif;
+    font-family: var(--invoice-numeric-font);
     font-size: 10.5px;
     font-variant-numeric: tabular-nums lining-nums;
     font-feature-settings: "tnum" 1, "lnum" 1;
