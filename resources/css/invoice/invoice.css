@@ -68,6 +68,44 @@ body.invoice-document-body {
     padding: 0 12px;
 }
 
+.print-preview-shell {
+    display: flex;
+    justify-content: center;
+    min-width: 210mm;
+    padding: 24px;
+    background: var(--invoice-bg);
+}
+
+.invoice-print-page {
+    width: 210mm;
+    min-width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 10mm;
+    background: #fff;
+    box-shadow: 0 18px 45px rgb(15 23 42 / 10%);
+}
+
+.invoice-print-page .invoice-page {
+    overflow: visible;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.invoice-document[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+    unicode-bidi: plaintext;
+}
+
+.invoice-document[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+    unicode-bidi: plaintext;
+}
+
 .invoice-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -307,7 +345,8 @@ body.invoice-document-body {
     display: inline-block;
 }
 
-.invoice-items {
+.invoice-items,
+.invoice-items-table {
     width: 100%;
     margin-top: 13px;
     border: 1px solid var(--invoice-line);
@@ -433,7 +472,8 @@ body.invoice-document-body {
     background: transparent;
 }
 
-.invoice-qr-block img {
+.invoice-qr-block img,
+.official-jofotara-qr {
     display: block;
     width: 220px;
     height: 220px;
@@ -488,7 +528,7 @@ body.invoice-document-body {
         padding: 0;
     }
 
-    .invoice-page {
+    .invoice-shell .invoice-page {
         padding: 18px 14px;
         border-radius: 0;
     }
@@ -531,14 +571,21 @@ body.invoice-document-body {
 
 @page {
     size: A4;
-    margin: 10mm;
+    margin: 0;
 }
 
 @media print {
+    html,
+    body.invoice-document-body {
+        width: 210mm;
+        margin: 0;
+        padding: 0;
+    }
+
     body.invoice-document-body {
         background: #fff;
         color: #000;
-        font-size: 10.5px;
+        font-size: 12px;
     }
 
     .invoice-shell {
@@ -553,6 +600,22 @@ body.invoice-document-body {
         padding: 0;
         border: 0;
         border-radius: 0;
+        box-shadow: none;
+    }
+
+    .print-preview-shell {
+        display: block;
+        min-width: 0;
+        padding: 0;
+        background: #fff;
+    }
+
+    .invoice-print-page {
+        width: 210mm;
+        min-width: 210mm;
+        min-height: 0;
+        margin: 0;
+        padding: 10mm;
         box-shadow: none;
     }
 
@@ -590,11 +653,11 @@ body.invoice-document-body {
     }
 
     .invoice-items td.invoice-number {
-        padding-block: 7px;
-        font-size: 11px;
+        padding-block: 8px;
+        font-size: 12px;
     }
 
     .invoice-totals td.invoice-number {
-        font-size: 11.5px;
+        font-size: 12.5px;
     }
 }

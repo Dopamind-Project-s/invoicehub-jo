@@ -66,6 +66,52 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertStringNotContainsString('@vite', $html);
     }
 
+    public function test_normal_and_printable_previews_share_content_without_print_layout_regression(): void
+    {
+        $invoice = $this->makeInvoice();
+        $company = $invoice->company;
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+
+        $normal = $this->actingAs($user)->get(route('company.invoices.show', [$company, $invoice]));
+        $normal->assertOk()
+            ->assertSee('class="invoice-page invoice-document"', false)
+            ->assertDontSee('class="print-preview-shell"', false);
+
+        $printable = $this->actingAs($user)->get(route('company.invoices.printable', [$company, $invoice, 'preview' => 1]));
+        $printable->assertOk()
+            ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
+            ->assertSee('class="print-preview-shell"', false)
+            ->assertSee('class="invoice-print-page"', false)
+            ->assertSee('class="invoice-page invoice-document"', false)
+            ->assertSee('class="invoice-items invoice-items-table"', false)
+            ->assertSee('فاتورة ضريبية')
+            ->assertSee('بيانات الفاتورة')
+            ->assertSee('بيانات العميل')
+            ->assertSee('الإجمالي قبل الخصم')
+            ->assertSee('1.000')
+            ->assertSee('10.000 JOD')
+            ->assertDontSee('ةيبيرض ةروتاف')
+            ->assertDontSee('ةروتافلا تانايب')
+            ->assertDontSee('ليمعلا تانايب')
+            ->assertDontSee('file://');
+    }
+
+    public function test_every_invoice_template_uses_the_shared_print_contract(): void
+    {
+        $invoice = $this->makeInvoice();
+
+        foreach (InvoiceTemplate::query()->where('is_active', true)->get() as $template) {
+            $html = app(InvoicePdfRenderer::class)->html($invoice, $template);
+
+            $this->assertStringContainsString('class="print-preview-shell"', $html, $template->slug);
+            $this->assertStringContainsString('class="invoice-print-page"', $html, $template->slug);
+            $this->assertStringContainsString('class="invoice-page invoice-document"', $html, $template->slug);
+            $this->assertStringContainsString('class="invoice-items invoice-items-table"', $html, $template->slug);
+            $this->assertStringContainsString('فاتورة ضريبية', $html, $template->slug);
+            $this->assertStringNotContainsString('ةيبيرض ةروتاف', $html, $template->slug);
+        }
+    }
+
     public function test_company_can_select_default_template_and_preview_qr_states(): void
     {
         $invoice = $this->makeInvoice();
@@ -90,6 +136,7 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertStringContainsString('class="invoice-logo-box invoice-logo-box-national"', $htmlWithQr);
         $this->assertStringContainsString('class="invoice-closing avoid-break"', $htmlWithQr);
         $this->assertStringContainsString('class="invoice-qr-block"', $htmlWithQr);
+        $this->assertStringContainsString('class="official-jofotara-qr"', $htmlWithQr);
         $this->assertStringContainsString('class="invoice-number"', $htmlWithQr);
         $this->assertStringContainsString('class="invoice-number invoice-line-total"', $htmlWithQr);
         $this->assertStringContainsString('class="invoice-tax-rate"', $htmlWithQr);

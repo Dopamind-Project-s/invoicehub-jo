@@ -1,5 +1,5 @@
 @php($doc = $doc ?? [])
-<article class="invoice-page">
+<article class="invoice-page invoice-document" lang="{{ $language ?? 'ar' }}" dir="{{ $direction ?? 'rtl' }}">
     <header class="invoice-header avoid-break">
         <div class="invoice-header-main">
             <section class="invoice-brand">
@@ -72,7 +72,7 @@
         </div>
     </section>
 
-    <table class="invoice-items">
+    <table class="invoice-items invoice-items-table">
         <thead><tr><th class="invoice-item-description">المنتج/الخدمة والوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr></thead>
         <tbody>
         @forelse($doc['items'] ?? [] as $item)
@@ -104,7 +104,7 @@
 
         <figure class="invoice-qr-block">
             @if(!empty($doc['qr']['data_uri']))
-                <img src="{{ $doc['qr']['data_uri'] }}" alt="رمز QR الرسمي من JoFotara">
+                <img class="official-jofotara-qr" src="{{ $doc['qr']['data_uri'] }}" alt="رمز QR الرسمي من JoFotara">
                 <figcaption>رمز QR الرسمي</figcaption>
             @else
                 <div class="qr-note">رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني.</div>

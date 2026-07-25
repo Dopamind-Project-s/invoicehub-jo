@@ -10,6 +10,8 @@ Invoice presentation is centralized around one display-data pipeline and one reu
 - `resources/views/company/invoice-templates/partials/base.blade.php` wraps the shared document for template/PDF output.
 - `App\Services\Invoices\InvoicePdfRenderer` renders the shared HTML through Browsershot first, with DomPDF only as a fallback.
 
+Printable browser preview and PDF output use the same `print-preview-shell` / `invoice-print-page` wrapper and the same shared document partial. The normal authenticated workspace preview uses the same document partial without the fixed A4 wrapper, so print-only sizing cannot alter the working dashboard preview.
+
 The refactor intentionally leaves calculations, XML/UBL generation, validation, submission workflow, API payloads, database schema, and official JoFotara QR generation untouched.
 
 ## Audit Findings and Root Causes
@@ -20,6 +22,8 @@ The refactor intentionally leaves calculations, XML/UBL generation, validation, 
 4. **Template-specific inline CSS existed in the PDF wrapper.** This created differences between browser and PDF output and made styling inconsistent.
 5. **Table layout had inline width rules.** It made the items table harder to standardize across HTML, print, and PDF.
 6. **Print page-break rules were incomplete.** Table headers and rows needed explicit print behavior for multi-page invoices.
+7. **The printable browser received a `file://` stylesheet URL.** A normal HTTPS browser cannot load a server-local filesystem URL, so the printable HTML appeared unstyled and collapsed into a narrow content column.
+8. **The PDF renderer silently fell back to DomPDF.** When Chromium was unavailable or failed, the exception was discarded and DomPDF emitted visually reversed/disconnected Arabic because it does not provide the same complex-script shaping as Chromium.
 
 ## Fonts
 
@@ -78,12 +82,27 @@ DomPDF is retained only as a fallback. The renderer sets important options at ru
 Browsershot renders the exact HTML used by browser preview, with print-specific settings:
 
 - `format('A4')`: uses A4 paper.
-- `margins(10, 10, 10, 10)`: matches CSS page margins.
+- `margins(0, 0, 0, 0)`: prevents Chromium margins from stacking with the A4 wrapper's single `10mm` padding.
 - `showBackground()`: preserves table headers, badges, and brand accents.
 - `waitUntilNetworkIdle()`: waits for CSS, fonts, and images to finish loading.
 - `emulateMedia('print')`: applies print CSS rules.
 - `windowSize(1240, 1754)`: provides a stable A4-like viewport.
 - `deviceScaleFactor(1)`: avoids inconsistent scaling between environments.
+- `waitForSelector('.invoice-document.invoice-page')`: prevents capture before the shared invoice root exists.
+- `waitForFunction(...)`: waits for `document.fonts` to report that local fonts are loaded.
+- zero renderer margins: the fixed A4 wrapper owns the single `10mm` page padding, avoiding compounded margins and narrow output.
+
+The PDF-only HTML embeds the shared stylesheet and local font bytes. Browser printable preview uses the normal absolute application asset URL; it never receives a `file://` URL.
+
+Production configuration:
+
+```dotenv
+INVOICE_PDF_NODE_BINARY=/usr/bin/node
+INVOICE_PDF_CHROME_PATH=/usr/bin/chromium
+INVOICE_PDF_ALLOW_DOMPDF_FALLBACK=false
+```
+
+If Chromium fails in production, the failure is logged and PDF download returns a controlled `503` response by default instead of silently returning a visually corrupted Arabic PDF. DomPDF fallback is available only when explicitly enabled and is intended for diagnostics or constrained non-production environments.
 
 ## Arabic Rendering
 
