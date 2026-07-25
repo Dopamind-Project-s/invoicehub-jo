@@ -70,6 +70,7 @@ class InvoiceExperienceLayerTest extends TestCase
     {
         $invoice = $this->makeInvoice();
         $company = $invoice->company;
+        $company->forceFill(['logo_path' => 'assets/img/JoFotarah-logo.png'])->save();
         $template = InvoiceTemplate::where('slug', 'corporate-tax')->firstOrFail();
 
         CompanySetting::updateOrCreate(['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id'], ['value' => (string) $template->id]);
@@ -77,13 +78,16 @@ class InvoiceExperienceLayerTest extends TestCase
 
         $html = app(InvoicePdfRenderer::class)->html($invoice, $template);
         $this->assertStringContainsString('رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني', $html);
+        $this->assertStringContainsString('شعار المنشأة', $html);
         $this->assertStringNotContainsString('شعار نظام الفوترة الوطني JoFotara', $html);
+        $this->assertStringNotContainsString('<span>UUID</span>', $html);
 
         $invoice->forceFill(['jofotara_status' => 'SUBMITTED', 'jofotara_validation_result' => 'PASS', 'jofotara_qr' => 'QR-EXACT-VALUE', 'jofotara_uuid' => 'UUID-1'])->save();
         $htmlWithQr = app(InvoicePdfRenderer::class)->html($invoice->refresh(), $template);
         $this->assertStringContainsString('data:image/svg+xml;base64', $htmlWithQr);
         $this->assertStringContainsString('شعار نظام الفوترة الوطني JoFotara', $htmlWithQr);
         $this->assertStringContainsString('data:image/png;base64', $htmlWithQr);
+        $this->assertStringNotContainsString('تم إنشاء الصورة من قيمة QR الرسمية', $htmlWithQr);
         $this->assertStringNotContainsString('QR-EXACT-VALUE</small>', $htmlWithQr);
         $this->assertSame('QR-EXACT-VALUE', $invoice->refresh()->jofotara_qr);
     }

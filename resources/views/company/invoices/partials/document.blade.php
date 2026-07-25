@@ -2,10 +2,10 @@
 <article class="invoice-page" dir="rtl">
     <header class="invoice-header avoid-break">
         <section class="invoice-brand">
-            @if(!empty($doc['company']['logo']))
-                <img class="invoice-logo" src="{{ asset($doc['company']['logo']) }}" alt="شعار المنشأة">
+            @if(!empty($doc['company']['logo_data_uri']))
+                <img class="invoice-logo invoice-header-logo" src="{{ $doc['company']['logo_data_uri'] }}" alt="شعار المنشأة">
             @else
-                <div class="invoice-logo-fallback">{{ mb_substr($doc['company']['name'] ?? 'IH', 0, 2) }}</div>
+                <div class="invoice-logo-fallback invoice-header-logo">{{ mb_substr($doc['company']['name'] ?? 'IH', 0, 2) }}</div>
             @endif
             <div>
                 <h2>{{ $doc['company']['name'] ?? '—' }}</h2>
@@ -24,20 +24,17 @@
         <section class="invoice-title">
             @if(($doc['jofotara']['submitted'] ?? false) && !empty($doc['jofotara']['logo_data_uri']))
                 <div class="invoice-jofotara-brand">
-                    <img src="{{ $doc['jofotara']['logo_data_uri'] }}" alt="شعار نظام الفوترة الوطني JoFotara">
+                    <img class="invoice-header-logo" src="{{ $doc['jofotara']['logo_data_uri'] }}" alt="شعار نظام الفوترة الوطني JoFotara">
                 </div>
             @endif
             <h1>{{ $doc['invoice']['type'] ?? 'فاتورة' }}</h1>
             <div class="invoice-badge">{{ $doc['invoice']['status'] ?? '—' }}</div>
             <div class="invoice-badge">JoFotara: {{ $doc['invoice']['jofotara_status'] ?? 'غير مرسلة' }}</div>
             <div class="kv"><span>رقم الفاتورة</span><strong>{{ $doc['invoice']['number'] ?? '—' }}</strong></div>
-            @if(!empty($doc['invoice']['uuid']))
-                <div class="kv"><span>UUID</span><span class="num">{{ $doc['invoice']['uuid'] }}</span></div>
-            @endif
         </section>
     </header>
 
-    <section class="invoice-grid avoid-break">
+    <section class="invoice-grid invoice-info-grid avoid-break">
         <div class="invoice-card">
             <h3>بيانات الفاتورة</h3>
             <div class="kv"><span>تاريخ الإصدار</span><span>{{ $doc['invoice']['issue_date'] ?? '—' }}</span></div>
@@ -89,7 +86,7 @@
         <div class="invoice-card">
             <h3>رمز QR الرسمي</h3>
             @if(!empty($doc['qr']['data_uri']))
-                <div class="invoice-qr"><img src="{{ $doc['qr']['data_uri'] }}" alt="رمز QR الرسمي من JoFotara"><div class="muted">تم إنشاء الصورة من قيمة QR الرسمية الراجعة من نظام الفوترة الوطني دون استخدام رابط داخلي أو UUID محلي.</div></div>
+                <div class="invoice-qr"><img src="{{ $doc['qr']['data_uri'] }}" alt="رمز QR الرسمي من JoFotara"></div>
             @else
                 <div class="qr-note">رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني.</div>
             @endif

@@ -21,6 +21,9 @@ class InvoiceDisplayDataFactory
         $contact = $invoice->contact;
         $currency = $this->text($invoice->currency ?: $invoice->currency_code ?: $company?->default_currency ?: 'JOD') ?: 'JOD';
         $isSubmittedToJofotara = in_array(strtoupper((string) $invoice->jofotara_status), ['SUBMITTED', 'ACCEPTED'], true);
+        $companyLogo = $company?->settings->firstWhere('key', 'invoice_logo')?->value
+            ?: $company?->settings->firstWhere('key', 'company_logo')?->value
+            ?: $company?->logo_path;
 
         return [
             'invoice' => [
@@ -46,7 +49,8 @@ class InvoiceDisplayDataFactory
                 'address' => $this->join([$company?->city, $company?->street, $company?->building_no, $company?->postal_code]),
                 'phone' => $this->text($company?->phone),
                 'email' => $this->text($company?->email),
-                'logo' => $this->assetPath($company?->logo_path),
+                'logo' => $this->assetPath($companyLogo),
+                'logo_data_uri' => $this->localImageDataUri($companyLogo),
             ],
             'customer' => [
                 'name' => $this->text($contact?->name_ar ?: $contact?->name_en) ?: 'عميل نقدي',
@@ -87,14 +91,46 @@ class InvoiceDisplayDataFactory
 
     private function jofotaraLogoDataUri(): ?string
     {
-        $path = public_path('assets/img/JoFotarah-logo.png');
-        if (! is_file($path) || ! is_readable($path)) {
+        return $this->localImageDataUri('assets/img/JoFotarah-logo.png');
+    }
+
+    private function localImageDataUri(?string $path): ?string
+    {
+        if (blank($path)) {
             return null;
         }
 
-        $contents = file_get_contents($path);
+        if (str_starts_with($path, 'data:image/')) {
+            return $path;
+        }
 
-        return $contents === false ? null : 'data:image/png;base64,'.base64_encode($contents);
+        $relativePath = ltrim(str_starts_with($path, 'public/') ? substr($path, 7) : $path, '/');
+        $relativePath = str_starts_with($relativePath, 'storage/') ? substr($relativePath, 8) : $relativePath;
+        $candidates = [
+            public_path($relativePath),
+            public_path('storage/'.$relativePath),
+            storage_path('app/public/'.$relativePath),
+        ];
+
+        $localPath = collect($candidates)->first(fn (string $candidate): bool => is_file($candidate) && is_readable($candidate));
+        if ($localPath === null) {
+            return null;
+        }
+
+        $contents = file_get_contents($localPath);
+        if ($contents === false) {
+            return null;
+        }
+
+        $mime = match (strtolower(pathinfo($localPath, PATHINFO_EXTENSION))) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+            'svg' => 'image/svg+xml',
+            default => 'image/png',
+        };
+
+        return 'data:'.$mime.';base64,'.base64_encode($contents);
     }
 
     private function text(mixed $value): ?string
