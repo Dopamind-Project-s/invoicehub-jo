@@ -20,6 +20,7 @@ class InvoiceDisplayDataFactory
         $company = $invoice->company;
         $contact = $invoice->contact;
         $currency = $this->text($invoice->currency ?: $invoice->currency_code ?: $company?->default_currency ?: 'JOD') ?: 'JOD';
+        $isSubmittedToJofotara = in_array(strtoupper((string) $invoice->jofotara_status), ['SUBMITTED', 'ACCEPTED'], true);
 
         return [
             'invoice' => [
@@ -77,7 +78,23 @@ class InvoiceDisplayDataFactory
                 'data_uri' => $this->qr->dataUri($invoice),
                 'available' => $this->qr->hasOfficialQr($invoice),
             ],
+            'jofotara' => [
+                'submitted' => $isSubmittedToJofotara,
+                'logo_data_uri' => $isSubmittedToJofotara ? $this->jofotaraLogoDataUri() : null,
+            ],
         ];
+    }
+
+    private function jofotaraLogoDataUri(): ?string
+    {
+        $path = public_path('assets/img/JoFotarah-logo.png');
+        if (! is_file($path) || ! is_readable($path)) {
+            return null;
+        }
+
+        $contents = file_get_contents($path);
+
+        return $contents === false ? null : 'data:image/png;base64,'.base64_encode($contents);
     }
 
     private function text(mixed $value): ?string

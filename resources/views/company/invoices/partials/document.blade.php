@@ -22,6 +22,11 @@
             </div>
         </section>
         <section class="invoice-title">
+            @if(($doc['jofotara']['submitted'] ?? false) && !empty($doc['jofotara']['logo_data_uri']))
+                <div class="invoice-jofotara-brand">
+                    <img src="{{ $doc['jofotara']['logo_data_uri'] }}" alt="شعار نظام الفوترة الوطني JoFotara">
+                </div>
+            @endif
             <h1>{{ $doc['invoice']['type'] ?? 'فاتورة' }}</h1>
             <div class="invoice-badge">{{ $doc['invoice']['status'] ?? '—' }}</div>
             <div class="invoice-badge">JoFotara: {{ $doc['invoice']['jofotara_status'] ?? 'غير مرسلة' }}</div>
