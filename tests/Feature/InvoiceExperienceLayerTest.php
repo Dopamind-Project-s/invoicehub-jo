@@ -90,6 +90,9 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertStringContainsString('class="invoice-logo-box invoice-logo-box-national"', $htmlWithQr);
         $this->assertStringContainsString('class="invoice-closing avoid-break"', $htmlWithQr);
         $this->assertStringContainsString('class="invoice-qr-block"', $htmlWithQr);
+        $this->assertStringContainsString('class="invoice-number"', $htmlWithQr);
+        $this->assertStringContainsString('class="invoice-number invoice-line-total"', $htmlWithQr);
+        $this->assertStringContainsString('class="invoice-tax-rate"', $htmlWithQr);
         $this->assertStringNotContainsString('تم إنشاء الصورة من قيمة QR الرسمية', $htmlWithQr);
         $this->assertStringNotContainsString('QR-EXACT-VALUE</small>', $htmlWithQr);
         $this->assertSame('QR-EXACT-VALUE', $invoice->refresh()->jofotara_qr);

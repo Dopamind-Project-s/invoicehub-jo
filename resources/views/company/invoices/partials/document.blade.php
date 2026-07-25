@@ -15,9 +15,9 @@
                     @if(!empty($doc['company']['legal_name']) && $doc['company']['legal_name'] !== ($doc['company']['name'] ?? null))
                         <div class="muted">{{ $doc['company']['legal_name'] }}</div>
                     @endif
-                    <div class="muted">الرقم الضريبي: <span class="num inline-num">{{ $doc['company']['tax_number'] ?? '—' }}</span></div>
+                    <div class="muted">الرقم الضريبي: <span class="invoice-number inline-num">{{ $doc['company']['tax_number'] ?? '—' }}</span></div>
                     @if(!empty($doc['company']['national_number']))
-                        <div class="muted">الرقم الوطني/التسجيل: <span class="num inline-num">{{ $doc['company']['national_number'] }}</span></div>
+                        <div class="muted">الرقم الوطني/التسجيل: <span class="invoice-number inline-num">{{ $doc['company']['national_number'] }}</span></div>
                     @endif
                     @if(!empty($doc['company']['address']))
                         <div class="muted">{{ $doc['company']['address'] }}</div>
@@ -46,9 +46,9 @@
                     <span class="invoice-badge invoice-badge-national">JoFotara: {{ $doc['invoice']['jofotara_status'] ?? 'غير مرسلة' }}</span>
                 </div>
             </div>
-            <div class="invoice-number">
+            <div class="invoice-reference">
                 <span>رقم الفاتورة</span>
-                <strong class="num">{{ $doc['invoice']['number'] ?? '—' }}</strong>
+                <strong class="invoice-number">{{ $doc['invoice']['number'] ?? '—' }}</strong>
             </div>
         </div>
     </header>
@@ -81,11 +81,11 @@
                     <strong>{{ $item['product'] ?: $item['description'] }}</strong>
                     @if($item['product'] && $item['description'])<div class="muted">{{ $item['description'] }}</div>@endif
                 </td>
-                <td class="num">{{ $item['quantity'] }}</td>
-                <td class="num">{{ $item['unit_price'] }}</td>
-                <td class="num">{{ $item['discount'] }}</td>
-                <td class="num">{{ $item['tax'] }}<br><span class="muted">{{ $item['tax_percent'] }}</span></td>
-                <td class="num"><strong>{{ $item['total'] }}</strong></td>
+                <td class="invoice-number">{{ $item['quantity'] }}</td>
+                <td class="invoice-number">{{ $item['unit_price'] }}</td>
+                <td class="invoice-number">{{ $item['discount'] }}</td>
+                <td class="invoice-number">{{ $item['tax'] }}<br><span class="invoice-tax-rate">{{ $item['tax_percent'] }}</span></td>
+                <td class="invoice-number invoice-line-total"><strong>{{ $item['total'] }}</strong></td>
             </tr>
         @empty
             <tr><td colspan="6">لا توجد بنود.</td></tr>
@@ -95,11 +95,11 @@
 
     <section class="invoice-closing avoid-break">
         <table class="invoice-totals">
-            <tr><th>الإجمالي قبل الخصم</th><td class="num">{{ $doc['totals']['subtotal'] ?? '—' }}</td></tr>
-            <tr><th>مجموع الخصومات</th><td class="num">{{ $doc['totals']['discount'] ?? '—' }}</td></tr>
-            <tr><th>الخاضع للضريبة</th><td class="num">{{ $doc['totals']['taxable'] ?? '—' }}</td></tr>
-            <tr><th>مجموع الضرائب</th><td class="num">{{ $doc['totals']['tax'] ?? '—' }}</td></tr>
-            <tr class="grand"><th>الإجمالي النهائي / المستحق</th><td class="num">{{ $doc['totals']['payable'] ?? ($doc['totals']['grand'] ?? '—') }}</td></tr>
+            <tr><th>الإجمالي قبل الخصم</th><td class="invoice-number">{{ $doc['totals']['subtotal'] ?? '—' }}</td></tr>
+            <tr><th>مجموع الخصومات</th><td class="invoice-number">{{ $doc['totals']['discount'] ?? '—' }}</td></tr>
+            <tr><th>الخاضع للضريبة</th><td class="invoice-number">{{ $doc['totals']['taxable'] ?? '—' }}</td></tr>
+            <tr><th>مجموع الضرائب</th><td class="invoice-number">{{ $doc['totals']['tax'] ?? '—' }}</td></tr>
+            <tr class="grand"><th>الإجمالي النهائي / المستحق</th><td class="invoice-number">{{ $doc['totals']['payable'] ?? ($doc['totals']['grand'] ?? '—') }}</td></tr>
         </table>
 
         <figure class="invoice-qr-block">
