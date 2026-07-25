@@ -52,7 +52,7 @@
     </section>
 
     <table class="invoice-items">
-        <thead><tr><th style="width:34%">المنتج/الخدمة والوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr></thead>
+        <thead><tr><th class="invoice-item-description">المنتج/الخدمة والوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th></tr></thead>
         <tbody>
         @forelse($doc['items'] ?? [] as $item)
             <tr>

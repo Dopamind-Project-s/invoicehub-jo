@@ -45,7 +45,15 @@ class InvoicePdfRenderer
     {
         try {
             if (class_exists(Browsershot::class) && version_compare(PHP_VERSION, '8.1.0', '>=')) {
-                return Browsershot::html($html)->format('A4')->margins(10, 10, 10, 10)->showBackground()->pdf();
+                return Browsershot::html($html)
+                    ->format('A4')
+                    ->margins(10, 10, 10, 10)
+                    ->showBackground()
+                    ->waitUntilNetworkIdle()
+                    ->emulateMedia('print')
+                    ->windowSize(1240, 1754)
+                    ->deviceScaleFactor(1)
+                    ->pdf();
             }
         } catch (\Throwable) {
         }
@@ -54,8 +62,12 @@ class InvoicePdfRenderer
         $pdf->setOptions([
             'isHtml5ParserEnabled' => true,
             'isRemoteEnabled' => true,
-            'defaultFont' => 'DejaVu Sans',
-            'chroot' => public_path(),
+            'defaultFont' => 'InvoiceArabic',
+            'fontDir' => public_path('assets/fonts'),
+            'fontCache' => storage_path('fonts'),
+            'chroot' => base_path(),
+            'dpi' => 144,
+            'isFontSubsettingEnabled' => true,
         ]);
 
         return $pdf->output();

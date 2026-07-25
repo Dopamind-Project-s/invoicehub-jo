@@ -5,7 +5,6 @@
     <meta charset="utf-8">
     <title>{{ $data->invoice->invoice_number }}</title>
     <link rel="stylesheet" href="file://{{ public_path('css/invoice-document.css') }}">
-    <style>:root{--invoice-primary:{{ $data->branding['primary_color'] }};--invoice-secondary:{{ $data->branding['secondary_color'] }}}body.invoice-document-body{background:#fff}.invoice-page{box-shadow:none;border-radius:0}</style>
 </head>
 <body class="invoice-document-body invoice-template-{{ $variant }}">
     <main class="invoice-shell">
