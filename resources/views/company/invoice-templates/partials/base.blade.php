@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $data->invoice->invoice_number }}</title>
-    <link rel="stylesheet" href="file://{{ public_path('css/invoice-document.css') }}">
+    <link rel="stylesheet" href="file://{{ public_path('css/invoice-document.css') }}?v={{ filemtime(public_path('css/invoice-document.css')) }}">
 </head>
 <body class="invoice-document-body invoice-template-{{ $variant }}">
     <main class="invoice-shell">

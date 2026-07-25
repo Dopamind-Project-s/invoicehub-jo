@@ -1,37 +1,56 @@
 @php($doc = $doc ?? [])
-<article class="invoice-page" dir="rtl">
+<article class="invoice-page">
     <header class="invoice-header avoid-break">
-        <section class="invoice-brand">
-            @if(!empty($doc['company']['logo_data_uri']))
-                <img class="invoice-logo invoice-header-logo" src="{{ $doc['company']['logo_data_uri'] }}" alt="شعار المنشأة">
-            @else
-                <div class="invoice-logo-fallback invoice-header-logo">{{ mb_substr($doc['company']['name'] ?? 'IH', 0, 2) }}</div>
-            @endif
-            <div>
-                <h2>{{ $doc['company']['name'] ?? '—' }}</h2>
-                @if(!empty($doc['company']['legal_name']) && $doc['company']['legal_name'] !== ($doc['company']['name'] ?? null))
-                    <div class="muted">{{ $doc['company']['legal_name'] }}</div>
-                @endif
-                <div class="muted">الرقم الضريبي: {{ $doc['company']['tax_number'] ?? '—' }}</div>
-                @if(!empty($doc['company']['national_number']))
-                    <div class="muted">الرقم الوطني/التسجيل: {{ $doc['company']['national_number'] }}</div>
-                @endif
-                @if(!empty($doc['company']['address']))
-                    <div class="muted">{{ $doc['company']['address'] }}</div>
-                @endif
-            </div>
-        </section>
-        <section class="invoice-title">
-            @if(($doc['jofotara']['submitted'] ?? false) && !empty($doc['jofotara']['logo_data_uri']))
-                <div class="invoice-jofotara-brand">
-                    <img class="invoice-header-logo" src="{{ $doc['jofotara']['logo_data_uri'] }}" alt="شعار نظام الفوترة الوطني JoFotara">
+        <div class="invoice-header-main">
+            <section class="invoice-brand">
+                <div class="invoice-logo-box">
+                    @if(!empty($doc['company']['logo_data_uri']))
+                        <img src="{{ $doc['company']['logo_data_uri'] }}" alt="شعار المنشأة">
+                    @else
+                        <span class="invoice-logo-fallback">{{ mb_substr($doc['company']['name'] ?? 'IH', 0, 2) }}</span>
+                    @endif
                 </div>
-            @endif
-            <h1>{{ $doc['invoice']['type'] ?? 'فاتورة' }}</h1>
-            <div class="invoice-badge">{{ $doc['invoice']['status'] ?? '—' }}</div>
-            <div class="invoice-badge">JoFotara: {{ $doc['invoice']['jofotara_status'] ?? 'غير مرسلة' }}</div>
-            <div class="kv"><span>رقم الفاتورة</span><strong>{{ $doc['invoice']['number'] ?? '—' }}</strong></div>
-        </section>
+                <div class="invoice-brand-copy">
+                    <h2>{{ $doc['company']['name'] ?? '—' }}</h2>
+                    @if(!empty($doc['company']['legal_name']) && $doc['company']['legal_name'] !== ($doc['company']['name'] ?? null))
+                        <div class="muted">{{ $doc['company']['legal_name'] }}</div>
+                    @endif
+                    <div class="muted">الرقم الضريبي: <span class="num inline-num">{{ $doc['company']['tax_number'] ?? '—' }}</span></div>
+                    @if(!empty($doc['company']['national_number']))
+                        <div class="muted">الرقم الوطني/التسجيل: <span class="num inline-num">{{ $doc['company']['national_number'] }}</span></div>
+                    @endif
+                    @if(!empty($doc['company']['address']))
+                        <div class="muted">{{ $doc['company']['address'] }}</div>
+                    @endif
+                </div>
+            </section>
+
+            <section class="invoice-national-brand">
+                @if(($doc['jofotara']['submitted'] ?? false) && !empty($doc['jofotara']['logo_data_uri']))
+                    <div class="invoice-logo-box invoice-logo-box-national">
+                        <img src="{{ $doc['jofotara']['logo_data_uri'] }}" alt="شعار نظام الفوترة الوطني JoFotara">
+                    </div>
+                    <div class="invoice-national-copy">
+                        <strong>نظام الفوترة الوطني</strong>
+                        <span class="muted">JoFotara</span>
+                    </div>
+                @endif
+            </section>
+        </div>
+
+        <div class="invoice-heading-row">
+            <div class="invoice-title">
+                <h1>{{ $doc['invoice']['type'] ?? 'فاتورة' }}</h1>
+                <div class="invoice-statuses">
+                    <span class="invoice-badge">{{ $doc['invoice']['status'] ?? '—' }}</span>
+                    <span class="invoice-badge invoice-badge-national">JoFotara: {{ $doc['invoice']['jofotara_status'] ?? 'غير مرسلة' }}</span>
+                </div>
+            </div>
+            <div class="invoice-number">
+                <span>رقم الفاتورة</span>
+                <strong class="num">{{ $doc['invoice']['number'] ?? '—' }}</strong>
+            </div>
+        </div>
     </header>
 
     <section class="invoice-grid invoice-info-grid avoid-break">
@@ -74,25 +93,26 @@
         </tbody>
     </table>
 
-    <table class="invoice-totals avoid-break">
-        <tr><th>الإجمالي قبل الخصم</th><td class="num">{{ $doc['totals']['subtotal'] ?? '—' }}</td></tr>
-        <tr><th>مجموع الخصومات</th><td class="num">{{ $doc['totals']['discount'] ?? '—' }}</td></tr>
-        <tr><th>الخاضع للضريبة</th><td class="num">{{ $doc['totals']['taxable'] ?? '—' }}</td></tr>
-        <tr><th>مجموع الضرائب</th><td class="num">{{ $doc['totals']['tax'] ?? '—' }}</td></tr>
-        <tr class="grand"><th>الإجمالي النهائي / المستحق</th><td class="num">{{ $doc['totals']['payable'] ?? ($doc['totals']['grand'] ?? '—') }}</td></tr>
-    </table>
+    <section class="invoice-closing avoid-break">
+        <table class="invoice-totals">
+            <tr><th>الإجمالي قبل الخصم</th><td class="num">{{ $doc['totals']['subtotal'] ?? '—' }}</td></tr>
+            <tr><th>مجموع الخصومات</th><td class="num">{{ $doc['totals']['discount'] ?? '—' }}</td></tr>
+            <tr><th>الخاضع للضريبة</th><td class="num">{{ $doc['totals']['taxable'] ?? '—' }}</td></tr>
+            <tr><th>مجموع الضرائب</th><td class="num">{{ $doc['totals']['tax'] ?? '—' }}</td></tr>
+            <tr class="grand"><th>الإجمالي النهائي / المستحق</th><td class="num">{{ $doc['totals']['payable'] ?? ($doc['totals']['grand'] ?? '—') }}</td></tr>
+        </table>
 
-    <section class="invoice-grid avoid-break">
-        <div class="invoice-card">
-            <h3>رمز QR الرسمي</h3>
+        <figure class="invoice-qr-block">
             @if(!empty($doc['qr']['data_uri']))
-                <div class="invoice-qr"><img src="{{ $doc['qr']['data_uri'] }}" alt="رمز QR الرسمي من JoFotara"></div>
+                <img src="{{ $doc['qr']['data_uri'] }}" alt="رمز QR الرسمي من JoFotara">
+                <figcaption>رمز QR الرسمي</figcaption>
             @else
                 <div class="qr-note">رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني.</div>
             @endif
-        </div>
-        @if(!empty($doc['invoice']['notes']))
-            <div class="invoice-card"><h3>ملاحظات</h3><div class="invoice-notes">{{ $doc['invoice']['notes'] }}</div></div>
-        @endif
+        </figure>
     </section>
+
+    @if(!empty($doc['invoice']['notes']))
+        <section class="invoice-card invoice-notes-card avoid-break"><h3>ملاحظات</h3><div class="invoice-notes">{{ $doc['invoice']['notes'] }}</div></section>
+    @endif
 </article>
