@@ -11,7 +11,7 @@
     if (! $hasCredentials) $warnings[] = 'بيانات الربط مع نظام الفوترة غير مكتملة.';
     $failedJofotara = in_array($invoice->jofotara_status, ['NOT_SUBMITTED', 'ERROR', 'REJECTED'], true) || $invoice->jofotara_validation_result === 'ERROR';
 @endphp
-<link rel="stylesheet" href="{{ asset('css/invoice-document.css') }}">
+<link rel="stylesheet" href="{{ asset('css/invoice-document.css') }}?v={{ filemtime(public_path('css/invoice-document.css')) }}">
 <div class="invoice-shell">
     <div class="invoice-toolbar no-print">
         <a class="invoice-btn" target="_blank" href="{{ route('company.invoices.printable', [$company, $invoice, 'preview' => 1]) }}">معاينة الطباعة</a>

@@ -14,6 +14,7 @@ use App\Services\Invoices\InvoiceNotificationService;
 use App\Services\Invoices\InvoicePdfRenderer;
 use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceShareService;
+use App\Services\Invoices\InvoiceTemplateResolver;
 use App\Services\Jofotara\QRCodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +57,18 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id']);
     }
 
+    public function test_all_invoice_templates_use_cairo_stack_and_clear_numeric_font(): void
+    {
+        $css = file_get_contents(public_path('css/invoice-document.css'));
+
+        $this->assertStringContainsString('--invoice-arabic-font: Cairo, InvoiceArabic', $css);
+        $this->assertStringContainsString('--invoice-numeric-font: InvoiceNumeric', $css);
+        $this->assertStringContainsString('font-variant-numeric: tabular-nums lining-nums', $css);
+        $this->assertStringContainsString('font-feature-settings: "tnum" 1, "lnum" 1', $css);
+        $this->assertStringContainsString('font-family: var(--invoice-arabic-font)', $css);
+        $this->assertStringContainsString('font-family: var(--invoice-numeric-font)', $css);
+    }
+
     public function test_pdf_rendering_uses_template_and_branding(): void
     {
         $invoice = $this->makeInvoice();
@@ -66,10 +79,100 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertStringNotContainsString('@vite', $html);
     }
 
+    public function test_normal_and_printable_previews_share_content_without_print_layout_regression(): void
+    {
+        $invoice = $this->makeInvoice();
+        $company = $invoice->company;
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+
+        $normal = $this->actingAs($user)->get(route('company.invoices.show', [$company, $invoice]));
+        $normal->assertOk()
+            ->assertSee('class="invoice-page invoice-document"', false)
+            ->assertDontSee('class="print-preview-shell"', false);
+
+        $printable = $this->actingAs($user)->get(route('company.invoices.printable', [$company, $invoice, 'preview' => 1]));
+        $printable->assertOk()
+            ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
+            ->assertSee('class="print-preview-shell"', false)
+            ->assertSee('class="invoice-print-page"', false)
+            ->assertSee('class="invoice-page invoice-document"', false)
+            ->assertSee('class="invoice-items invoice-items-table"', false)
+            ->assertSee('فاتورة ضريبية')
+            ->assertSee('بيانات الفاتورة')
+            ->assertSee('بيانات العميل')
+            ->assertSee('الإجمالي قبل الخصم')
+            ->assertSee('1.000')
+            ->assertSee('10.000 JOD')
+            ->assertDontSee('ةيبيرض ةروتاف')
+            ->assertDontSee('ةروتافلا تانايب')
+            ->assertDontSee('ليمعلا تانايب')
+            ->assertDontSee('file://');
+    }
+
+    public function test_every_invoice_template_uses_the_shared_print_contract(): void
+    {
+        $invoice = $this->makeInvoice();
+        $resolver = app(InvoiceTemplateResolver::class);
+        $signatures = [];
+
+        foreach (InvoiceTemplate::query()->where('is_active', true)->get() as $template) {
+            $html = app(InvoicePdfRenderer::class)->html($invoice, $template);
+            $presentation = $resolver->presentation($template);
+
+            $this->assertStringContainsString('class="print-preview-shell"', $html, $template->slug);
+            $this->assertStringContainsString('class="invoice-print-page"', $html, $template->slug);
+            $this->assertStringContainsString('class="invoice-page invoice-document"', $html, $template->slug);
+            $this->assertStringContainsString('class="invoice-items invoice-items-table"', $html, $template->slug);
+            $this->assertStringContainsString($presentation['root_class'], $html, $template->slug);
+            $this->assertStringContainsString('data-layout="'.$presentation['layout'].'"', $html, $template->slug);
+            $this->assertStringContainsString(asset($presentation['stylesheet']), $html, $template->slug);
+            $this->assertStringContainsString('فاتورة ضريبية', $html, $template->slug);
+            $this->assertStringNotContainsString('ةيبيرض ةروتاف', $html, $template->slug);
+
+            $signatures[$template->slug] = implode('|', array_intersect_key($presentation, array_flip(['layout', 'header', 'info', 'table', 'totals', 'qr'])));
+        }
+
+        $this->assertCount(8, array_unique($signatures));
+    }
+
+    public function test_template_resolver_has_stable_unique_definitions_and_classic_fallback(): void
+    {
+        $resolver = app(InvoiceTemplateResolver::class);
+        $definitions = InvoiceTemplateResolver::definitions();
+
+        $this->assertCount(8, $definitions);
+        $this->assertSame($definitions['arabic-classic'], $resolver->presentation('unknown-template'));
+        $this->assertCount(8, array_unique(array_column($definitions, 'root_class')));
+        $this->assertCount(8, array_unique(array_column($definitions, 'stylesheet')));
+        $this->assertCount(8, array_unique(array_map(fn (array $definition): string => implode('|', array_intersect_key($definition, array_flip(['layout', 'header', 'info', 'table', 'totals', 'qr']))), $definitions)));
+    }
+
+    public function test_template_management_preview_uses_requested_theme_without_changing_default(): void
+    {
+        $invoice = $this->makeInvoice();
+        $company = $invoice->company;
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+        $modern = InvoiceTemplate::where('slug', 'arabic-modern')->firstOrFail();
+        $defaultBefore = CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->value('value');
+
+        $this->actingAs($user)->get(route('company.invoice-templates.index', $company))
+            ->assertOk()
+            ->assertSee('تصميم عربي حديث يبرز هوية المنشأة')
+            ->assertSee('class="template-preview-frame"', false);
+
+        $this->actingAs($user)->get(route('company.invoice-templates.preview', [$company, $modern]))
+            ->assertOk()
+            ->assertSee('invoice-template-arabic-modern', false)
+            ->assertSee('data-layout="modern-asymmetric"', false);
+
+        $this->assertSame($defaultBefore, CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->value('value'));
+    }
+
     public function test_company_can_select_default_template_and_preview_qr_states(): void
     {
         $invoice = $this->makeInvoice();
         $company = $invoice->company;
+        $company->forceFill(['logo_path' => 'assets/img/JoFotarah-logo.png'])->save();
         $template = InvoiceTemplate::where('slug', 'corporate-tax')->firstOrFail();
 
         CompanySetting::updateOrCreate(['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id'], ['value' => (string) $template->id]);
@@ -77,10 +180,23 @@ class InvoiceExperienceLayerTest extends TestCase
 
         $html = app(InvoicePdfRenderer::class)->html($invoice, $template);
         $this->assertStringContainsString('رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني', $html);
+        $this->assertStringContainsString('شعار المنشأة', $html);
+        $this->assertStringNotContainsString('شعار نظام الفوترة الوطني JoFotara', $html);
+        $this->assertStringNotContainsString('<span>UUID</span>', $html);
 
         $invoice->forceFill(['jofotara_status' => 'SUBMITTED', 'jofotara_validation_result' => 'PASS', 'jofotara_qr' => 'QR-EXACT-VALUE', 'jofotara_uuid' => 'UUID-1'])->save();
         $htmlWithQr = app(InvoicePdfRenderer::class)->html($invoice->refresh(), $template);
         $this->assertStringContainsString('data:image/svg+xml;base64', $htmlWithQr);
+        $this->assertStringContainsString('شعار نظام الفوترة الوطني JoFotara', $htmlWithQr);
+        $this->assertStringContainsString('data:image/png;base64', $htmlWithQr);
+        $this->assertStringContainsString('class="invoice-logo-box invoice-logo-box-national"', $htmlWithQr);
+        $this->assertStringContainsString('class="invoice-closing avoid-break"', $htmlWithQr);
+        $this->assertStringContainsString('class="invoice-qr-block"', $htmlWithQr);
+        $this->assertStringContainsString('class="official-jofotara-qr"', $htmlWithQr);
+        $this->assertStringContainsString('class="invoice-number"', $htmlWithQr);
+        $this->assertStringContainsString('class="invoice-number invoice-line-total"', $htmlWithQr);
+        $this->assertStringContainsString('class="invoice-tax-rate"', $htmlWithQr);
+        $this->assertStringNotContainsString('تم إنشاء الصورة من قيمة QR الرسمية', $htmlWithQr);
         $this->assertStringNotContainsString('QR-EXACT-VALUE</small>', $htmlWithQr);
         $this->assertSame('QR-EXACT-VALUE', $invoice->refresh()->jofotara_qr);
     }

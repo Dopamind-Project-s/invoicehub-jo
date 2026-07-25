@@ -17,6 +17,8 @@
     .mini-invoice.minimal{border-top-color:#2563eb;border-radius:2px;box-shadow:none}
     .mini-line{height:5px;border-radius:999px;background:#dbe7ee;margin-bottom:7px}
     .mini-line.short{width:48%}.mini-line.mid{width:70%}.mini-line.accent{background:#00a9c4}.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:12px 0}.mini-box{height:18px;border-radius:6px;background:#eef6f8}.template-meta{display:flex;gap:8px;flex-wrap:wrap}.template-meta .pill{background:#f1f9fb;color:#0f6170;border:1px solid #d7eef3;border-radius:999px;padding:4px 10px;font-size:.72rem}.selected-ribbon{position:absolute;top:10px;inset-inline-start:10px;background:#00a9c4;color:#fff;border-radius:999px;padding:5px 11px;font-size:.78rem;z-index:2}.template-actions .btn{border-radius:999px}.preview-image{max-width:100%;max-height:100%;object-fit:cover;border-radius:12px;box-shadow:0 10px 25px rgba(15,23,42,.12)}
+    .template-preview-canvas{width:96px;height:126px;overflow:hidden;background:#fff;box-shadow:0 10px 25px rgba(15,23,42,.12);direction:ltr;pointer-events:none}
+    .template-preview-frame{display:block;width:800px;height:1050px;border:0;transform:scale(.12);transform-origin:top left;background:#fff}
 </style>
 
 <div class="template-page-header d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
@@ -38,35 +40,17 @@
         @foreach($templates as $template)
             @php
                 $isSelected = (string) $selected === (string) $template->id || (! $selected && $template->is_default);
-                $previewVariant = match ($template->slug) {
-                    'arabic-modern' => 'modern',
-                    'bilingual-ar-en' => 'bilingual',
-                    'retail-receipt' => 'receipt',
-                    'corporate-tax' => 'corporate',
-                    'jordan-tax-pro' => 'jordan-tax',
-                    'premium-ledger' => 'ledger',
-                    'minimal-blue' => 'minimal',
-                    default => 'classic',
-                };
+                $presentation = $presentations[$template->id];
             @endphp
             <div class="col-lg-4 col-md-6">
-                <article class="template-card h-100 {{ $isSelected ? 'is-selected' : '' }}">
+                <article class="template-card h-100 {{ $isSelected ? 'is-selected' : '' }}" data-template="{{ $presentation['slug'] }}" data-layout="{{ $presentation['layout'] }}">
                     @if($isSelected)
                         <div class="selected-ribbon">القالب الحالي</div>
                     @endif
 
                     <div class="template-preview">
-                        @if($template->preview_image)
-                            <img src="{{ asset($template->preview_image) }}" alt="{{ $template->name }}" class="preview-image" onerror="this.style.display='none';this.nextElementSibling.classList.remove('d-none')">
-                        @endif
-                        <div class="mini-invoice {{ $previewVariant }} {{ $template->preview_image ? 'd-none' : '' }}" aria-label="معاينة بسيطة للقالب">
-                            <div class="mini-line accent short"></div>
-                            <div class="mini-line mid"></div>
-                            <div class="mini-line"></div>
-                            <div class="mini-grid"><span class="mini-box"></span><span class="mini-box"></span></div>
-                            <div class="mini-line"></div>
-                            <div class="mini-line"></div>
-                            <div class="mini-line short"></div>
+                        <div class="template-preview-canvas" aria-label="معاينة فعلية للقالب">
+                            <iframe class="template-preview-frame" loading="lazy" tabindex="-1" title="معاينة {{ $template->name }}" src="{{ route('company.invoice-templates.preview', [$company, $template]) }}"></iframe>
                         </div>
                     </div>
 
@@ -74,9 +58,11 @@
                         <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                             <div>
                                 <h2 class="h6 mb-2">{{ $template->name }}</h2>
+                                <p class="small text-muted mb-2">{{ $presentation['description'] }}</p>
                                 <div class="template-meta">
                                     <span class="pill">{{ $template->language }}</span>
                                     <span class="pill">{{ $template->layout_type }}</span>
+                                    <span class="pill">كثافة: {{ $presentation['density'] }}</span>
                                     <span class="pill">{{ $template->is_active ? 'فعال' : 'معطل' }}</span>
                                 </div>
                             </div>

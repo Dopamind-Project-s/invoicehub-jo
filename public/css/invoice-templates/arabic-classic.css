@@ -1,0 +1,10 @@
+.invoice-template-arabic-classic{--invoice-primary:#0f766e;--invoice-soft:#f3f8f7}
+.invoice-template-arabic-classic .invoice-header{border-block:3px double var(--invoice-primary);padding-block:12px}
+.invoice-template-arabic-classic .invoice-header-main{grid-template-columns:1fr auto}
+.invoice-template-arabic-classic .invoice-card{border-radius:0;border-color:#9fb9b5}
+.invoice-template-arabic-classic .invoice-items{border-radius:0;border-collapse:collapse}
+.invoice-template-arabic-classic .invoice-items th{background:#dcebe8;border:1px solid #9fb9b5}
+.invoice-template-arabic-classic .invoice-items td{border:1px solid #c9d8d5}
+.invoice-template-arabic-classic .invoice-closing{grid-template-columns:360px 1fr}
+.invoice-template-arabic-classic .invoice-totals{border:2px solid var(--invoice-primary)}
+.invoice-template-arabic-classic .invoice-qr-block{border-top:1px solid #9fb9b5;padding-top:8px}

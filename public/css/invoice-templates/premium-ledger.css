@@ -1,0 +1,14 @@
+.invoice-template-premium-ledger{--invoice-primary:#6b4f2d;--invoice-soft:#fffaf0;color:#292524}
+.invoice-template-premium-ledger .invoice-print-page{background:#fffdf7;border:1px solid #c9b58f}
+.invoice-template-premium-ledger .invoice-header{border-block:1px solid #8a6b3f;padding-block:16px}
+.invoice-template-premium-ledger .invoice-header-main{grid-template-columns:1fr 1fr}
+.invoice-template-premium-ledger .invoice-heading-row{border-top:1px dotted #8a6b3f;padding-top:10px}
+.invoice-template-premium-ledger .invoice-info-grid{gap:0}
+.invoice-template-premium-ledger .invoice-card{border:0;border-radius:0;background:transparent}
+.invoice-template-premium-ledger .invoice-card+ .invoice-card{border-inline-start:1px solid #8a6b3f}
+.invoice-template-premium-ledger .invoice-items{border:0;border-block:2px solid #6b4f2d;border-radius:0}
+.invoice-template-premium-ledger .invoice-items th{background:#eee5d5;color:#3f2d1a}
+.invoice-template-premium-ledger .invoice-items td{border-bottom:1px dotted #bfae90}
+.invoice-template-premium-ledger .invoice-closing{grid-template-columns:1fr 320px;border:1px solid #c9b58f;padding:14px;background:#fffaf0}
+.invoice-template-premium-ledger .invoice-totals .grand td,.invoice-template-premium-ledger .invoice-totals .grand th{background:#6b4f2d}
+.invoice-template-premium-ledger .invoice-qr-block{border-inline-start:1px solid #8a6b3f}

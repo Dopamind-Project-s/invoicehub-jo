@@ -4,13 +4,26 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $data->invoice->invoice_number }}</title>
-    <link rel="stylesheet" href="file://{{ public_path('css/invoice-document.css') }}">
-    <style>:root{--invoice-primary:{{ $data->branding['primary_color'] }};--invoice-secondary:{{ $data->branding['secondary_color'] }}}body.invoice-document-body{background:#fff}.invoice-page{box-shadow:none;border-radius:0}</style>
+    @if(isset($invoiceStylesheet))
+        <style>{!! $invoiceStylesheet !!}</style>
+    @else
+        <link rel="stylesheet" href="{{ asset('css/invoice-document.css') }}?v={{ filemtime(public_path('css/invoice-document.css')) }}">
+        <link rel="stylesheet" href="{{ asset($templatePresentation['stylesheet']) }}?v={{ filemtime(public_path($templatePresentation['stylesheet'])) }}">
+    @endif
 </head>
-<body class="invoice-document-body invoice-template-{{ $variant }}">
-    <main class="invoice-shell">
-        @include('company.invoices.partials.document', ['doc' => $data->doc])
-        <footer class="invoice-footer">{{ $data->branding['footer_text'] }}</footer>
+<body class="invoice-document-body {{ $templatePresentation['root_class'] }}"
+      data-template="{{ $templatePresentation['slug'] }}"
+      data-layout="{{ $templatePresentation['layout'] }}"
+      data-header="{{ $templatePresentation['header'] }}"
+      data-info="{{ $templatePresentation['info'] }}"
+      data-table="{{ $templatePresentation['table'] }}"
+      data-totals="{{ $templatePresentation['totals'] }}"
+      data-qr="{{ $templatePresentation['qr'] }}">
+    <main class="print-preview-shell">
+        <div class="invoice-print-page">
+            @include('company.invoices.partials.document', ['doc' => $data->doc, 'language' => $data->language, 'direction' => $data->direction])
+            <footer class="invoice-footer">{{ $data->branding['footer_text'] }}</footer>
+        </div>
     </main>
 </body>
 </html>

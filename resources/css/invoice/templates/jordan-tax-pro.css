@@ -1,0 +1,15 @@
+.invoice-template-jordan-tax-pro{--invoice-primary:#0b3b53;--invoice-soft:#f7f5ed}
+.invoice-template-jordan-tax-pro .invoice-print-page{outline:2px solid #0b3b53;outline-offset:-6mm}
+.invoice-template-jordan-tax-pro .invoice-header{border-bottom:5px solid #c59a3d;padding:5mm}
+.invoice-template-jordan-tax-pro .invoice-header-main{grid-template-columns:1fr 240px}
+.invoice-template-jordan-tax-pro .invoice-national-brand{padding:8px;border:1px solid #c59a3d;background:#fffdf7}
+.invoice-template-jordan-tax-pro .invoice-info-grid{gap:0;border:2px solid #0b3b53}
+.invoice-template-jordan-tax-pro .invoice-card{border:0;border-radius:0}
+.invoice-template-jordan-tax-pro .invoice-card+ .invoice-card{border-inline-start:2px solid #0b3b53}
+.invoice-template-jordan-tax-pro .invoice-card h3{margin:-11px -12px 7px;padding:7px 12px;background:#0b3b53;color:#fff}
+.invoice-template-jordan-tax-pro .invoice-items{border-radius:0;border:2px solid #0b3b53;border-collapse:collapse}
+.invoice-template-jordan-tax-pro .invoice-items th,.invoice-template-jordan-tax-pro .invoice-items td{border:1px solid #8ca0aa}
+.invoice-template-jordan-tax-pro .invoice-items th{background:#0b3b53;color:#fff}
+.invoice-template-jordan-tax-pro .invoice-closing{grid-template-columns:1fr 1fr;border-top:3px double #c59a3d;padding-top:12px}
+.invoice-template-jordan-tax-pro .invoice-totals .grand td,.invoice-template-jordan-tax-pro .invoice-totals .grand th{background:#0b3b53}
+.invoice-template-jordan-tax-pro .invoice-qr-block{border:2px solid #c59a3d;padding:8px}
