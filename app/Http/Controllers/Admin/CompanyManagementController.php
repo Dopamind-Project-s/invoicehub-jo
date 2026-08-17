@@ -4,26 +4,31 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Admin\CreateCompanyAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\CreateDirectSubscriptionRequest;
+use App\Http\Requests\Admin\RenewSubscriptionRequest;
 use App\Models\Company;
 use App\Models\FeatureKey;
 use App\Models\Plan;
 use App\Models\Product;
 use App\Models\Subscription;
+use App\Models\SubscriptionEvent;
 use App\Services\Audit\AuditLogger;
 use App\Services\Company\CompanyRoleSeeder;
+use App\Services\Subscriptions\AdminSubscriptionService;
 use App\Services\Subscriptions\SubscriptionAccessService;
 use App\Services\Subscriptions\SubscriptionEventLogger;
 use App\Services\Subscriptions\SubscriptionPresentationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class CompanyManagementController extends Controller
 {
-    public function __construct(private readonly AuditLogger $audit, private readonly CompanyRoleSeeder $roles, private readonly SubscriptionAccessService $subscriptions, private readonly SubscriptionEventLogger $subscriptionEvents, private readonly SubscriptionPresentationService $subscriptionPresenter) {}
+    public function __construct(private readonly AuditLogger $audit, private readonly CompanyRoleSeeder $roles, private readonly SubscriptionAccessService $subscriptions, private readonly SubscriptionEventLogger $subscriptionEvents, private readonly SubscriptionPresentationService $subscriptionPresenter, private readonly AdminSubscriptionService $adminSubscriptions, private readonly CreateCompanyAction $createCompany) {}
 
     public function index()
     {
@@ -45,16 +50,13 @@ class CompanyManagementController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $request->merge(['email' => mb_strtolower(trim((string) $request->input('email')))]);
         $data = $this->validated($request);
         $features = $data['feature_keys'] ?? [];
-        $planId = $data['plan_id'] ?? null;
-        unset($data['feature_keys'], $data['plan_id']);
-
-        $company = Company::create($this->payload($data, $request));
-        $this->syncPlanAndFeatures($company, $planId ? (int) $planId : null, $features);
-        $this->roles->seed($company);
-        $this->audit->record('admin.company.created', $company, [], $this->auditSnapshot($company), $request);
-        $this->audit->record('admin.company.features.synced', $company, [], ['feature_key_ids' => $features], $request);
+        $options = ['feature_keys' => $features, 'create_subscription' => (bool) ($data['create_subscription'] ?? false), 'plan_id' => $data['plan_id'] ?? null, 'billing_cycle' => $data['billing_cycle'] ?? null, 'start_date' => $data['start_date'] ?? null, 'auto_renew' => (bool) ($data['auto_renew'] ?? false), 'notes' => $data['subscription_notes'] ?? null];
+        unset($data['feature_keys'], $data['create_subscription'], $data['plan_id'], $data['billing_cycle'], $data['start_date'], $data['auto_renew'], $data['subscription_notes']);
+        $data['email'] = mb_strtolower(trim($data['email']));
+        $company = $this->createCompany->execute($this->payload($data, $request), $options, $request);
 
         return redirect()->route('admin.companies.show', $company)->with('success', 'تم إنشاء المنشأة.');
     }
@@ -108,7 +110,6 @@ class CompanyManagementController extends Controller
         return redirect()->route('admin.companies.show', $company)->with('success', 'تم تحديث المنشأة.');
     }
 
-
     public function subscriptions(Company $company)
     {
         $company->load(['subscriptions.plan.featureKeys']);
@@ -116,7 +117,7 @@ class CompanyManagementController extends Controller
         $plans = Plan::where('is_active', true)->with('featureKeys')->orderBy('sort_order')->orderBy('plan_rank')->orderBy('name')->get();
         $allFeatures = FeatureKey::where('is_active', true)->orderBy('category')->orderBy('code')->get();
         $history = $company->subscriptions()->with('plan')->latest('current_period_start_at')->latest('id')->paginate(15);
-        $events = \App\Models\SubscriptionEvent::with('actor')->where('company_id', $company->id)->latest('occurred_at')->latest('id')->limit(30)->get();
+        $events = SubscriptionEvent::with('actor')->where('company_id', $company->id)->latest('occurred_at')->latest('id')->limit(30)->get();
         $timeline = $this->subscriptionPresenter->timeline($subscriptionAccess['subscription'], $subscriptionAccess['effective_status']);
         $health = $this->subscriptionPresenter->health($subscriptionAccess['subscription'], $subscriptionAccess['effective_status']);
         $renewalSummary = $this->subscriptionPresenter->renewalSummary($subscriptionAccess['subscription']);
@@ -128,52 +129,46 @@ class CompanyManagementController extends Controller
 
     public function toggleAutoRenew(Request $request, Company $company): RedirectResponse
     {
-        $subscription = $this->subscriptions->currentSubscription($company);
-        abort_unless($subscription, 404);
+        $subscription = $this->adminSubscriptions->toggleAutoRenew($company, $request->user());
         $before = ['auto_renew' => $subscription->auto_renew];
-        $subscription->forceFill(['auto_renew' => ! $subscription->auto_renew])->save();
-        $event = $subscription->auto_renew ? 'auto_renew_enabled' : 'auto_renew_disabled';
-        $this->subscriptionEvents->record($company, $subscription, $event, 'admin', $request->user(), ['auto_renew' => $subscription->auto_renew]);
         $this->audit->record('admin.subscription.auto_renew_toggled', $subscription, $before, ['auto_renew' => $subscription->auto_renew], $request);
+
         return back()->with('success', 'تم تحديث التجديد التلقائي.');
     }
 
     public function cancelSubscription(Request $request, Company $company): RedirectResponse
     {
-        $subscription = $this->subscriptions->currentSubscription($company);
-        abort_unless($subscription, 404);
-        $subscription->forceFill(['status' => 'cancelled', 'cancelled_at' => now(), 'ended_at' => now(), 'auto_renew' => false, 'status_reason' => 'admin_cancelled'])->save();
-        $this->subscriptionEvents->record($company, $subscription, 'cancelled', 'admin', $request->user());
+        $subscription = $this->adminSubscriptions->cancel($company, $request->user());
         $this->audit->record('admin.subscription.cancelled', $subscription, [], ['status' => 'cancelled'], $request);
+
         return back()->with('success', 'تم إلغاء الاشتراك.');
     }
 
     public function reactivateSubscription(Request $request, Company $company): RedirectResponse
     {
-        $subscription = $this->subscriptions->currentSubscription($company);
-        abort_unless($subscription, 404);
-        $end = max(now(), $subscription->current_period_end_at ?: now())->addMonth();
-        $subscription->forceFill(['status' => 'active', 'cancelled_at' => null, 'ended_at' => null, 'current_period_start_at' => now(), 'current_period_end_at' => $end, 'expires_at' => $end, 'grace_ends_at' => $end->copy()->addDays((int) ($subscription->plan?->grace_period_days ?? 7)), 'source' => 'admin', 'renewal_source' => 'admin'])->save();
-        $this->subscriptionEvents->record($company, $subscription, 'reactivated', 'admin', $request->user());
+        $subscription = $this->adminSubscriptions->reactivate($company, $request->user());
         $this->audit->record('admin.subscription.reactivated', $subscription, [], ['status' => 'active'], $request);
+
         return back()->with('success', 'تمت إعادة تفعيل الاشتراك.');
     }
 
-    public function renewSubscription(Request $request, Company $company, string $cycle): RedirectResponse
+    public function renewSubscription(RenewSubscriptionRequest $request, Company $company): RedirectResponse
     {
-        abort_unless(in_array($cycle, ['monthly', 'yearly'], true), 404);
-
-        $subscription = $this->subscriptions->currentSubscription($company);
-        abort_unless($subscription, 404, 'لا يوجد اشتراك لتجديده.');
-
-        $before = $subscription->only(['billing_cycle', 'current_period_start_at', 'current_period_end_at', 'expires_at', 'grace_ends_at', 'status', 'renewed_at', 'source']);
-        $subscription = $this->subscriptions->renew($subscription, $cycle);
-        $subscription->forceFill(['renewal_source' => 'admin', 'renewed_by' => $request->user()?->id, 'payment_status' => 'not_required'])->save();
-        $this->subscriptionEvents->record($company, $subscription, 'renewed', 'admin', $request->user(), ['billing_cycle' => $cycle]);
+        $cycle = $request->validated('billing_cycle');
+        $subscription = $this->adminSubscriptions->renew($company, $cycle, $request->user());
+        $before = [];
 
         $this->audit->record('admin.subscription.renewed', $subscription, $before, $subscription->only(['billing_cycle', 'current_period_start_at', 'current_period_end_at', 'expires_at', 'grace_ends_at', 'status', 'renewed_at', 'source']), $request);
 
         return back()->with('success', $cycle === 'yearly' ? 'تم تجديد الاشتراك سنوياً.' : 'تم تجديد الاشتراك شهرياً.');
+    }
+
+    public function createSubscription(CreateDirectSubscriptionRequest $request, Company $company): RedirectResponse
+    {
+        $subscription = $this->adminSubscriptions->create($company, $request->validated(), $request->user());
+        $this->audit->record('admin.subscription.direct_created', $subscription, [], ['source' => 'admin_direct', 'billing_cycle' => $subscription->billing_cycle], $request);
+
+        return redirect()->route('admin.companies.subscriptions.index', $company)->with('success', 'تم إنشاء اشتراك المنشأة بنجاح.');
     }
 
     public function activate(Request $request, Company $company): RedirectResponse
@@ -202,7 +197,7 @@ class CompanyManagementController extends Controller
             'tax_number' => ['required', 'string', 'max:50', Rule::unique('companies', 'tax_number')->ignore($company)],
             'national_number' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
-            'email' => ['nullable', 'email', 'max:255'],
+            'email' => [$company ? 'nullable' : 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($company?->users()->value('id'))],
             'status' => ['required', Rule::in(['active', 'suspended'])],
             'logo' => ['nullable', 'image', 'max:2048'],
             'jofotara_source_id' => ['nullable', 'string', 'max:50'],
@@ -213,6 +208,11 @@ class CompanyManagementController extends Controller
             'plan_id' => ['sometimes', 'nullable', 'integer', 'exists:plans,id'],
             'feature_keys' => ['sometimes', 'array'],
             'feature_keys.*' => ['integer', 'exists:feature_keys,id'],
+            'create_subscription' => ['sometimes', 'boolean'],
+            'billing_cycle' => ['required_if:create_subscription,1', Rule::in(['monthly', 'yearly'])],
+            'start_date' => ['required_if:create_subscription,1', 'date'],
+            'auto_renew' => ['sometimes', 'boolean'],
+            'subscription_notes' => ['nullable', 'string', 'max:1000'],
         ]);
     }
 

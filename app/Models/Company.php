@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Admin\AdminDashboardService;
+use App\Services\Subscriptions\SubscriptionAccessService;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Crypt;
-use Illuminate\Contracts\Encryption\DecryptException;
-use App\Services\Subscriptions\SubscriptionAccessService;
 
 class Company extends Model
 {
+    protected static function booted(): void
+    {
+        static::saved(fn () => AdminDashboardService::clear());
+        static::deleted(fn () => AdminDashboardService::clear());
+    }
+
     protected $fillable = ['name_ar', 'name_en', 'legal_name_ar', 'legal_name_en', 'trade_name', 'tax_number', 'national_number', 'registration_number', 'branch_code', 'country_code', 'city', 'street', 'building_no', 'postal_code', 'email', 'phone', 'status', 'logo_path', 'default_language', 'economic_activity', 'default_currency', 'icv_prefix', 'jofotara_client_id', 'jofotara_secret_key', 'jofotara_source_id', 'last_icv', 'is_active'];
 
     protected $hidden = ['jofotara_client_id', 'jofotara_secret_key'];
@@ -90,7 +97,6 @@ class Company extends Model
     {
         return $this->effectiveSubscriptionStatus() === 'expired';
     }
-
 
     public function getJofotaraClientIdAttribute(?string $value): ?string
     {

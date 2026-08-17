@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Admin\AdminDashboardService;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -13,9 +14,16 @@ use Illuminate\Support\Facades\Storage;
 #[Fillable(['title_ar', 'title_en', 'slug', 'excerpt_ar', 'excerpt_en', 'content_ar', 'content_en', 'image', 'category', 'tags', 'status', 'is_featured', 'published_at', 'views_count', 'meta_title', 'meta_description', 'created_by'])]
 class Blog extends Model
 {
+    protected static function booted(): void
+    {
+        static::saved(fn () => AdminDashboardService::clear());
+        static::deleted(fn () => AdminDashboardService::clear());
+    }
+
     use SoftDeletes;
 
     public const STATUS_DRAFT = 'draft';
+
     public const STATUS_PUBLISHED = 'published';
 
     protected function casts(): array
@@ -40,7 +48,10 @@ class Blog extends Model
     public function imageUrl(): Attribute
     {
         return Attribute::get(function (): string {
-            if (! $this->image) { return asset('assets/img/fawtara.png'); }
+            if (! $this->image) {
+                return asset('assets/img/fawtara.png');
+            }
+
             return str_starts_with($this->image, 'assets/') ? asset($this->image) : Storage::url($this->image);
         });
     }

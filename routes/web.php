@@ -1,16 +1,15 @@
 <?php
 
+use App\Http\Controllers\Admin\BlogController as AdminBlogController;
 use App\Http\Controllers\Admin\CompanyManagementController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\FeatureKeyController;
-use App\Http\Controllers\Admin\PlanController;
-use App\Http\Controllers\Admin\UserManagementController;
-use App\Http\Controllers\Admin\RoleManagementController;
 use App\Http\Controllers\Admin\LandingCms\LandingFaqController;
 use App\Http\Controllers\Admin\LandingCms\SiteSettingController;
-use App\Http\Controllers\Admin\BlogController as AdminBlogController;
-use App\Http\Controllers\Public\BlogController as PublicBlogController;
-use App\Services\Landing\LandingPageDataService;
+use App\Http\Controllers\Admin\PlanController;
+use App\Http\Controllers\Admin\RoleManagementController;
+use App\Http\Controllers\Admin\SubscriptionRequestController as AdminSubscriptionRequestController;
+use App\Http\Controllers\Admin\UserManagementController;
 use App\Http\Controllers\CompanyWorkspace\ActivityController;
 use App\Http\Controllers\CompanyWorkspace\CompanyRoleController;
 use App\Http\Controllers\CompanyWorkspace\CompanySettingsController;
@@ -19,17 +18,20 @@ use App\Http\Controllers\CompanyWorkspace\InvoiceEngineController;
 use App\Http\Controllers\CompanyWorkspace\InvoiceShareController;
 use App\Http\Controllers\CompanyWorkspace\InvoiceTemplateController;
 use App\Http\Controllers\CompanyWorkspace\JofotaraImportController;
-use App\Http\Controllers\CompanyWorkspace\WorkspaceDashboardController;
-use App\Http\Controllers\CompanyWorkspace\SubscriptionController as CompanySubscriptionController;
-use App\Http\Controllers\PublicInvoiceShareController;
-use App\Http\Controllers\Public\SubscriptionRequestController as PublicSubscriptionRequestController;
-use App\Http\Controllers\Admin\SubscriptionRequestController as AdminSubscriptionRequestController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ContactController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductCategoryController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\ProductController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\TaxProfileController;
 use App\Http\Controllers\CompanyWorkspace\MasterData\UnitController;
+use App\Http\Controllers\CompanyWorkspace\SubscriptionController as CompanySubscriptionController;
+use App\Http\Controllers\CompanyWorkspace\WorkspaceDashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Public\BlogController as PublicBlogController;
+use App\Http\Controllers\Public\SubscriptionRequestController as PublicSubscriptionRequestController;
+use App\Http\Controllers\PublicInvoiceShareController;
+use App\Models\Company;
+use App\Services\CompanyWorkspace\CompanyDashboardStatsService;
+use App\Services\Landing\LandingPageDataService;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function (LandingPageDataService $landing) {
@@ -44,9 +46,12 @@ Route::get('/subscription-request/thank-you', [PublicSubscriptionRequestControll
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
-    if ($user?->isSuperAdmin()) { return redirect()->route('admin.dashboard.show'); }
-    if ($user?->company_id && ($company = \App\Models\Company::with(['featureKeys', 'activeSubscription.plan'])->find($user->company_id))) {
-        $stats = app(\App\Services\CompanyWorkspace\CompanyDashboardStatsService::class)->get($company);
+    if ($user?->isSuperAdmin()) {
+        return redirect()->route('admin.dashboard.show');
+    }
+    if ($user?->company_id && ($company = Company::with(['featureKeys', 'activeSubscription.plan'])->find($user->company_id))) {
+        $stats = app(CompanyDashboardStatsService::class)->get($company);
+
         return view('company.dashboard', [
             'company' => $company,
             'stats' => $stats,
@@ -61,12 +66,14 @@ Route::get('/dashboard', function () {
             'recentInvoices' => $stats['recent_invoices'],
         ]);
     }
+
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
@@ -81,7 +88,9 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::post('companies/{company}/activate', [CompanyManagementController::class, 'activate'])->name('companies.activate');
     Route::post('companies/{company}/suspend', [CompanyManagementController::class, 'suspend'])->name('companies.suspend');
     Route::get('companies/{company}/subscriptions', [CompanyManagementController::class, 'subscriptions'])->name('companies.subscriptions.index');
-    Route::post('companies/{company}/subscriptions/renew/{cycle}', [CompanyManagementController::class, 'renewSubscription'])->whereIn('cycle', ['monthly', 'yearly'])->name('companies.subscriptions.renew');
+    Route::post('companies/{company}/subscriptions', [CompanyManagementController::class, 'createSubscription'])->name('companies.subscriptions.store');
+    Route::post('companies/{company}/subscriptions/renew', [CompanyManagementController::class, 'renewSubscription'])->name('companies.subscriptions.renew');
+    Route::patch('companies/{company}/subscriptions/auto-renew', [CompanyManagementController::class, 'toggleAutoRenew'])->name('companies.subscriptions.auto-renew');
     Route::post('companies/{company}/subscriptions/toggle-auto-renew', [CompanyManagementController::class, 'toggleAutoRenew'])->name('companies.subscriptions.toggle-auto-renew');
     Route::post('companies/{company}/subscriptions/cancel', [CompanyManagementController::class, 'cancelSubscription'])->name('companies.subscriptions.cancel');
     Route::post('companies/{company}/subscriptions/reactivate', [CompanyManagementController::class, 'reactivateSubscription'])->name('companies.subscriptions.reactivate');
@@ -129,7 +138,6 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
     Route::get('subscriptions/plans', [CompanySubscriptionController::class, 'plans'])->name('subscriptions.plans');
     Route::post('subscriptions/requests', [CompanySubscriptionController::class, 'requestChange'])->name('subscriptions.requests.store');
 
-
     Route::middleware('permission:invoices.create')->group(function (): void {
         Route::get('invoices/create', [InvoiceEngineController::class, 'create'])->name('invoices.create');
         Route::post('invoices', [InvoiceEngineController::class, 'store'])->name('invoices.store');
@@ -151,7 +159,6 @@ Route::middleware(['auth', 'permission.team'])->prefix('companies/{company}')->n
     });
     Route::post('invoices/{invoice}/approve', [InvoiceEngineController::class, 'approve'])->middleware('permission:invoices.approve')->whereNumber('invoice')->name('invoices.approve');
     Route::post('invoices/{invoice}/jofotara-submit', [InvoiceEngineController::class, 'submitToJofotara'])->middleware('permission:invoices.submit')->whereNumber('invoice')->name('invoices.jofotara.submit');
-
 
     Route::middleware('permission:products.manage')->group(function (): void {
         Route::resource('product-categories', ProductCategoryController::class)->except(['show', 'destroy']);

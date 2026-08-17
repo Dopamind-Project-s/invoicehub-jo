@@ -4,15 +4,26 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Admin\AdminDashboardService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SubscriptionRequest extends Model
 {
+    protected static function booted(): void
+    {
+        static::saved(fn () => AdminDashboardService::clear());
+        static::deleted(fn () => AdminDashboardService::clear());
+    }
+
     public const STATUS_PENDING = 'pending';
+
     public const STATUS_CONTACTED = 'contacted';
+
     public const STATUS_APPROVED = 'approved';
+
     public const STATUS_PROVISIONED = 'provisioned';
+
     public const STATUS_REJECTED = 'rejected';
 
     protected $fillable = ['company_name', 'applicant_name', 'email', 'phone', 'whatsapp', 'plan_id', 'billing_cycle', 'notes', 'status', 'admin_notes', 'approved_at', 'approved_by', 'company_id', 'user_id', 'subscription_id', 'provisioned_at', 'provisioned_by'];
