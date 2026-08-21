@@ -79,9 +79,13 @@ class InvoicePdfRenderer
         } catch (Throwable $exception) {
             Log::error('Chromium invoice PDF rendering failed.', ['exception' => $exception, 'renderer' => 'browsershot']);
 
-            if (! app()->environment(['local', 'testing']) && ! config('services.invoice_pdf.allow_dompdf_fallback', false)) {
+            if (! app()->environment('testing')) {
                 throw new RuntimeException('Chromium is required to render Arabic invoice PDFs.', previous: $exception);
             }
+        }
+
+        if (! app()->environment('testing')) {
+            throw new RuntimeException('Chromium is required to render Arabic invoice PDFs.');
         }
 
         $html = $this->renderHtml($invoice, $template, true, true);

@@ -187,6 +187,30 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertSame($defaultBefore, CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->value('value'));
     }
 
+    public function test_company_can_change_legacy_template_setting_without_creating_a_duplicate(): void
+    {
+        $company = Company::where('tax_number', '9578331')->firstOrFail();
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+        $template = InvoiceTemplate::where('slug', 'bilingual-ar-en')->firstOrFail();
+        $setting = CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->firstOrFail();
+        $setting->forceFill(['category' => 'legacy_invoice'])->save();
+        $settingCount = CompanySetting::count();
+
+        $this->actingAs($user)
+            ->put(route('company.invoice-templates.update', $company), ['invoice_template_id' => $template->id])
+            ->assertRedirect()
+            ->assertSessionHas('status', 'تم اختيار القالب الافتراضي للمنشأة.');
+
+        $this->assertDatabaseCount('company_settings', $settingCount);
+        $this->assertSame(1, CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->count());
+        $this->assertDatabaseHas('company_settings', [
+            'company_id' => $company->id,
+            'category' => 'invoice_branding',
+            'key' => 'invoice_template_id',
+            'value' => (string) $template->id,
+        ]);
+    }
+
     public function test_company_can_select_default_template_and_preview_qr_states(): void
     {
         $invoice = $this->makeInvoice();
