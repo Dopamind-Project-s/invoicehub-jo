@@ -14,6 +14,7 @@
             const scale = Math.min(1, availableHeight / content.scrollHeight, availableWidth / content.scrollWidth);
 
             page.style.setProperty('--invoice-print-scale', Math.max(0.1, scale).toFixed(4));
+            document.documentElement.dataset.invoicePrintReady = 'true';
         });
     };
 

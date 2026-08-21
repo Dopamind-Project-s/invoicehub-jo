@@ -140,6 +140,20 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertCount(8, array_unique($signatures));
     }
 
+    public function test_every_invoice_template_downloads_as_one_a4_pdf_page(): void
+    {
+        $invoice = $this->makeInvoice();
+        $renderer = app(InvoicePdfRenderer::class);
+
+        foreach (InvoiceTemplate::query()->where('is_active', true)->get() as $template) {
+            $response = $renderer->download($invoice, $template);
+
+            $this->assertSame(200, $response->getStatusCode(), $template->slug);
+            $this->assertSame('application/pdf', $response->headers->get('Content-Type'), $template->slug);
+            $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()), $template->slug.' must fit on one PDF page.');
+        }
+    }
+
     public function test_template_resolver_has_stable_unique_definitions_and_classic_fallback(): void
     {
         $resolver = app(InvoiceTemplateResolver::class);
@@ -267,6 +281,7 @@ class InvoiceExperienceLayerTest extends TestCase
         $response = $this->actingAs($user)->get(route('company.invoices.printable', [$company, $invoice]));
         $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF', $response->getContent());
+        $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()), 'The printable invoice must contain exactly one PDF page.');
     }
 
     public function test_legacy_qr_uuid_url_and_hash_do_not_render_without_official_jofotara_success_state(): void

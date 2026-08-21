@@ -1,0 +1,114 @@
+/* Dompdf does not support the grid layout used by the browser templates. */
+html,
+body.invoice-document-body.invoice-pdf-dompdf {
+    width: 210mm;
+    height: auto;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    direction: rtl;
+}
+
+.invoice-pdf-dompdf .print-preview-shell {
+    display: block;
+    width: 210mm;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.invoice-pdf-dompdf .invoice-print-page {
+    width: 210mm;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    padding: 8mm;
+    overflow: visible;
+}
+
+.invoice-pdf-dompdf .invoice-print-content {
+    width: 100%;
+    zoom: 1;
+}
+
+.invoice-pdf-dompdf .invoice-header-main,
+.invoice-pdf-dompdf .invoice-heading-row,
+.invoice-pdf-dompdf .invoice-grid,
+.invoice-pdf-dompdf .invoice-closing {
+    display: block;
+    width: 100%;
+}
+
+.invoice-pdf-dompdf .invoice-header-main::after,
+.invoice-pdf-dompdf .invoice-heading-row::after,
+.invoice-pdf-dompdf .invoice-grid::after,
+.invoice-pdf-dompdf .invoice-closing::after {
+    display: block;
+    clear: both;
+    content: "";
+}
+
+.invoice-pdf-dompdf .invoice-brand,
+.invoice-pdf-dompdf .invoice-national-brand,
+.invoice-pdf-dompdf .invoice-title,
+.invoice-pdf-dompdf .invoice-reference,
+.invoice-pdf-dompdf .invoice-card,
+.invoice-pdf-dompdf .invoice-qr-block {
+    display: block;
+    float: right;
+    width: 50%;
+    vertical-align: top;
+}
+
+.invoice-pdf-dompdf .invoice-totals {
+    display: table;
+    float: right;
+    width: 50%;
+    table-layout: fixed;
+}
+
+.invoice-pdf-dompdf .invoice-logo-box {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.invoice-pdf-dompdf .invoice-brand-copy,
+.invoice-pdf-dompdf .invoice-national-copy {
+    display: inline-block;
+    width: 68%;
+    vertical-align: middle;
+}
+
+.invoice-pdf-dompdf .invoice-card {
+    padding: 8px;
+}
+
+.invoice-pdf-dompdf .invoice-items {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.invoice-pdf-dompdf .invoice-brand-copy,
+.invoice-pdf-dompdf .invoice-national-copy,
+.invoice-pdf-dompdf .invoice-title,
+.invoice-pdf-dompdf .invoice-reference {
+    text-align: right;
+}
+
+.invoice-pdf-dompdf .invoice-closing {
+    margin-top: 9px;
+}
+
+.invoice-pdf-dompdf .invoice-qr-block img,
+.invoice-pdf-dompdf .official-jofotara-qr {
+    width: 165px;
+    height: 165px;
+}
+
+.invoice-pdf-dompdf .invoice-footer {
+    margin-top: 8px;
+    padding-top: 6px;
+}
