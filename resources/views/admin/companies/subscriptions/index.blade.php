@@ -23,13 +23,18 @@
             @if($subscription)
                 <div class="d-grid gap-2 admin-actions">
                     @if(in_array($subscription->status, ['active','expired','grace','trial','trialing'], true))
+                        <h3 class="h6 fw-bold mb-0">التجديد اليدوي</h3>
+                        <p class="small text-muted mb-1">يمكن التجديد اليدوي سواء كان التجديد التلقائي مفعلاً أو متوقفاً.</p>
                         @foreach(['monthly' => 'تجديد شهري', 'yearly' => 'تجديد سنوي'] as $renewCycle => $renewLabel)
                             <form method="post" action="{{ route('admin.companies.subscriptions.renew', $company) }}">@csrf<input type="hidden" name="billing_cycle" value="{{ $renewCycle }}"><button type="submit" class="btn {{ $renewCycle === 'yearly' ? 'btn-primary' : 'btn-outline-primary' }} w-100" data-confirm="سيتم تمديد تاريخ الاشتراك. هل تريد المتابعة؟">{{ $renewLabel }}</button></form>
                         @endforeach
                         <form method="post" action="{{ route('admin.companies.subscriptions.cancel', $company) }}">@csrf<button type="submit" class="btn btn-outline-danger w-100" data-confirm="هل أنت متأكد من إلغاء الاشتراك؟">إلغاء الاشتراك</button></form>
                     @endif
                     @if(in_array($subscription->status, ['active','grace','trial','trialing'], true))
-                        <form method="post" action="{{ route('admin.companies.subscriptions.auto-renew', $company) }}">@csrf @method('PATCH')<button type="submit" class="btn btn-outline-info w-100">تفعيل/إيقاف التجديد التلقائي</button></form>
+                        <hr class="my-2">
+                        <h3 class="h6 fw-bold mb-0">إعداد التجديد التلقائي</h3>
+                        <p class="small text-muted mb-1">هذا الإعداد مستقل عن أزرار التجديد اليدوي.</p>
+                        <form method="post" action="{{ route('admin.companies.subscriptions.auto-renew', $company) }}">@csrf @method('PATCH')<button type="submit" class="btn btn-outline-info w-100">{{ $subscription->auto_renew ? 'إيقاف التجديد التلقائي' : 'تفعيل التجديد التلقائي' }}</button></form>
                     @endif
                     @if($subscription->status === 'cancelled')
                         <form method="post" action="{{ route('admin.companies.subscriptions.reactivate', $company) }}">@csrf<button type="submit" class="btn btn-outline-success w-100" data-confirm="هل تريد إعادة تفعيل الاشتراك؟">إعادة تفعيل الاشتراك</button></form>

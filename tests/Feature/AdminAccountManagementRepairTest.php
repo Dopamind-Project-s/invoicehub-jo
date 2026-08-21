@@ -135,6 +135,48 @@ class AdminAccountManagementRepairTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_manual_renewal_is_independent_from_auto_renew_setting(): void
+    {
+        Carbon::setTestNow('2026-08-21 10:00:00');
+        $admin = User::where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
+        $company = Company::create(['legal_name_ar' => 'شركة التجديد المستقل', 'tax_number' => 'SUB-INDEPENDENT']);
+        $plan = Plan::where('is_active', true)->firstOrFail();
+        $subscription = Subscription::create([
+            'company_id' => $company->id,
+            'plan_id' => $plan->id,
+            'status' => 'active',
+            'billing_cycle' => 'monthly',
+            'current_period_start_at' => '2026-07-03 00:00:00',
+            'current_period_end_at' => '2026-08-03 00:00:00',
+            'expires_at' => '2026-08-03 00:00:00',
+            'auto_renew' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.companies.subscriptions.index', $company))
+            ->assertOk()
+            ->assertSee('يمكن التجديد اليدوي سواء كان التجديد التلقائي مفعلاً أو متوقفاً.')
+            ->assertSee('تفعيل التجديد التلقائي');
+
+        $this->actingAs($admin)
+            ->post(route('admin.companies.subscriptions.renew', $company), ['billing_cycle' => 'monthly'])
+            ->assertRedirect();
+        $this->assertFalse($subscription->refresh()->auto_renew);
+        $this->assertSame('2026-09-21', $subscription->current_period_end_at->toDateString());
+
+        $subscription->forceFill([
+            'current_period_end_at' => '2026-08-03 00:00:00',
+            'expires_at' => '2026-08-03 00:00:00',
+            'auto_renew' => true,
+        ])->save();
+        $this->actingAs($admin)
+            ->post(route('admin.companies.subscriptions.renew', $company), ['billing_cycle' => 'yearly'])
+            ->assertRedirect();
+        $this->assertTrue($subscription->refresh()->auto_renew);
+        $this->assertSame('2027-08-21', $subscription->current_period_end_at->toDateString());
+        Carbon::setTestNow();
+    }
+
     public function test_flagged_user_must_change_password_and_sensitive_fields_are_not_profile_editable(): void
     {
         $company = Company::create(['legal_name_ar' => 'شركة', 'tax_number' => 'PROF-1']);
