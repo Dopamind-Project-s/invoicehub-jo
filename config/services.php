@@ -51,9 +51,4 @@ return [
         'initial_pih' => env('JOFOTARA_INITIAL_PIH', ''),
     ],
 
-    'invoice_pdf' => [
-        'node_binary' => env('INVOICE_PDF_NODE_BINARY'),
-        'chrome_path' => env('INVOICE_PDF_CHROME_PATH'),
-    ],
-
 ];

@@ -1,0 +1,114 @@
+/* mPDF does not support the grid layout used by the browser templates. */
+html,
+body.invoice-document-body.invoice-pdf-mpdf {
+    width: 210mm;
+    height: auto;
+    overflow: visible;
+    margin: 0;
+    padding: 0;
+    direction: rtl;
+}
+
+.invoice-pdf-mpdf .print-preview-shell {
+    display: block;
+    width: 210mm;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+}
+
+.invoice-pdf-mpdf .invoice-print-page {
+    width: 210mm;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    padding: 8mm;
+    overflow: visible;
+}
+
+.invoice-pdf-mpdf .invoice-print-content {
+    width: 100%;
+    zoom: 1;
+}
+
+.invoice-pdf-mpdf .invoice-header-main,
+.invoice-pdf-mpdf .invoice-heading-row,
+.invoice-pdf-mpdf .invoice-grid,
+.invoice-pdf-mpdf .invoice-closing {
+    display: block;
+    width: 100%;
+}
+
+.invoice-pdf-mpdf .invoice-header-main::after,
+.invoice-pdf-mpdf .invoice-heading-row::after,
+.invoice-pdf-mpdf .invoice-grid::after,
+.invoice-pdf-mpdf .invoice-closing::after {
+    display: block;
+    clear: both;
+    content: "";
+}
+
+.invoice-pdf-mpdf .invoice-brand,
+.invoice-pdf-mpdf .invoice-national-brand,
+.invoice-pdf-mpdf .invoice-title,
+.invoice-pdf-mpdf .invoice-reference,
+.invoice-pdf-mpdf .invoice-card,
+.invoice-pdf-mpdf .invoice-qr-block {
+    display: block;
+    float: right;
+    width: 50%;
+    vertical-align: top;
+}
+
+.invoice-pdf-mpdf .invoice-totals {
+    display: table;
+    float: right;
+    width: 50%;
+    table-layout: fixed;
+}
+
+.invoice-pdf-mpdf .invoice-logo-box {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.invoice-pdf-mpdf .invoice-brand-copy,
+.invoice-pdf-mpdf .invoice-national-copy {
+    display: inline-block;
+    width: 68%;
+    vertical-align: middle;
+}
+
+.invoice-pdf-mpdf .invoice-card {
+    padding: 8px;
+}
+
+.invoice-pdf-mpdf .invoice-items {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.invoice-pdf-mpdf .invoice-brand-copy,
+.invoice-pdf-mpdf .invoice-national-copy,
+.invoice-pdf-mpdf .invoice-title,
+.invoice-pdf-mpdf .invoice-reference {
+    text-align: right;
+}
+
+.invoice-pdf-mpdf .invoice-closing {
+    margin-top: 9px;
+}
+
+.invoice-pdf-mpdf .invoice-qr-block img,
+.invoice-pdf-mpdf .official-jofotara-qr {
+    width: 165px;
+    height: 165px;
+}
+
+.invoice-pdf-mpdf .invoice-footer {
+    margin-top: 8px;
+    padding-top: 6px;
+}

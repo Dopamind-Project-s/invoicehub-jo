@@ -6,12 +6,12 @@ namespace App\Services\Invoices;
 
 use App\Models\Invoice;
 use App\Models\InvoiceTemplate;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Log;
-use RuntimeException;
-use Spatie\Browsershot\Browsershot;
+use Mpdf\Config\ConfigVariables;
+use Mpdf\Config\FontVariables;
+use Mpdf\Mpdf;
+use Mpdf\Output\Destination;
 use Throwable;
 
 class InvoicePdfRenderer
@@ -28,10 +28,10 @@ class InvoicePdfRenderer
         $filename ??= ($invoice->invoice_number ?: 'invoice').'.pdf';
         try {
             $pdf = $this->pdfBytes($invoice, $template);
-        } catch (RuntimeException $exception) {
+        } catch (Throwable $exception) {
             report($exception);
 
-            return response('تعذر إنشاء ملف PDF بشكل صحيح. يرجى التحقق من توفر Chromium ثم المحاولة مرة أخرى.', 503, ['Content-Type' => 'text/plain; charset=UTF-8']);
+            return response('تعذر إنشاء ملف PDF حالياً. يرجى المحاولة مرة أخرى.', 503, ['Content-Type' => 'text/plain; charset=UTF-8']);
         }
 
         return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'attachment; filename="'.$filename.'"']);
@@ -50,62 +50,42 @@ class InvoicePdfRenderer
 
     private function pdfBytes(Invoice $invoice, ?InvoiceTemplate $template): string
     {
-        $html = $this->renderHtml($invoice, $template, true);
+        $tempDir = storage_path('framework/cache/mpdf');
+        File::ensureDirectoryExists($tempDir);
 
-        try {
-            if (class_exists(Browsershot::class)) {
-                $browsershot = Browsershot::html($html)
-                    ->format('A4')
-                    ->margins(0, 0, 0, 0)
-                    ->showBackground()
-                    ->hideBrowserHeaderAndFooter()
-                    ->waitUntilNetworkIdle()
-                    ->waitForSelector('.invoice-document.invoice-page')
-                    ->evaluateOnNewDocument(File::get(public_path('js/invoice-print.js')))
-                    ->waitForFunction('(document.fonts === undefined || document.fonts.status === "loaded") && document.documentElement.dataset.invoicePrintReady === "true"')
-                    ->emulateMedia('print')
-                    ->windowSize(1240, 1754)
-                    ->deviceScaleFactor(1);
-
-                if (filled(config('services.invoice_pdf.node_binary'))) {
-                    $browsershot->setNodeBinary((string) config('services.invoice_pdf.node_binary'));
-                }
-                if (filled(config('services.invoice_pdf.chrome_path'))) {
-                    $browsershot->setChromePath((string) config('services.invoice_pdf.chrome_path'));
-                }
-
-                return $browsershot->pdf();
-            }
-        } catch (Throwable $exception) {
-            Log::error('Chromium invoice PDF rendering failed.', ['exception' => $exception, 'renderer' => 'browsershot']);
-
-            if (! app()->environment('testing')) {
-                throw new RuntimeException('Chromium is required to render Arabic invoice PDFs.', previous: $exception);
-            }
-        }
-
-        if (! app()->environment('testing')) {
-            throw new RuntimeException('Chromium is required to render Arabic invoice PDFs.');
-        }
-
-        $html = $this->renderHtml($invoice, $template, true, true);
-        File::ensureDirectoryExists(storage_path('fonts'));
-        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
-        $pdf->setOptions([
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true,
-            'defaultFont' => 'InvoiceArabic',
-            'fontDir' => storage_path('fonts'),
-            'fontCache' => storage_path('fonts'),
-            'chroot' => base_path(),
-            'dpi' => 144,
-            'isFontSubsettingEnabled' => true,
+        $defaultConfig = (new ConfigVariables)->getDefaults();
+        $defaultFontConfig = (new FontVariables)->getDefaults();
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_left' => 0,
+            'margin_right' => 0,
+            'margin_top' => 0,
+            'margin_bottom' => 0,
+            'tempDir' => $tempDir,
+            'fontDir' => array_merge($defaultConfig['fontDir'], [public_path('assets/fonts')]),
+            'fontdata' => $defaultFontConfig['fontdata'] + [
+                'invoicearabic' => [
+                    'R' => 'ArbFONTS-Droid.Arabic.Kufi_DownloadSoftware.iR_.ttf',
+                    'B' => 'ArbFONTS-Droid.Arabic.Kufi_.Bold_DownloadSoftware.iR_.ttf',
+                ],
+                'invoicenumeric' => [
+                    'R' => 'OpenSans-Regular-webfont.woff',
+                    'B' => 'OpenSans-Bold-webfont.woff',
+                ],
+            ],
+            'default_font' => 'invoicearabic',
+            'autoScriptToLang' => true,
+            'autoLangToFont' => false,
         ]);
+        $mpdf->SetDirectionality($invoice->language === 'en' ? 'ltr' : 'rtl');
+        $mpdf->WriteHTML($this->renderHtml($invoice, $template, true, true));
 
-        return $pdf->output();
+        return $mpdf->Output('', Destination::STRING_RETURN);
     }
 
-    private function renderHtml(Invoice $invoice, ?InvoiceTemplate $template = null, bool $embedAssets = false, bool $dompdf = false): string
+    private function renderHtml(Invoice $invoice, ?InvoiceTemplate $template = null, bool $embedAssets = false, bool $mpdf = false): string
     {
         $data = $this->factory->make($invoice, $template);
         $presentation = $this->resolver->presentation($data->template);
@@ -113,21 +93,26 @@ class InvoicePdfRenderer
         return view($data->template->view_path ?: 'company.invoice-templates.render.arabic-classic', [
             'data' => $data,
             'templatePresentation' => $presentation,
-            'invoiceStylesheet' => $embedAssets ? $this->embeddedStylesheet($presentation, $dompdf) : null,
-            'pdfRenderer' => $dompdf ? 'dompdf' : 'chromium',
+            'invoiceStylesheet' => $embedAssets ? $this->embeddedStylesheet($presentation, $mpdf) : null,
+            'pdfRenderer' => $mpdf ? 'mpdf' : 'browser',
         ])->render();
     }
 
     /** @param array<string, string> $presentation */
-    private function embeddedStylesheet(array $presentation, bool $dompdf = false): string
+    private function embeddedStylesheet(array $presentation, bool $mpdf = false): string
     {
         $css = File::get(public_path('css/invoice-document.css'));
         $templateCss = public_path($presentation['stylesheet']);
         if (is_file($templateCss)) {
             $css .= "\n".File::get($templateCss);
         }
-        if ($dompdf) {
-            $css .= "\n".File::get(resource_path('css/invoice/dompdf.css'));
+        if ($mpdf) {
+            $css .= "\n".File::get(resource_path('css/invoice/mpdf.css'));
+            $css = $this->resolveCssVariables($css);
+            // The fonts are registered directly with mPDF above. Browser font-face
+            // URLs (and their data-URI conversion below) are unnecessary and can
+            // make the generated document substantially larger.
+            $css = (string) preg_replace('/@font-face\s*\{[^}]*}/is', '', $css);
         }
 
         return (string) preg_replace_callback(
@@ -149,5 +134,24 @@ class InvoicePdfRenderer
             },
             $css,
         );
+    }
+
+    private function resolveCssVariables(string $css): string
+    {
+        preg_match_all('/--([a-z0-9-]+)\s*:\s*([^;}{]+)\s*;/i', $css, $matches, PREG_SET_ORDER);
+        $variables = [];
+        foreach ($matches as $match) {
+            $variables[$match[1]] = trim($match[2]);
+        }
+
+        for ($pass = 0; $pass < 3; $pass++) {
+            $css = (string) preg_replace_callback(
+                '/var\(--([a-z0-9-]+)(?:\s*,\s*([^\)]+))?\)/i',
+                static fn (array $match): string => $variables[$match[1]] ?? trim($match[2] ?? 'inherit'),
+                $css,
+            );
+        }
+
+        return (string) preg_replace('/--[a-z0-9-]+\s*:\s*[^;}{]+\s*;/i', '', $css);
     }
 }
