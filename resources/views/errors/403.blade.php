@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('title', 'غير مصرح')
+@section('code', '403')
+@section('heading', 'ليس لديك صلاحية للوصول')
+@section('message', 'تحقق من حسابك أو تواصل مع مسؤول النظام إذا كنت تعتقد أن هذا خطأ.')

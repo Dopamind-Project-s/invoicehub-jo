@@ -32,8 +32,7 @@
         @if($company->logo_path)
             <img src="{{ asset('storage/'.$company->logo_path) }}"
                  alt="شعار المنشأة"
-                 class="mt-2 rounded border bg-white p-1"
-                 style="max-height:64px">
+                 class="company-logo-preview mt-2 rounded border bg-white p-1">
         @endif
     </div>
 
@@ -88,10 +87,20 @@
     <div class="col-md-4">
         <label class="form-label">البريد الإلكتروني</label>
         <input name="email" type="email" class="form-control"
-               value="{{ old('email', $company->email) }}">
+               value="{{ old('email', $company->email) }}" @required(!$company->exists)>
     </div>
 
     {{-- إعدادات النظام --}}
+    @if(!$company->exists)
+    <div class="col-12"><h5 class="border-bottom pb-2 mb-3 mt-2">إضافة اشتراك للمنشأة</h5></div>
+    <div class="col-md-3"><label class="form-label"><input type="checkbox" name="create_subscription" value="1" @checked(old('create_subscription'))> إنشاء اشتراك الآن</label></div>
+    <div class="col-md-3"><label class="form-label">الباقة</label><select name="plan_id" class="form-select"><option value="">اختر الباقة</option>@foreach($plans as $plan)<option value="{{ $plan->id }}" @selected(old('plan_id')==$plan->id)>{{ $plan->name_ar ?: $plan->name }}</option>@endforeach</select></div>
+    <div class="col-md-2"><label class="form-label">دورة الفوترة</label><select name="billing_cycle" class="form-select"><option value="monthly">شهري</option><option value="yearly" @selected(old('billing_cycle')==='yearly')>سنوي</option></select></div>
+    <div class="col-md-2"><label class="form-label">تاريخ البدء</label><input type="date" name="start_date" value="{{ old('start_date', now()->toDateString()) }}" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label"><input type="checkbox" name="auto_renew" value="1" @checked(old('auto_renew'))> تجديد تلقائي</label></div>
+    <div class="col-12"><label class="form-label">ملاحظات الاشتراك الداخلية</label><textarea name="subscription_notes" class="form-control" maxlength="1000">{{ old('subscription_notes') }}</textarea></div>
+    @endif
+
     <div class="col-12">
         <h5 class="border-bottom pb-2 mb-3 mt-2">إعدادات النظام</h5>
     </div>

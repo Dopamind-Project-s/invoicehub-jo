@@ -57,16 +57,19 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id']);
     }
 
-    public function test_all_invoice_templates_use_cairo_stack_and_clear_numeric_font(): void
+    public function test_all_invoice_templates_use_clear_embedded_arabic_and_numeric_fonts(): void
     {
         $css = file_get_contents(public_path('css/invoice-document.css'));
 
-        $this->assertStringContainsString('--invoice-arabic-font: Cairo, InvoiceArabic', $css);
+        $this->assertStringContainsString('--invoice-arabic-font: InvoiceArabic, Cairo', $css);
         $this->assertStringContainsString('--invoice-numeric-font: InvoiceNumeric', $css);
         $this->assertStringContainsString('font-variant-numeric: tabular-nums lining-nums', $css);
         $this->assertStringContainsString('font-feature-settings: "tnum" 1, "lnum" 1', $css);
         $this->assertStringContainsString('font-family: var(--invoice-arabic-font)', $css);
         $this->assertStringContainsString('font-family: var(--invoice-numeric-font)', $css);
+        $this->assertStringContainsString('size: A4 portrait', $css);
+        $this->assertStringContainsString('height: 297mm', $css);
+        $this->assertStringContainsString('zoom: var(--invoice-print-scale, 1)', $css);
     }
 
     public function test_pdf_rendering_uses_template_and_branding(): void
@@ -95,6 +98,8 @@ class InvoiceExperienceLayerTest extends TestCase
             ->assertHeader('Content-Type', 'text/html; charset=UTF-8')
             ->assertSee('class="print-preview-shell"', false)
             ->assertSee('class="invoice-print-page"', false)
+            ->assertSee('class="invoice-print-content"', false)
+            ->assertSee('js/invoice-print.js', false)
             ->assertSee('class="invoice-page invoice-document"', false)
             ->assertSee('class="invoice-items invoice-items-table"', false)
             ->assertSee('فاتورة ضريبية')
@@ -135,6 +140,20 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertCount(8, array_unique($signatures));
     }
 
+    public function test_every_invoice_template_downloads_as_one_a4_pdf_page(): void
+    {
+        $invoice = $this->makeInvoice();
+        $renderer = app(InvoicePdfRenderer::class);
+
+        foreach (InvoiceTemplate::query()->where('is_active', true)->get() as $template) {
+            $response = $renderer->download($invoice, $template);
+
+            $this->assertSame(200, $response->getStatusCode(), $template->slug);
+            $this->assertSame('application/pdf', $response->headers->get('Content-Type'), $template->slug);
+            $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()), $template->slug.' must fit on one PDF page.');
+        }
+    }
+
     public function test_template_resolver_has_stable_unique_definitions_and_classic_fallback(): void
     {
         $resolver = app(InvoiceTemplateResolver::class);
@@ -166,6 +185,30 @@ class InvoiceExperienceLayerTest extends TestCase
             ->assertSee('data-layout="modern-asymmetric"', false);
 
         $this->assertSame($defaultBefore, CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->value('value'));
+    }
+
+    public function test_company_can_change_legacy_template_setting_without_creating_a_duplicate(): void
+    {
+        $company = Company::where('tax_number', '9578331')->firstOrFail();
+        $user = User::where('email', 'company@invosync.local')->firstOrFail();
+        $template = InvoiceTemplate::where('slug', 'bilingual-ar-en')->firstOrFail();
+        $setting = CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->firstOrFail();
+        $setting->forceFill(['category' => 'legacy_invoice'])->save();
+        $settingCount = CompanySetting::count();
+
+        $this->actingAs($user)
+            ->put(route('company.invoice-templates.update', $company), ['invoice_template_id' => $template->id])
+            ->assertRedirect()
+            ->assertSessionHas('status', 'تم اختيار القالب الافتراضي للمنشأة.');
+
+        $this->assertDatabaseCount('company_settings', $settingCount);
+        $this->assertSame(1, CompanySetting::where('company_id', $company->id)->where('key', 'invoice_template_id')->count());
+        $this->assertDatabaseHas('company_settings', [
+            'company_id' => $company->id,
+            'category' => 'invoice_branding',
+            'key' => 'invoice_template_id',
+            'value' => (string) $template->id,
+        ]);
     }
 
     public function test_company_can_select_default_template_and_preview_qr_states(): void
@@ -262,6 +305,7 @@ class InvoiceExperienceLayerTest extends TestCase
         $response = $this->actingAs($user)->get(route('company.invoices.printable', [$company, $invoice]));
         $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF', $response->getContent());
+        $this->assertSame(1, preg_match_all('/\/Type\s*\/Page\b/', $response->getContent()), 'The printable invoice must contain exactly one PDF page.');
     }
 
     public function test_legacy_qr_uuid_url_and_hash_do_not_render_without_official_jofotara_success_state(): void

@@ -1,12 +1,13 @@
 <?php
 
+use App\Http\Middleware\EnsureSuperAdmin;
+use App\Http\Middleware\RequirePasswordChange;
+use App\Http\Middleware\SetCompanyPermissionTeam;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use App\Http\Middleware\EnsureSuperAdmin;
-use App\Http\Middleware\SetCompanyPermissionTeam;
-use Spatie\Permission\Middleware\PermissionMiddleware;
 use Illuminate\Http\Request;
+use Spatie\Permission\Middleware\PermissionMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->appendToGroup('web', RequirePasswordChange::class);
         $middleware->alias([
             'super.admin' => EnsureSuperAdmin::class,
             'permission.team' => SetCompanyPermissionTeam::class,

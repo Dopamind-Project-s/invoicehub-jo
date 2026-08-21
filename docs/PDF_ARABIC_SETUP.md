@@ -8,7 +8,7 @@ Invoice presentation is centralized around one display-data pipeline and one reu
 - `App\Services\Invoices\InvoiceDisplayDataFactory` converts invoice, company, customer, totals, items, notes, and the official JoFotara QR value into safe presentation data.
 - `resources/views/company/invoices/partials/document.blade.php` is the shared invoice body used by the web view, printable preview, and PDF templates.
 - `resources/views/company/invoice-templates/partials/base.blade.php` wraps the shared document for template/PDF output.
-- `App\Services\Invoices\InvoicePdfRenderer` renders the shared HTML through Browsershot first, with DomPDF only as a fallback.
+- `App\Services\Invoices\InvoicePdfRenderer` renders production PDFs through Browsershot/Chromium. DomPDF is isolated to automated tests because it cannot reliably shape bidirectional Arabic invoice text.
 
 Printable browser preview and PDF output use the same `print-preview-shell` / `invoice-print-page` wrapper and the same shared document partial. The normal authenticated workspace preview uses the same document partial without the fixed A4 wrapper, so print-only sizing cannot alter the working dashboard preview.
 
@@ -33,12 +33,12 @@ Template-management preview passes the requested `InvoiceTemplate` directly to `
 
 ## Fonts
 
-Preferred UI font: **Cairo**, with the bundled **Hasan Alquds Unicode** font retained as the deterministic embedded fallback when Cairo is not installed on the rendering host. Numeric and monetary values use the bundled Open Sans regular/bold files for clearer tabular Latin digits.
+The invoice embeds **Droid Arabic Kufi** as its deterministic Arabic font. Numeric and monetary values use the bundled Open Sans regular/bold files for clearer tabular Latin digits.
 
 Locations:
 
-- Regular: `public/assets/fonts/ArbFONTS-Hasan-Alquds-Unicode.ttf`
-- Bold: `public/assets/fonts/ArbFONTS-Hasan-Alquds-Unicode-Bold.ttf`
+- Regular: `public/assets/fonts/ArbFONTS-Droid.Arabic.Kufi_DownloadSoftware.iR_.ttf`
+- Bold: `public/assets/fonts/ArbFONTS-Droid.Arabic.Kufi_.Bold_DownloadSoftware.iR_.ttf`
 
 Why it was chosen:
 
@@ -68,9 +68,9 @@ Important CSS behaviors:
 - `thead { display: table-header-group; }` repeats item table headers across pages.
 - Rows and summary sections use `break-inside: avoid` / `page-break-inside: avoid`.
 
-## DomPDF Configuration
+## DomPDF Test Configuration
 
-DomPDF is retained only as a fallback. The renderer sets important options at runtime:
+DomPDF is retained only so the automated test environment can validate PDF structure without installing Chromium. It is not used for production Arabic invoices because it does not implement the browser's Arabic shaping and bidirectional layout behavior.
 
 - `isHtml5ParserEnabled`: enables modern HTML parsing.
 - `isRemoteEnabled`: allows image/CSS/font assets when needed.
@@ -81,7 +81,7 @@ DomPDF is retained only as a fallback. The renderer sets important options at ru
 - `dpi`: set to `144` for sharper raster images and QR output.
 - `isFontSubsettingEnabled`: embeds only required glyphs to reduce PDF size.
 
-> Note: Browsershot/Chromium is the preferred engine for Arabic because Chromium provides proper Arabic shaping. DomPDF fallback can still be useful for environments without Node/Chromium, but Chromium should be available in production for best Arabic PDF output.
+> Production PDF requests return a controlled `503` if Chromium is unavailable rather than returning a corrupted Arabic document.
 
 ## Browsershot Configuration
 
@@ -105,17 +105,16 @@ Production configuration:
 ```dotenv
 INVOICE_PDF_NODE_BINARY=/usr/bin/node
 INVOICE_PDF_CHROME_PATH=/usr/bin/chromium
-INVOICE_PDF_ALLOW_DOMPDF_FALLBACK=false
 ```
 
-If Chromium fails in production, the failure is logged and PDF download returns a controlled `503` response by default instead of silently returning a visually corrupted Arabic PDF. DomPDF fallback is available only when explicitly enabled and is intended for diagnostics or constrained non-production environments.
+If Chromium fails in production, the failure is logged and PDF download returns a controlled `503` response instead of silently returning a visually corrupted Arabic PDF.
 
 ## Arabic Rendering
 
 Arabic support depends on four layers working together:
 
 1. **UTF-8 HTML**: every invoice wrapper includes `<meta charset="utf-8">`.
-2. **Unicode Arabic font**: Hasan Alquds Unicode is loaded through CSS and embedded by Chromium in generated PDFs.
+2. **Unicode Arabic font**: Droid Arabic Kufi is loaded through CSS and embedded by Chromium in generated PDFs.
 3. **RTL document flow**: invoice documents render with `dir="rtl"` and CSS direction rules.
 4. **LTR islands for technical values**: amounts, UUIDs, invoice numbers, and Latin text use `.num` / `dir=ltr` behavior to prevent RTL reordering.
 
@@ -181,14 +180,18 @@ Run these commands after deploying invoice rendering/font changes:
 
 ```bash
 composer dump-autoload
-npm install
+npm ci
 npm run build
 php artisan optimize:clear
 php artisan config:cache
 php artisan view:cache
 php artisan route:cache
-mkdir -p storage/fonts
-chmod -R ug+rw storage/fonts
 ```
 
-If PDFs still use stale fonts, clear `storage/fonts` and regenerate a PDF once to rebuild DomPDF font metrics.
+Verify the configured executables before leaving maintenance mode:
+
+```bash
+/usr/bin/node --version
+/usr/bin/chromium --version
+node -e "require('puppeteer'); console.log('Puppeteer ready')"
+```

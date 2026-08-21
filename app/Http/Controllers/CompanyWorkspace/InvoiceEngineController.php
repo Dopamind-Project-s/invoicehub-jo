@@ -71,12 +71,18 @@ class InvoiceEngineController extends Controller
         return redirect()->route('company.invoices.show', [$company, $invoice])->with('status', $invoice->status === Invoice::STATUS_READY ? 'تم حفظ الفاتورة وتجهيزها للإرسال.' : 'تم حفظ الفاتورة كمسودة.');
     }
 
-    public function show(Company $company, Invoice $invoice)
+    public function show(Company $company, Invoice $invoice, ?JoFotaraPreparationService $preparer = null)
     {
         $this->authorizeCompany($company, $invoice);
         $invoice->load(['contact', 'items.product', 'submissionLogs']);
 
-        return view('company.invoices.show', ['company' => $company->loadMissing('featureKeys'), 'invoice' => $invoice, 'doc' => $this->displayData->make($invoice), 'branding' => $this->branding->settings($company)]);
+        return view('company.invoices.show', [
+            'company' => $company->loadMissing('featureKeys'),
+            'invoice' => $invoice,
+            'doc' => $this->displayData->make($invoice),
+            'branding' => $this->branding->settings($company),
+            'jofotaraDiagnostic' => app()->environment('production') ? null : ($preparer ?? app(JoFotaraPreparationService::class))->diagnostics($invoice),
+        ]);
     }
 
     public function jofotaraUat(Company $company, JoFotaraPreparationService $preparer)

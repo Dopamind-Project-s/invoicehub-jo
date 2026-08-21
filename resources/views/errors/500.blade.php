@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('title', 'خطأ في النظام')
+@section('code', '500')
+@section('heading', 'حدث خطأ غير متوقع')
+@section('message', 'تم تسجيل المشكلة لدى النظام. يرجى المحاولة لاحقاً دون مشاركة بيانات حساسة.')

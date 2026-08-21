@@ -104,7 +104,7 @@
 
         <figure class="invoice-qr-block">
             @if(!empty($doc['qr']['data_uri']))
-                <img class="official-jofotara-qr" src="{{ $doc['qr']['data_uri'] }}" alt="رمز QR الرسمي من JoFotara">
+                <img class="official-jofotara-qr" src="{{ $qrImageUrl ?? $doc['qr']['data_uri'] }}" alt="رمز QR الرسمي من JoFotara">
                 <figcaption>رمز QR الرسمي</figcaption>
             @else
                 <div class="qr-note">رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني.</div>
