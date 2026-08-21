@@ -16,7 +16,7 @@
 
 @font-face {
     font-family: InvoiceArabic;
-    src: url('../assets/fonts/ArbFONTS-Hasan-Alquds-Unicode.ttf') format('truetype');
+    src: url('../assets/fonts/ArbFONTS-Droid.Arabic.Kufi_DownloadSoftware.iR_.ttf') format('truetype');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -24,7 +24,7 @@
 
 @font-face {
     font-family: InvoiceArabic;
-    src: url('../assets/fonts/ArbFONTS-Hasan-Alquds-Unicode-Bold.ttf') format('truetype');
+    src: url('../assets/fonts/ArbFONTS-Droid.Arabic.Kufi_.Bold_DownloadSoftware.iR_.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
     font-display: swap;
@@ -47,7 +47,7 @@
 }
 
 :root {
-    --invoice-arabic-font: Cairo, InvoiceArabic, "DejaVu Sans", sans-serif;
+    --invoice-arabic-font: InvoiceArabic, Cairo, "DejaVu Sans", sans-serif;
     --invoice-numeric-font: InvoiceNumeric, "DejaVu Sans", Arial, sans-serif;
     --invoice-primary: #0f766e;
     --invoice-primary-dark: #115e59;
@@ -75,8 +75,8 @@ body.invoice-document-body {
     background: var(--invoice-bg);
     color: var(--invoice-ink);
     font-family: var(--invoice-arabic-font);
-    font-size: 12px;
-    line-height: 1.65;
+    font-size: 13px;
+    line-height: 1.55;
     unicode-bidi: plaintext;
 }
 
@@ -102,6 +102,11 @@ body.invoice-document-body {
     padding: 10mm;
     background: #fff;
     box-shadow: 0 18px 45px rgb(15 23 42 / 10%);
+}
+
+.invoice-print-content {
+    width: 100%;
+    transform-origin: top right;
 }
 
 .invoice-print-page .invoice-page {
@@ -245,7 +250,7 @@ body.invoice-document-body {
 
 .muted {
     color: var(--invoice-muted);
-    font-size: 10.5px;
+    font-size: 11.5px;
 }
 
 .invoice-heading-row {
@@ -322,7 +327,7 @@ body.invoice-document-body {
 .invoice-card h3 {
     margin: 0 0 5px;
     color: #0f172a;
-    font-size: 11.5px;
+    font-size: 12.5px;
 }
 
 .invoice-info-grid {
@@ -336,7 +341,7 @@ body.invoice-document-body {
     align-items: start;
     padding: 3px 0;
     border-bottom: 1px dashed #e2e8f0;
-    font-size: 10.5px;
+    font-size: 11.5px;
     line-height: 1.5;
 }
 
@@ -391,13 +396,13 @@ body.invoice-document-body {
 .invoice-items th {
     background: var(--invoice-soft);
     color: #334155;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     line-height: 1.45;
 }
 
 .invoice-items td {
-    font-size: 10.5px;
+    font-size: 11.5px;
 }
 
 .invoice-items td.invoice-number {
@@ -588,7 +593,7 @@ body.invoice-document-body {
 }
 
 @page {
-    size: A4;
+    size: A4 portrait;
     margin: 0;
 }
 
@@ -596,14 +601,16 @@ body.invoice-document-body {
     html,
     body.invoice-document-body {
         width: 210mm;
+        height: 297mm;
         margin: 0;
         padding: 0;
+        overflow: hidden;
     }
 
     body.invoice-document-body {
         background: #fff;
         color: #000;
-        font-size: 12px;
+        font-size: 13px;
     }
 
     .invoice-shell {
@@ -631,10 +638,19 @@ body.invoice-document-body {
     .invoice-print-page {
         width: 210mm;
         min-width: 210mm;
-        min-height: 0;
+        height: 297mm;
+        min-height: 297mm;
+        max-height: 297mm;
         margin: 0;
         padding: 10mm;
+        overflow: hidden;
         box-shadow: none;
+        break-after: avoid;
+        page-break-after: avoid;
+    }
+
+    .invoice-print-content {
+        zoom: var(--invoice-print-scale, 1);
     }
 
     .invoice-toolbar,
