@@ -17,8 +17,8 @@ class Company extends Model
 {
     protected static function booted(): void
     {
-        static::saved(fn () => AdminDashboardService::clear());
-        static::deleted(fn () => AdminDashboardService::clear());
+        static::saved(fn () => AdminDashboardService::clearAfterCommit());
+        static::deleted(fn () => AdminDashboardService::clearAfterCommit());
     }
 
     protected $fillable = ['name_ar', 'name_en', 'legal_name_ar', 'legal_name_en', 'trade_name', 'tax_number', 'national_number', 'registration_number', 'branch_code', 'country_code', 'city', 'street', 'building_no', 'postal_code', 'email', 'phone', 'status', 'logo_path', 'default_language', 'economic_activity', 'default_currency', 'icv_prefix', 'jofotara_client_id', 'jofotara_secret_key', 'jofotara_source_id', 'last_icv', 'is_active'];

@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\Models\Company;
 use App\Models\Plan;
 use App\Models\Subscription;
-use App\Models\SubscriptionChangeRequest;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -54,10 +53,10 @@ class CompanySubscriptionCenterTest extends TestCase
             ->assertSee('Coming Soon')
             ->assertSee('Subscription Events');
 
-        $this->actingAs($admin)->post(route('admin.companies.subscriptions.toggle-auto-renew', $company))->assertRedirect();
+        $this->actingAs($admin)->patch(route('admin.companies.subscriptions.auto-renew', $company))->assertRedirect();
         $this->assertNotSame($subscription->auto_renew, $subscription->refresh()->auto_renew);
 
-        $this->actingAs($admin)->post(route('admin.companies.subscriptions.renew', [$company, 'monthly']))->assertRedirect();
+        $this->actingAs($admin)->post(route('admin.companies.subscriptions.renew', $company), ['billing_cycle' => 'monthly'])->assertRedirect();
         $this->assertSame('monthly', $subscription->refresh()->billing_cycle);
     }
 
@@ -91,7 +90,6 @@ class CompanySubscriptionCenterTest extends TestCase
             'status' => 'pending',
         ]);
     }
-
 
     public function test_admin_plans_page_has_comparison_table_and_recommended_badge(): void
     {

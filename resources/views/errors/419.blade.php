@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('title', 'انتهت الجلسة')
+@section('code', '419')
+@section('heading', 'انتهت صلاحية الجلسة')
+@section('message', 'حدّث الصفحة وسجّل الدخول مجدداً ثم أعد المحاولة.')

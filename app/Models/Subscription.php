@@ -13,8 +13,8 @@ class Subscription extends Model
 {
     protected static function booted(): void
     {
-        static::saved(fn () => AdminDashboardService::clear());
-        static::deleted(fn () => AdminDashboardService::clear());
+        static::saved(fn () => AdminDashboardService::clearAfterCommit());
+        static::deleted(fn () => AdminDashboardService::clearAfterCommit());
     }
 
     protected $fillable = ['company_id', 'plan_id', 'starts_at', 'expires_at', 'status', 'billing_cycle', 'current_period_start_at', 'current_period_end_at', 'trial_ends_at', 'grace_ends_at', 'cancelled_at', 'ended_at', 'renewed_at', 'status_reason', 'source', 'payment_provider', 'payment_reference', 'payment_status', 'renewal_source', 'renewed_by', 'price_amount', 'currency', 'auto_renew', 'metadata'];

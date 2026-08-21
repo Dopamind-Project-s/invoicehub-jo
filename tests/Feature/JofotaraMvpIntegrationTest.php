@@ -85,7 +85,7 @@ class JofotaraMvpIntegrationTest extends TestCase
         $admin = User::factory()->create(['role' => User::ROLE_SUPER_ADMIN]);
         $company = Company::where('tax_number', '9578331')->firstOrFail();
         $starter = Plan::where('slug', 'starter')->firstOrFail();
-        $professional = Plan::where('slug', 'professional')->firstOrFail();
+        $professional = Plan::where('slug', 'business')->firstOrFail();
 
         $company->subscriptions()->where('status', 'active')->update(['plan_id' => $starter->id]);
         $company->featureKeys()->sync($starter->featureKeys()->pluck('feature_keys.id')->all());
@@ -225,7 +225,7 @@ class JofotaraMvpIntegrationTest extends TestCase
         $company->update(['jofotara_client_id' => 'client', 'jofotara_secret_key' => 'secret-key-value', 'jofotara_source_id' => 'SRC-1']);
         $company->featureKeys()->syncWithoutDetaching([FeatureKey::where('code', 'JOFOTARA_SUBMIT')->firstOrFail()->id]);
         $invoice = Invoice::where('company_id', $company->id)->orderBy('icv')->firstOrFail();
-        $invoice->forceFill(['status' => Invoice::STATUS_READY, 'icv' => 1, 'jofotara_status' => null])->save();
+        $invoice->forceFill(['status' => Invoice::STATUS_READY, 'issue_date' => now()->toDateString(), 'icv' => 1, 'jofotara_status' => null])->save();
 
         Http::fake(['*' => Http::response(['EINV_INV_UUID' => 'JF-UUID-1', 'EINV_QR' => 'QR-CODE-1', 'EINV_STATUS' => 'SUBMITTED', 'EINV_RESULTS' => ['status' => 'PASS'], 'EINV_MESSAGE' => 'Submitted'], 200)]);
 
@@ -303,7 +303,8 @@ class JofotaraMvpIntegrationTest extends TestCase
 
         Invoice::where('company_id', $company->id)->update(['jofotara_status' => null, 'xml_hash' => null, 'jofotara_uuid' => null]);
         $invoice = Invoice::where('company_id', $company->id)->where('status', Invoice::STATUS_READY)->firstOrFail();
-        $invoice->forceFill(['icv' => 99, 'jofotara_status' => null])->save();
+        $company->forceFill(['last_icv' => 0])->save();
+        $invoice->forceFill(['issue_date' => now()->toDateString(), 'icv' => 99, 'jofotara_status' => null])->save();
 
         Http::fake(['*' => Http::response(['EINV_INV_UUID' => 'FIRST-UUID', 'EINV_QR' => 'FIRST-QR', 'EINV_STATUS' => 'ACCEPTED'], 200)]);
 

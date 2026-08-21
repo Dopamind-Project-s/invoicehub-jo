@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Admin\CreateCompanyAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CreateDirectSubscriptionRequest;
+use App\Http\Requests\Admin\ManageSubscriptionRequest;
 use App\Http\Requests\Admin\RenewSubscriptionRequest;
 use App\Models\Company;
 use App\Models\FeatureKey;
@@ -127,27 +128,23 @@ class CompanyManagementController extends Controller
         return view('admin.companies.subscriptions.index', compact('company', 'subscriptionAccess', 'plans', 'allFeatures', 'history', 'events', 'timeline', 'health', 'renewalSummary', 'paymentMethods', 'changePreview'));
     }
 
-    public function toggleAutoRenew(Request $request, Company $company): RedirectResponse
+    public function toggleAutoRenew(ManageSubscriptionRequest $request, Company $company): RedirectResponse
     {
-        $subscription = $this->adminSubscriptions->toggleAutoRenew($company, $request->user());
-        $before = ['auto_renew' => $subscription->auto_renew];
-        $this->audit->record('admin.subscription.auto_renew_toggled', $subscription, $before, ['auto_renew' => $subscription->auto_renew], $request);
+        $this->adminSubscriptions->toggleAutoRenew($company, $request->user());
 
         return back()->with('success', 'تم تحديث التجديد التلقائي.');
     }
 
-    public function cancelSubscription(Request $request, Company $company): RedirectResponse
+    public function cancelSubscription(ManageSubscriptionRequest $request, Company $company): RedirectResponse
     {
-        $subscription = $this->adminSubscriptions->cancel($company, $request->user());
-        $this->audit->record('admin.subscription.cancelled', $subscription, [], ['status' => 'cancelled'], $request);
+        $this->adminSubscriptions->cancel($company, $request->user());
 
         return back()->with('success', 'تم إلغاء الاشتراك.');
     }
 
-    public function reactivateSubscription(Request $request, Company $company): RedirectResponse
+    public function reactivateSubscription(ManageSubscriptionRequest $request, Company $company): RedirectResponse
     {
-        $subscription = $this->adminSubscriptions->reactivate($company, $request->user());
-        $this->audit->record('admin.subscription.reactivated', $subscription, [], ['status' => 'active'], $request);
+        $this->adminSubscriptions->reactivate($company, $request->user());
 
         return back()->with('success', 'تمت إعادة تفعيل الاشتراك.');
     }
@@ -155,18 +152,14 @@ class CompanyManagementController extends Controller
     public function renewSubscription(RenewSubscriptionRequest $request, Company $company): RedirectResponse
     {
         $cycle = $request->validated('billing_cycle');
-        $subscription = $this->adminSubscriptions->renew($company, $cycle, $request->user());
-        $before = [];
-
-        $this->audit->record('admin.subscription.renewed', $subscription, $before, $subscription->only(['billing_cycle', 'current_period_start_at', 'current_period_end_at', 'expires_at', 'grace_ends_at', 'status', 'renewed_at', 'source']), $request);
+        $this->adminSubscriptions->renew($company, $cycle, $request->user());
 
         return back()->with('success', $cycle === 'yearly' ? 'تم تجديد الاشتراك سنوياً.' : 'تم تجديد الاشتراك شهرياً.');
     }
 
     public function createSubscription(CreateDirectSubscriptionRequest $request, Company $company): RedirectResponse
     {
-        $subscription = $this->adminSubscriptions->create($company, $request->validated(), $request->user());
-        $this->audit->record('admin.subscription.direct_created', $subscription, [], ['source' => 'admin_direct', 'billing_cycle' => $subscription->billing_cycle], $request);
+        $this->adminSubscriptions->create($company, $request->validated(), $request->user());
 
         return redirect()->route('admin.companies.subscriptions.index', $company)->with('success', 'تم إنشاء اشتراك المنشأة بنجاح.');
     }
@@ -205,7 +198,7 @@ class CompanyManagementController extends Controller
             'jofotara_secret_key' => ['nullable', 'string'],
             'default_language' => ['required', Rule::in(['ar', 'en'])],
             'default_currency' => ['required', 'string', 'size:3'],
-            'plan_id' => ['sometimes', 'nullable', 'integer', 'exists:plans,id'],
+            'plan_id' => ['required_if:create_subscription,1', 'nullable', 'integer', 'exists:plans,id'],
             'feature_keys' => ['sometimes', 'array'],
             'feature_keys.*' => ['integer', 'exists:feature_keys,id'],
             'create_subscription' => ['sometimes', 'boolean'],

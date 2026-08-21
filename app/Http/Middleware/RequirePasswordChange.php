@@ -13,7 +13,14 @@ class RequirePasswordChange
     public function handle(Request $request, Closure $next): Response
     {
         if ($request->user()?->must_change_password
-            && ! $request->routeIs('profile.edit', 'profile.password.update', 'logout')) {
+            && ! $request->routeIs('profile.edit', 'profile.password.update', 'logout', 'verification.*', 'password.confirm')) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'يجب تغيير كلمة المرور المؤقتة قبل المتابعة.',
+                    'code' => 'password_change_required',
+                ], 409);
+            }
+
             return redirect()->route('profile.edit')->with('warning', 'يجب تغيير كلمة المرور المؤقتة قبل المتابعة.');
         }
 

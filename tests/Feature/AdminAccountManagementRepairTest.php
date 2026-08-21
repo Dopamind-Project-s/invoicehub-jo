@@ -11,7 +11,9 @@ use App\Models\User;
 use App\Services\Admin\AdminDashboardService;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -34,6 +36,40 @@ class AdminAccountManagementRepairTest extends TestCase
         $this->actingAs($admin)->get('/admin/dashboard')->assertOk()->assertSee('الاسم القانوني')->assertSee('English name');
         $this->actingAs($admin)->get('/admin/dashboard')->assertOk();
         $this->actingAs(User::factory()->create(['role' => 'user']))->get('/admin/dashboard')->assertForbidden();
+    }
+
+    public function test_every_malformed_dashboard_cache_shape_is_rebuilt_and_cache_hit_uses_no_queries(): void
+    {
+        $admin = User::where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
+        $invalidValues = [null, 'string', [], ['latest_companies' => ['invalid']], ['latest_companies' => [['id' => null]]]];
+
+        foreach ($invalidValues as $value) {
+            Cache::put(AdminDashboardService::CACHE_KEY, $value, 300);
+            $this->actingAs($admin)->get(route('admin.dashboard.show'))->assertOk();
+        }
+
+        Cache::forget(AdminDashboardService::CACHE_KEY);
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        app(AdminDashboardService::class)->get();
+        $missQueries = count(DB::getQueryLog());
+        DB::flushQueryLog();
+        app(AdminDashboardService::class)->get();
+        $hitQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        $this->assertGreaterThan(0, $missQueries);
+        $this->assertSame(0, $hitQueries);
+    }
+
+    public function test_dashboard_still_builds_when_cache_store_is_temporarily_unavailable(): void
+    {
+        Cache::shouldReceive('get')->once()->andThrow(new \RuntimeException('cache unavailable'));
+
+        $dashboard = app(AdminDashboardService::class)->get();
+
+        $this->assertIsArray($dashboard['latest_companies']);
+        $this->assertArrayHasKey('alerts', $dashboard);
     }
 
     public function test_company_creation_is_atomic_and_creates_flagged_company_admin(): void
@@ -74,6 +110,31 @@ class AdminAccountManagementRepairTest extends TestCase
         $this->get(route('admin.companies.subscriptions.cancel', $company))->assertMethodNotAllowed();
     }
 
+    public function test_subscription_transitions_are_locked_validated_and_do_not_duplicate_records_or_audits(): void
+    {
+        Carbon::setTestNow('2026-08-17 10:00:00');
+        $admin = User::where('role', User::ROLE_SUPER_ADMIN)->firstOrFail();
+        $company = Company::create(['legal_name_ar' => 'شركة دورة الحياة', 'tax_number' => 'SUB-LOCK']);
+        $plan = Plan::where('is_active', true)->firstOrFail();
+        $payload = ['plan_id' => $plan->id, 'billing_cycle' => 'monthly', 'start_date' => '2026-08-17'];
+
+        $this->actingAs($admin)->post(route('admin.companies.subscriptions.store', $company), $payload)->assertRedirect();
+        $this->actingAs($admin)->post(route('admin.companies.subscriptions.store', $company), $payload)->assertSessionHasErrors('plan_id');
+        $this->assertSame(1, $company->subscriptions()->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('action', 'admin.subscription.direct_created')->where('company_id', $company->id)->count());
+
+        $subscription = $company->subscriptions()->firstOrFail();
+        $this->actingAs($admin)->post(route('admin.companies.subscriptions.renew', $company), ['billing_cycle' => 'yearly'])->assertRedirect();
+        $this->assertSame('2027-09-17', $subscription->refresh()->current_period_end_at->toDateString());
+        $this->actingAs($admin)->post(route('admin.companies.subscriptions.cancel', $company))->assertRedirect();
+        $this->actingAs($admin)->post(route('admin.companies.subscriptions.cancel', $company))->assertSessionHasErrors('subscription');
+        $this->assertSame(1, DB::table('audit_logs')->where('action', 'admin.subscription.cancelled')->where('company_id', $company->id)->count());
+        $this->actingAs($admin)->post(route('admin.companies.subscriptions.reactivate', $company))->assertRedirect();
+        $this->actingAs($admin)->post(route('admin.companies.subscriptions.reactivate', $company))->assertSessionHasErrors('subscription');
+        $this->assertSame(1, DB::table('audit_logs')->where('action', 'admin.subscription.reactivated')->where('company_id', $company->id)->count());
+        Carbon::setTestNow();
+    }
+
     public function test_flagged_user_must_change_password_and_sensitive_fields_are_not_profile_editable(): void
     {
         $company = Company::create(['legal_name_ar' => 'شركة', 'tax_number' => 'PROF-1']);
@@ -85,9 +146,25 @@ class AdminAccountManagementRepairTest extends TestCase
         $this->assertFalse($user->refresh()->must_change_password);
         $this->assertTrue(Hash::check('New-secure-password-123!', $user->password));
         $other = Company::create(['legal_name_ar' => 'أخرى', 'tax_number' => 'PROF-2']);
-        $this->actingAs($user)->patch(route('profile.update'), ['name' => 'Safe', 'email' => $user->email, 'company_id' => $other->id, 'role' => User::ROLE_SUPER_ADMIN]);
+        $this->actingAs($user)->patch(route('profile.update'), [
+            'name' => 'Safe', 'email' => $user->email, 'company_id' => $other->id,
+            'role' => 'Super Admin', 'roles' => ['Super Admin'], 'permissions' => ['*'],
+            'is_super_admin' => true, 'is_active' => true, 'must_change_password' => false,
+        ]);
         $this->assertSame($company->id, $user->refresh()->company_id);
         $this->assertFalse($user->isSuperAdmin());
+    }
+
+    public function test_password_change_middleware_returns_json_and_allows_logout_without_redirect_loops(): void
+    {
+        $user = User::factory()->create(['must_change_password' => true]);
+
+        $this->actingAs($user)->getJson('/dashboard')
+            ->assertStatus(409)
+            ->assertJson(['code' => 'password_change_required']);
+        $this->actingAs($user)->get(route('profile.edit'))->assertOk();
+        $this->actingAs($user)->post(route('logout'))->assertRedirect('/');
+        $this->assertGuest();
     }
 
     private function companyPayload(): array

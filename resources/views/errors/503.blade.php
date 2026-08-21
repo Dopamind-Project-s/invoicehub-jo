@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('title', 'الخدمة غير متاحة')
+@section('code', '503')
+@section('heading', 'الخدمة تحت الصيانة حالياً')
+@section('message', 'نعتذر عن التوقف المؤقت. يرجى العودة بعد قليل.')

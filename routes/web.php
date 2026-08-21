@@ -91,7 +91,6 @@ Route::middleware(['auth', 'super.admin'])->prefix('admin')->name('admin.')->gro
     Route::post('companies/{company}/subscriptions', [CompanyManagementController::class, 'createSubscription'])->name('companies.subscriptions.store');
     Route::post('companies/{company}/subscriptions/renew', [CompanyManagementController::class, 'renewSubscription'])->name('companies.subscriptions.renew');
     Route::patch('companies/{company}/subscriptions/auto-renew', [CompanyManagementController::class, 'toggleAutoRenew'])->name('companies.subscriptions.auto-renew');
-    Route::post('companies/{company}/subscriptions/toggle-auto-renew', [CompanyManagementController::class, 'toggleAutoRenew'])->name('companies.subscriptions.toggle-auto-renew');
     Route::post('companies/{company}/subscriptions/cancel', [CompanyManagementController::class, 'cancelSubscription'])->name('companies.subscriptions.cancel');
     Route::post('companies/{company}/subscriptions/reactivate', [CompanyManagementController::class, 'reactivateSubscription'])->name('companies.subscriptions.reactivate');
     Route::get('feature-keys', [FeatureKeyController::class, 'index'])->name('feature-keys.index');

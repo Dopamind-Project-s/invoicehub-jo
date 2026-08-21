@@ -16,8 +16,8 @@ class Blog extends Model
 {
     protected static function booted(): void
     {
-        static::saved(fn () => AdminDashboardService::clear());
-        static::deleted(fn () => AdminDashboardService::clear());
+        static::saved(fn () => AdminDashboardService::clearAfterCommit());
+        static::deleted(fn () => AdminDashboardService::clearAfterCommit());
     }
 
     use SoftDeletes;

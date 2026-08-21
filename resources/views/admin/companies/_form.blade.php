@@ -32,8 +32,7 @@
         @if($company->logo_path)
             <img src="{{ asset('storage/'.$company->logo_path) }}"
                  alt="شعار المنشأة"
-                 class="mt-2 rounded border bg-white p-1"
-                 style="max-height:64px">
+                 class="company-logo-preview mt-2 rounded border bg-white p-1">
         @endif
     </div>
 
@@ -99,6 +98,7 @@
     <div class="col-md-2"><label class="form-label">دورة الفوترة</label><select name="billing_cycle" class="form-select"><option value="monthly">شهري</option><option value="yearly" @selected(old('billing_cycle')==='yearly')>سنوي</option></select></div>
     <div class="col-md-2"><label class="form-label">تاريخ البدء</label><input type="date" name="start_date" value="{{ old('start_date', now()->toDateString()) }}" class="form-control"></div>
     <div class="col-md-2"><label class="form-label"><input type="checkbox" name="auto_renew" value="1" @checked(old('auto_renew'))> تجديد تلقائي</label></div>
+    <div class="col-12"><label class="form-label">ملاحظات الاشتراك الداخلية</label><textarea name="subscription_notes" class="form-control" maxlength="1000">{{ old('subscription_notes') }}</textarea></div>
     @endif
 
     <div class="col-12">

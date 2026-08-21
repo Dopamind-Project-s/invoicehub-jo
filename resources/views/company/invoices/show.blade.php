@@ -19,7 +19,7 @@
         <form method="post" action="{{ route('company.invoices.shares.store', [$company, $invoice]) }}">@csrf<input type="hidden" name="channel" value="link"><button class="invoice-btn">مشاركة</button></form>
         @if(in_array($invoice->status, ['draft','ready'], true))<a class="invoice-btn" href="{{ route('company.invoices.edit', [$company, $invoice]) }}">تعديل</a>@endif
         @if($invoice->status === 'draft')<form method="post" action="{{ route('company.invoices.submit', [$company, $invoice]) }}">@csrf<button class="invoice-btn">اعتماد للإرسال</button></form><form method="post" action="{{ route('company.invoices.cancel', [$company, $invoice]) }}">@csrf<button class="invoice-btn">إلغاء</button></form>@endif
-        @if($invoice->status === 'ready')@if($canJofotara)<form method="post" action="{{ route('company.invoices.jofotara.submit', [$company, $invoice]) }}">@csrf<button class="invoice-btn">إرسال وطني</button></form>@endif<form method="post" action="{{ route('company.invoices.draft', [$company, $invoice]) }}">@csrf<button class="invoice-btn">إرجاع لمسودة</button></form>@endif
+        @if($invoice->status === 'ready')@if($canJofotara)<form method="post" action="{{ route('company.invoices.jofotara.submit', [$company, $invoice]) }}">@csrf<button class="invoice-btn">{{ $failedJofotara ? 'إعادة الإرسال إلى نظام الفوترة الوطني' : 'إرسال وطني' }}</button></form>@endif<form method="post" action="{{ route('company.invoices.draft', [$company, $invoice]) }}">@csrf<button class="invoice-btn">إرجاع لمسودة</button></form>@endif
     </div>
     @if($failedJofotara)
         <div class="alert alert-danger no-print"><strong>فشل إرسال الفاتورة إلى نظام الفوترة الوطني.</strong><div>{{ $invoice->jofotara_error_message ?: 'يمكن تعديل البيانات ثم إعادة المحاولة.' }}</div></div>
@@ -27,6 +27,11 @@
         <div class="alert alert-warning no-print"><strong>تنبيه إداري:</strong><ul class="mb-0 mt-2">@foreach($warnings as $warning)<li>{{ $warning }}</li>@endforeach</ul></div>
     @endif
     @if(session('share_payload'))<div class="alert alert-info no-print"><strong>تم إنشاء رابط المشاركة:</strong> <a target="_blank" href="{{ session('share_payload.copy_link') }}">{{ session('share_payload.copy_link') }}</a></div>@endif
-    @include('company.invoices.partials.document', ['doc' => $doc])
+    @if($jofotaraDiagnostic)
+        <section class="card card-body mb-3 no-print" dir="rtl">
+            <div class="d-flex justify-content-between align-items-center gap-2"><div><h2 class="h5 mb-1">تشخيص سلسلة جوفوتارا</h2><p class="text-muted mb-0">{{ $jofotaraDiagnostic['next_action'] }}</p></div><a class="btn btn-outline-secondary" href="{{ route('company.invoices.jofotara.uat', $company) }}">صفحة فحص UAT</a></div>
+        </section>
+    @endif
+    @include('company.invoices.partials.document', ['doc' => $doc, 'qrImageUrl' => route('company.invoices.qr', [$company, $invoice])])
 </div>
 @endsection
