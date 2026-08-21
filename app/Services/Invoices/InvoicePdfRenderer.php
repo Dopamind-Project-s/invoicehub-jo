@@ -16,7 +16,11 @@ use Throwable;
 
 class InvoicePdfRenderer
 {
-    public function __construct(private readonly InvoiceTemplateDataFactory $factory, private readonly InvoiceTemplateResolver $resolver) {}
+    public function __construct(
+        private readonly InvoiceTemplateDataFactory $factory,
+        private readonly InvoiceTemplateResolver $resolver,
+        private readonly ArabicPdfTextShaper $arabicTextShaper,
+    ) {}
 
     public function html(Invoice $invoice, ?InvoiceTemplate $template = null): string
     {
@@ -109,7 +113,8 @@ class InvoicePdfRenderer
 
     private function renderWithDompdf(Invoice $invoice, ?InvoiceTemplate $template): string
     {
-        $pdf = Pdf::loadHTML($this->renderHtml($invoice, $template, true, true))->setPaper('a4', 'portrait');
+        $html = $this->arabicTextShaper->shapeHtml($this->renderHtml($invoice, $template, true, true));
+        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
         $pdf->setOptions([
             'isHtml5ParserEnabled' => true,
             'isRemoteEnabled' => false,
