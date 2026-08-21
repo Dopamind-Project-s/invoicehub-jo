@@ -8,8 +8,6 @@ use App\Models\Invoice;
 use App\Models\InvoiceTemplate;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\File;
-use Mpdf\Config\ConfigVariables;
-use Mpdf\Config\FontVariables;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 use Throwable;
@@ -53,8 +51,6 @@ class InvoicePdfRenderer
         $tempDir = storage_path('framework/cache/mpdf');
         File::ensureDirectoryExists($tempDir);
 
-        $defaultConfig = (new ConfigVariables)->getDefaults();
-        $defaultFontConfig = (new FontVariables)->getDefaults();
         $mpdf = new Mpdf([
             'mode' => 'utf-8',
             'format' => 'A4',
@@ -64,15 +60,17 @@ class InvoicePdfRenderer
             'margin_top' => 0,
             'margin_bottom' => 0,
             'tempDir' => $tempDir,
-            'fontDir' => array_merge($defaultConfig['fontDir'], [public_path('assets/fonts')]),
-            'fontdata' => $defaultFontConfig['fontdata'] + [
+            'fontDir' => [public_path('assets/fonts')],
+            'fontdata' => [
                 'invoicearabic' => [
                     'R' => 'ArbFONTS-Droid.Arabic.Kufi_DownloadSoftware.iR_.ttf',
                     'B' => 'ArbFONTS-Droid.Arabic.Kufi_.Bold_DownloadSoftware.iR_.ttf',
                 ],
                 'invoicenumeric' => [
-                    'R' => 'OpenSans-Regular-webfont.woff',
-                    'B' => 'OpenSans-Bold-webfont.woff',
+                    // mPDF fontdata accepts TrueType/OpenType fonts, not the WOFF
+                    // web-font files used by the browser preview.
+                    'R' => 'ArbFONTS-Droid-Arabic-Kufi.ttf',
+                    'B' => 'ArbFONTS-Droid.Arabic.Kufi_.Bold_DownloadSoftware.iR_.ttf',
                 ],
             ],
             'default_font' => 'invoicearabic',
