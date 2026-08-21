@@ -6,8 +6,10 @@ namespace App\Services\Invoices;
 
 use App\Models\Invoice;
 use App\Models\InvoiceTemplate;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Mpdf\Mpdf;
 use Mpdf\Output\Destination;
 use Throwable;
@@ -48,6 +50,28 @@ class InvoicePdfRenderer
 
     private function pdfBytes(Invoice $invoice, ?InvoiceTemplate $template): string
     {
+        if (class_exists(Mpdf::class)) {
+            try {
+                return $this->renderWithMpdf($invoice, $template);
+            } catch (Throwable $exception) {
+                Log::warning('mPDF invoice rendering failed; using the bundled PDF fallback.', [
+                    'exception' => $exception,
+                    'invoice_id' => $invoice->getKey(),
+                    'renderer' => 'mpdf',
+                ]);
+            }
+        } else {
+            Log::warning('mPDF is not installed; using the bundled PDF fallback.', [
+                'invoice_id' => $invoice->getKey(),
+                'renderer' => 'dompdf',
+            ]);
+        }
+
+        return $this->renderWithDompdf($invoice, $template);
+    }
+
+    private function renderWithMpdf(Invoice $invoice, ?InvoiceTemplate $template): string
+    {
         $tempDir = storage_path('framework/cache/mpdf');
         File::ensureDirectoryExists($tempDir);
 
@@ -81,6 +105,21 @@ class InvoicePdfRenderer
         $mpdf->WriteHTML($this->renderHtml($invoice, $template, true, true));
 
         return $mpdf->Output('', Destination::STRING_RETURN);
+    }
+
+    private function renderWithDompdf(Invoice $invoice, ?InvoiceTemplate $template): string
+    {
+        $pdf = Pdf::loadHTML($this->renderHtml($invoice, $template, true, true))->setPaper('a4', 'portrait');
+        $pdf->setOptions([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => false,
+            'defaultFont' => 'DejaVu Sans',
+            'chroot' => base_path(),
+            'dpi' => 144,
+            'isFontSubsettingEnabled' => true,
+        ]);
+
+        return $pdf->output();
     }
 
     private function renderHtml(Invoice $invoice, ?InvoiceTemplate $template = null, bool $embedAssets = false, bool $mpdf = false): string
