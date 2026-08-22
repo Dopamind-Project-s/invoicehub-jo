@@ -14,6 +14,7 @@ use App\Services\Invoices\InvoiceNotificationService;
 use App\Services\Invoices\InvoicePdfRenderer;
 use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceShareService;
+use App\Services\Invoices\InvoiceTemplateDataFactory;
 use App\Services\Invoices\InvoiceTemplateResolver;
 use App\Services\Jofotara\QRCodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -80,6 +81,26 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertStringContainsString('رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني', $html);
         $this->assertStringContainsString('فاتورة ضريبية', $html);
         $this->assertStringNotContainsString('@vite', $html);
+    }
+
+    public function test_mpdf_document_uses_logical_arabic_and_pdf_safe_layout(): void
+    {
+        $invoice = $this->makeInvoice();
+        $data = app(InvoiceTemplateDataFactory::class)->make($invoice);
+        $html = view('company.invoice-templates.mpdf', [
+            'data' => $data,
+            'doc' => $data->doc,
+            'presentation' => app(InvoiceTemplateResolver::class)->presentation($data->template),
+        ])->render();
+
+        $this->assertStringContainsString('dir="rtl"', $html);
+        $this->assertStringContainsString('فاتورة ضريبية', $html);
+        $this->assertStringContainsString('بيانات الفاتورة', $html);
+        $this->assertStringContainsString('الإجمالي النهائي / المستحق', $html);
+        $this->assertStringNotContainsString('ةيبيرض ةروتاف', $html);
+        $this->assertStringNotContainsString('display: grid', $html);
+        $this->assertStringNotContainsString('display: flex', $html);
+        $this->assertStringNotContainsString('<script', $html);
     }
 
     public function test_normal_and_printable_previews_share_content_without_print_layout_regression(): void

@@ -6,17 +6,19 @@ namespace App\Services\Invoices;
 
 use App\Models\Invoice;
 use App\Models\InvoiceTemplate;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Log;
+use Mpdf\Mpdf;
+use Mpdf\Output\Destination;
 use RuntimeException;
-use Spatie\Browsershot\Browsershot;
 use Throwable;
 
 class InvoicePdfRenderer
 {
-    public function __construct(private readonly InvoiceTemplateDataFactory $factory, private readonly InvoiceTemplateResolver $resolver) {}
+    public function __construct(
+        private readonly InvoiceTemplateDataFactory $factory,
+        private readonly InvoiceTemplateResolver $resolver,
+    ) {}
 
     public function html(Invoice $invoice, ?InvoiceTemplate $template = null): string
     {
@@ -28,10 +30,10 @@ class InvoicePdfRenderer
         $filename ??= ($invoice->invoice_number ?: 'invoice').'.pdf';
         try {
             $pdf = $this->pdfBytes($invoice, $template);
-        } catch (RuntimeException $exception) {
+        } catch (Throwable $exception) {
             report($exception);
 
-            return response('تعذر إنشاء ملف PDF بشكل صحيح. يرجى التحقق من توفر Chromium ثم المحاولة مرة أخرى.', 503, ['Content-Type' => 'text/plain; charset=UTF-8']);
+            return response('تعذر إنشاء ملف PDF حالياً. يرجى المحاولة مرة أخرى.', 503, ['Content-Type' => 'text/plain; charset=UTF-8']);
         }
 
         return response($pdf, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'attachment; filename="'.$filename.'"']);
@@ -50,62 +52,58 @@ class InvoicePdfRenderer
 
     private function pdfBytes(Invoice $invoice, ?InvoiceTemplate $template): string
     {
-        $html = $this->renderHtml($invoice, $template, true);
+        if (! class_exists(Mpdf::class)) {
+            throw new RuntimeException('mPDF is not installed. Run composer install before serving invoice PDFs.');
+        }
 
-        try {
-            if (class_exists(Browsershot::class)) {
-                $browsershot = Browsershot::html($html)
-                    ->format('A4')
-                    ->margins(0, 0, 0, 0)
-                    ->showBackground()
-                    ->hideBrowserHeaderAndFooter()
-                    ->waitUntilNetworkIdle()
-                    ->waitForSelector('.invoice-document.invoice-page')
-                    ->evaluateOnNewDocument(File::get(public_path('js/invoice-print.js')))
-                    ->waitForFunction('(document.fonts === undefined || document.fonts.status === "loaded") && document.documentElement.dataset.invoicePrintReady === "true"')
-                    ->emulateMedia('print')
-                    ->windowSize(1240, 1754)
-                    ->deviceScaleFactor(1);
-
-                if (filled(config('services.invoice_pdf.node_binary'))) {
-                    $browsershot->setNodeBinary((string) config('services.invoice_pdf.node_binary'));
-                }
-                if (filled(config('services.invoice_pdf.chrome_path'))) {
-                    $browsershot->setChromePath((string) config('services.invoice_pdf.chrome_path'));
-                }
-
-                return $browsershot->pdf();
-            }
-        } catch (Throwable $exception) {
-            Log::error('Chromium invoice PDF rendering failed.', ['exception' => $exception, 'renderer' => 'browsershot']);
-
-            if (! app()->environment('testing')) {
-                throw new RuntimeException('Chromium is required to render Arabic invoice PDFs.', previous: $exception);
+        $tempDir = storage_path('framework/cache/mpdf');
+        File::ensureDirectoryExists($tempDir);
+        foreach ([
+            'ArbFONTS-Droid.Arabic.Kufi_DownloadSoftware.iR_.ttf',
+            'ArbFONTS-Droid.Arabic.Kufi_.Bold_DownloadSoftware.iR_.ttf',
+        ] as $font) {
+            if (! is_readable(public_path('assets/fonts/'.$font))) {
+                throw new RuntimeException("Required invoice font is not readable: {$font}");
             }
         }
 
-        if (! app()->environment('testing')) {
-            throw new RuntimeException('Chromium is required to render Arabic invoice PDFs.');
-        }
+        $data = $this->factory->make($invoice, $template);
+        $presentation = $this->resolver->presentation($data->template);
 
-        $html = $this->renderHtml($invoice, $template, true, true);
-        File::ensureDirectoryExists(storage_path('fonts'));
-        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
-        $pdf->setOptions([
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true,
-            'defaultFont' => 'InvoiceArabic',
-            'fontDir' => storage_path('fonts'),
-            'fontCache' => storage_path('fonts'),
-            'chroot' => base_path(),
-            'dpi' => 144,
-            'isFontSubsettingEnabled' => true,
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_left' => 0,
+            'margin_right' => 0,
+            'margin_top' => 0,
+            'margin_bottom' => 0,
+            'tempDir' => $tempDir,
+            'fontDir' => [public_path('assets/fonts')],
+            'fontdata' => [
+                'invoicearabic' => [
+                    'R' => 'ArbFONTS-Droid.Arabic.Kufi_DownloadSoftware.iR_.ttf',
+                    'B' => 'ArbFONTS-Droid.Arabic.Kufi_.Bold_DownloadSoftware.iR_.ttf',
+                ],
+            ],
+            'default_font' => 'invoicearabic',
+            'autoScriptToLang' => true,
+            'autoLangToFont' => false,
+            'useSubstitutions' => true,
         ]);
+        $mpdf->SetTitle((string) ($invoice->invoice_number ?: 'Invoice'));
+        $mpdf->SetAuthor((string) ($data->doc['company']['name'] ?? config('app.name')));
+        $mpdf->SetDirectionality($data->direction);
+        $mpdf->WriteHTML(view('company.invoice-templates.mpdf', [
+            'data' => $data,
+            'doc' => $data->doc,
+            'presentation' => $presentation,
+        ])->render());
 
-        return $pdf->output();
+        return $mpdf->Output('', Destination::STRING_RETURN);
     }
 
-    private function renderHtml(Invoice $invoice, ?InvoiceTemplate $template = null, bool $embedAssets = false, bool $dompdf = false): string
+    private function renderHtml(Invoice $invoice, ?InvoiceTemplate $template = null): string
     {
         $data = $this->factory->make($invoice, $template);
         $presentation = $this->resolver->presentation($data->template);
@@ -113,41 +111,8 @@ class InvoicePdfRenderer
         return view($data->template->view_path ?: 'company.invoice-templates.render.arabic-classic', [
             'data' => $data,
             'templatePresentation' => $presentation,
-            'invoiceStylesheet' => $embedAssets ? $this->embeddedStylesheet($presentation, $dompdf) : null,
-            'pdfRenderer' => $dompdf ? 'dompdf' : 'chromium',
+            'invoiceStylesheet' => null,
+            'pdfRenderer' => 'browser',
         ])->render();
-    }
-
-    /** @param array<string, string> $presentation */
-    private function embeddedStylesheet(array $presentation, bool $dompdf = false): string
-    {
-        $css = File::get(public_path('css/invoice-document.css'));
-        $templateCss = public_path($presentation['stylesheet']);
-        if (is_file($templateCss)) {
-            $css .= "\n".File::get($templateCss);
-        }
-        if ($dompdf) {
-            $css .= "\n".File::get(resource_path('css/invoice/dompdf.css'));
-        }
-
-        return (string) preg_replace_callback(
-            '~url\([\'\"]?\.\./assets/fonts/([^\'\")]+)[\'\"]?\)~',
-            static function (array $match): string {
-                $path = public_path('assets/fonts/'.basename($match[1]));
-                if (! is_file($path) || ! is_readable($path)) {
-                    return $match[0];
-                }
-
-                $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
-                    'woff2' => 'font/woff2',
-                    'woff' => 'font/woff',
-                    'otf' => 'font/otf',
-                    default => 'font/ttf',
-                };
-
-                return 'url("data:'.$mime.';base64,'.base64_encode((string) file_get_contents($path)).'")';
-            },
-            $css,
-        );
     }
 }

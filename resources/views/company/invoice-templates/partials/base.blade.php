@@ -12,7 +12,7 @@
         <link rel="stylesheet" href="{{ asset($templatePresentation['stylesheet']) }}?v={{ filemtime(public_path($templatePresentation['stylesheet'])) }}">
     @endif
 </head>
-<body class="invoice-document-body {{ $templatePresentation['root_class'] }} {{ ($pdfRenderer ?? null) === 'dompdf' ? 'invoice-pdf-dompdf' : '' }}"
+<body class="invoice-document-body {{ $templatePresentation['root_class'] }}"
       data-template="{{ $templatePresentation['slug'] }}"
       data-layout="{{ $templatePresentation['layout'] }}"
       data-header="{{ $templatePresentation['header'] }}"
