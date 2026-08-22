@@ -1,80 +1,42 @@
-# README — إعداد PDF بالخطوط العربية على السيرفر
+# إعداد PDF العربي باستخدام mPDF
 
-هذا الدليل لتجهيز تنزيل فواتير PDF بخطوط عربية صحيحة في InvoSync على Ubuntu/Debian.
+يعتمد تصدير الفواتير على `mpdf/mpdf` فقط. لا يستخدم التطبيق Chromium أو Node أو Browsershot أو Dompdf.
 
-## 1) تثبيت حزم النظام
+## متطلبات PHP
 
-```bash
-sudo apt-get update
-sudo apt-get install -y \
-  fontconfig \
-  fonts-dejavu-core \
-  fonts-noto-core \
-  fonts-noto-extra \
-  fonts-noto-ui-core \
-  fonts-noto-ui-extra \
-  fonts-noto-color-emoji \
-  libfontconfig1 \
-  libfreetype6 \
-  libjpeg-turbo8 \
-  libpng16-16
-```
-
-إذا كان السيرفر يستخدم Browsershot/Chromium لإخراج PDF، ثبّت Chromium واعتمادياته:
+تأكد أن PHP الخاص بخادم الويب (وليس CLI فقط) يملك الامتدادات التالية:
 
 ```bash
-sudo apt-get install -y chromium-browser chromium || true
-sudo apt-get install -y \
-  libnss3 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdrm2 \
-  libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
-  libasound2 libpangocairo-1.0-0 libpango-1.0-0 libcairo2
+php -m | grep -E '^(gd|mbstring)$'
 ```
 
-## 2) تأكيد وجود الخطوط المحلية داخل المشروع
+ثم ثبّت اعتماديات Composer من ملف القفل:
 
-القوالب تستخدم خطوطًا محلية موجودة في:
+```bash
+composer install --no-dev --optimize-autoloader
+php -r "require 'vendor/autoload.php'; var_dump(class_exists('Mpdf\\Mpdf'));"
+```
+
+يجب أن تكون نتيجة الأمر الأخير `bool(true)`. وجود `mpdf/mpdf` في `composer.json` أو وجود مجلد فارغ تحت `vendor` لا يعني أن المكتبة مثبّتة.
+
+## الخطوط ومجلد العمل المؤقت
+
+يجب أن تكون الملفات التالية قابلة للقراءة من مستخدم PHP-FPM:
 
 ```text
-public/assets/fonts/ArbFONTS-Droid-Arabic-Kufi.ttf
-public/assets/fonts/ArbFONTS-Droid.Arabic.Naskh_.Regular_DownloadSoftware.iR_.ttf
-public/assets/fonts/OpenSans-Regular-webfont.woff
+public/assets/fonts/ArbFONTS-Droid.Arabic.Kufi_DownloadSoftware.iR_.ttf
+public/assets/fonts/ArbFONTS-Droid.Arabic.Kufi_.Bold_DownloadSoftware.iR_.ttf
 ```
 
-تأكد من وجودها بعد النشر:
+ويجب أن يكون مجلد Laravel قابلاً للكتابة:
 
 ```bash
-test -f public/assets/fonts/ArbFONTS-Droid-Arabic-Kufi.ttf
-test -f public/assets/fonts/ArbFONTS-Droid.Arabic.Naskh_.Regular_DownloadSoftware.iR_.ttf
-test -f public/assets/fonts/OpenSans-Regular-webfont.woff
+mkdir -p storage/framework/cache/mpdf
+chown -R www-data:www-data storage bootstrap/cache
+chmod -R ug+rwX storage bootstrap/cache
 ```
 
-## 3) صلاحيات مجلدات Laravel وDompdf
-
-```bash
-sudo chown -R www-data:www-data storage bootstrap/cache
-sudo chmod -R ug+rw storage bootstrap/cache
-mkdir -p storage/fonts
-sudo chown -R www-data:www-data storage/fonts
-sudo chmod -R ug+rw storage/fonts
-```
-
-## 4) إعدادات `.env` المقترحة
-
-```dotenv
-APP_ENV=production
-APP_DEBUG=false
-FILESYSTEM_DISK=public
-```
-
-إذا كانت بيئة Chromium تحتاج مسارًا صريحًا، أضف حسب السيرفر:
-
-```dotenv
-CHROME_PATH=/usr/bin/chromium
-```
-
-> ملاحظة: التطبيق يحاول استخدام Browsershot عند توفره، ثم يرجع إلى Dompdf تلقائيًا إذا تعذر تشغيل Chromium.
-
-## 5) تنظيف الكاش بعد النشر
+## إكمال النشر
 
 ```bash
 php artisan optimize:clear
@@ -83,37 +45,14 @@ php artisan route:cache
 php artisan view:cache
 ```
 
-## 6) اختبار سريع من السيرفر
+قالب PDF منفصل ومبسّط مبني بالجداول وCSS الذي تدعمه mPDF. لا يعاد استخدام Grid/Flex الخاص بمعاينة المتصفح، ولذلك لا يعتمد ترتيب عناصر PDF على إمكانات CSS الخاصة بالمتصفح.
 
-1. افتح صفحة قوالب الفواتير من لوحة المنشأة.
-2. اختر قالبًا عربيًا مثل `Jordan Tax Pro` أو `Premium Ledger`.
-3. اضغط **تنزيل PDF**.
-4. تأكد أن النص العربي ظاهر بدون مربعات أو أحرف مفصولة.
+## تشخيص فشل الإنشاء
 
-## 7) مشاكل شائعة
-
-### النص العربي يظهر مربعات
-
-- تأكد من وجود ملفات الخطوط داخل `public/assets/fonts`.
-- نفذ:
+راجع الاستثناء الأصلي في:
 
 ```bash
-fc-cache -f -v
-php artisan optimize:clear
+tail -n 100 storage/logs/laravel.log
 ```
 
-### PDF لا ينزل أو يظهر خطأ Chromium
-
-- تأكد من تثبيت Chromium واعتمادياته.
-- تأكد من السماح للمستخدم `www-data` بالكتابة داخل `storage`.
-- جرّب fallback إلى Dompdf بإزالة/تعطيل Chromium مؤقتًا أو مراجعة logs.
-
-### الصور أو الشعار لا تظهر في PDF
-
-- نفذ:
-
-```bash
-php artisan storage:link
-```
-
-- تأكد من أن `APP_URL` صحيح ويطابق دومين السيرفر.
+أكثر الأسباب شيوعاً هي عدم اكتمال `composer install`، أو تشغيل PHP-FPM بإصدار/امتدادات مختلفة عن CLI، أو عدم امتلاك مستخدم الويب صلاحية الكتابة إلى `storage/framework/cache/mpdf`.

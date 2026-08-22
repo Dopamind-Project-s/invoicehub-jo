@@ -8,11 +8,11 @@ use App\Console\Commands\CreateRealJofotaraSample;
 use App\Models\Company;
 use App\Models\Customer;
 use App\Models\Invoice;
+use App\Services\Invoices\InvoicePdfRenderer;
 use App\Services\Jofotara\JoFotaraApiService;
 use App\Services\Jofotara\JoFotaraPreparationService;
 use App\Services\Jofotara\QRCodeService;
 use App\Services\Jofotara\TaxCalculationService;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -123,15 +123,9 @@ class InvoiceController extends Controller
         return response()->download(storage_path("app/jofotara/invoice-{$invoice->id}/payload.json"));
     }
 
-    public function issuedPdf(Invoice $invoice, QRCodeService $qr)
+    public function issuedPdf(Invoice $invoice, InvoicePdfRenderer $renderer)
     {
-        $invoice->load(['supplier', 'customer', 'items']);
-        $qrDataUri = $qr->dataUri($invoice);
-        if (class_exists(Pdf::class)) {
-            return Pdf::loadView('invoices.issued-pdf', compact('invoice', 'qrDataUri'))->setPaper('a4', 'portrait')->download($invoice->invoice_number.'-issued.pdf');
-        }
-
-        return view('invoices.issued-pdf', compact('invoice', 'qrDataUri'));
+        return $renderer->download($invoice, filename: $invoice->invoice_number.'-issued.pdf');
     }
 
     private function formData(Invoice $invoice): array

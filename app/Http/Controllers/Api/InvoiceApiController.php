@@ -79,6 +79,6 @@ class InvoiceApiController extends Controller
 
     public function pdf(Invoice $invoice)
     {
-        return response()->json(['message' => 'PDF endpoint is reserved for Dompdf rendering.', 'invoice_id' => $invoice->id]);
+        return response()->json(['message' => 'PDF endpoint is reserved for invoice rendering.', 'invoice_id' => $invoice->id]);
     }
 }
