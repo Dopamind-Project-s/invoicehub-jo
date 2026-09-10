@@ -1,0 +1,84 @@
+/* Mobile-first refinements shared by all company workspace screens. */
+:root { --mobile-tap-size: 44px; }
+
+html { overflow-x: hidden; }
+body { min-width: 0; overflow-x: hidden; }
+.content-shell, .content-main, .row > *, .card, form { min-width: 0; }
+img, svg, video, canvas { max-width: 100%; height: auto; }
+.form-control, .form-select, .btn { max-width: 100%; }
+.form-control, .form-select { min-height: var(--mobile-tap-size); }
+textarea.form-control { min-height: 110px; }
+.table-responsive { scrollbar-width: thin; overscroll-behavior-inline: contain; }
+.table-responsive::after { display: none; }
+.invoice-toolbar form, .invoice-toolbar .invoice-btn { min-width: 0; }
+.share-link-row { display: flex; align-items: center; gap: .75rem; margin-top: .65rem; }
+.share-link-row a { min-width: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 767.98px) {
+  .content-main { padding: 0 .75rem .75rem; }
+  .topbar-original { min-height: 58px; margin: .5rem; padding: .4rem .55rem; border-radius: 1rem; }
+  .topbar-title { min-width: 0; overflow: hidden; font-size: .95rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar-actions { gap: .25rem !important; }
+  .topbar-actions .btn { min-height: 40px; padding-inline: .6rem; }
+  .topbar-actions .top-avatar, .topbar-actions .btn-profile { display: none; }
+  .topbar-toggle { display: inline-grid !important; flex: 0 0 44px; place-items: center; }
+
+  .page-header { align-items: stretch; flex-direction: column; }
+  .page-header-actions, .page-header-actions > *, .page-header-actions .btn { width: 100%; }
+  .product-hero, .contact-hero, .category-hero, .invoice-hero { padding: 18px !important; border-radius: 18px !important; }
+  .product-hero .btn, .contact-hero .btn, .category-hero .btn,
+  .invoice-hero .btn, .invoice-action-btn { width: 100%; min-height: var(--mobile-tap-size); }
+
+  .card-body { padding: 1rem; }
+  .product-form-body, .contact-form-body, .invoice-form-body { padding: 12px !important; }
+  .product-form-head, .contact-form-head, .invoice-form-banner { padding: 18px 16px !important; }
+  .product-section, .contact-section, .form-section { padding: 14px !important; border-radius: 14px !important; }
+  .product-actions, .contact-actions, .form-actions { position: sticky; z-index: 20; bottom: 0; padding: 12px !important; background: color-mix(in srgb, var(--surface-bg, #fff) 94%, transparent) !important; box-shadow: 0 -8px 24px rgba(15,23,42,.09); backdrop-filter: blur(10px); }
+  .product-actions .btn, .contact-actions .btn, .form-actions .btn { width: 100%; min-height: var(--mobile-tap-size); }
+  .image-preview-box { padding: 12px !important; }
+  .product-image-preview { width: 112px !important; height: 112px !important; }
+  .empty-state { padding: 28px 16px !important; }
+  .pagination { flex-wrap: wrap; gap: .25rem; }
+
+  /* Index tables become readable cards; invoice line editor remains scrollable. */
+  .table-responsive:not(.invoice-items-table-wrapper) { overflow: visible; }
+  .table-responsive:not(.invoice-items-table-wrapper) table.mobile-card-table,
+  .table-responsive:not(.invoice-items-table-wrapper) table.mobile-card-table tbody,
+  .table-responsive:not(.invoice-items-table-wrapper) table.mobile-card-table tr,
+  .table-responsive:not(.invoice-items-table-wrapper) table.mobile-card-table td { display: block; width: 100%; }
+  table.mobile-card-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  table.mobile-card-table tbody { padding: 10px; }
+  table.mobile-card-table tbody tr { margin-bottom: 12px; overflow: hidden; border: 1px solid #dfe8ee; border-radius: 16px; background: var(--surface-bg, #fff); box-shadow: 0 6px 18px rgba(15,23,42,.05); }
+  table.mobile-card-table tbody tr:last-child { margin-bottom: 0; }
+  table.mobile-card-table tbody td { display: flex !important; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding: 10px 12px; border-bottom: 1px solid #edf2f5; text-align: start !important; overflow-wrap: anywhere; }
+  table.mobile-card-table tbody td:last-child { border-bottom: 0; }
+  table.mobile-card-table tbody td::before { content: attr(data-label); flex: 0 0 38%; color: #64748b; font-size: .78rem; font-weight: 700; }
+  table.mobile-card-table tbody td[colspan] { justify-content: center; text-align: center !important; }
+  table.mobile-card-table tbody td[colspan]::before { display: none; }
+  table.mobile-card-table td .d-flex { justify-content: flex-end; }
+
+  .invoice-items-table-wrapper { margin-inline: -14px; padding: 0 14px 8px; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .invoice-items-table-wrapper .items-table { min-width: 900px; }
+  .invoice-items-table-wrapper::after { content: 'اسحب أفقياً لعرض بقية حقول البند ←'; display: block; position: sticky; right: 0; width: max-content; margin-top: 6px; color: #64748b; font-size: .75rem; }
+  .combo-menu { position: fixed !important; z-index: 1080 !important; inset: auto 12px 12px !important; max-height: min(52vh, 360px) !important; }
+  .totals-card { width: 100%; max-width: none !important; }
+
+  .invoice-toolbar { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 10px 0 !important; }
+  .invoice-toolbar form { display: contents; }
+  .invoice-toolbar .invoice-btn { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: var(--mobile-tap-size); padding: 8px; text-align: center; }
+  .share-link-row { align-items: stretch; flex-direction: column; }
+  .share-link-row .invoice-btn { width: 100%; }
+}
+
+@media (max-width: 374.98px) {
+  .content-main { padding-inline: .5rem; }
+  .topbar-original { margin-inline: .35rem; }
+  .invoice-toolbar { grid-template-columns: 1fr; }
+  table.mobile-card-table tbody { padding: 6px; }
+  table.mobile-card-table tbody td { align-items: flex-start; flex-direction: column; gap: 4px; }
+  table.mobile-card-table tbody td::before { flex-basis: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
