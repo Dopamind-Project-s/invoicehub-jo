@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{{ asset('css/Theme.css') }}">
     <link rel="stylesheet" href="{{ asset('css/Style.css') }}">
     <link rel="stylesheet" href="{{ asset('css/phase1-layout.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/company-responsive.css') }}">
     @stack('styles')
 </head>
 <body class="dir-rtl">
@@ -26,6 +27,7 @@
 </div>
 <script src="{{ asset('js/app.js') }}" defer></script>
 <script src="{{ asset('js/phase1-layout.js') }}" defer></script>
+<script src="{{ asset('js/company-responsive.js') }}" defer></script>
 @stack('scripts')
 </body>
 </html>

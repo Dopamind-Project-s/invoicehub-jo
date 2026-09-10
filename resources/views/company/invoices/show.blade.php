@@ -26,7 +26,16 @@
     @elseif($invoice->status === 'ready' && ! $canJofotara)
         <div class="alert alert-warning no-print"><strong>تنبيه إداري:</strong><ul class="mb-0 mt-2">@foreach($warnings as $warning)<li>{{ $warning }}</li>@endforeach</ul></div>
     @endif
-    @if(session('share_payload'))<div class="alert alert-info no-print"><strong>تم إنشاء رابط المشاركة:</strong> <a target="_blank" href="{{ session('share_payload.copy_link') }}">{{ session('share_payload.copy_link') }}</a></div>@endif
+    @if(session('share_payload'))
+        <div class="alert alert-info share-link-panel no-print" role="status">
+            <strong>تم إنشاء رابط المشاركة</strong>
+            <div class="share-link-row">
+                <a target="_blank" rel="noopener" href="{{ session('share_payload.copy_link') }}">{{ session('share_payload.copy_link') }}</a>
+                <button class="invoice-btn" type="button" data-copy-text="{{ session('share_payload.copy_link') }}">نسخ الرابط</button>
+            </div>
+            <small data-copy-feedback aria-live="polite"></small>
+        </div>
+    @endif
     @include('company.invoices.partials.document', ['doc' => $doc])
 </div>
 @endsection
