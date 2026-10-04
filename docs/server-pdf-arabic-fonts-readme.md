@@ -1,119 +1,56 @@
-# README — إعداد PDF بالخطوط العربية على السيرفر
+# متطلبات تنزيل PDF للفواتير العربية
 
-هذا الدليل لتجهيز تنزيل فواتير PDF بخطوط عربية صحيحة في InvoSync على Ubuntu/Debian.
+يستخدم تنزيل قوالب الفواتير في مساحة المنشأة Browsershot مع Chromium headless. هذا المسار لا يستخدم DomPDF بديلاً؛ عند تعطل Chromium أو فقد ملف خط يرجع التطبيق بخطأ HTTP 503 بدلاً من تنزيل PDF بعربية غير سليمة.
 
-## 1) تثبيت حزم النظام
+## متطلبات الإنتاج
 
-```bash
-sudo apt-get update
-sudo apt-get install -y \
-  fontconfig \
-  fonts-dejavu-core \
-  fonts-noto-core \
-  fonts-noto-extra \
-  fonts-noto-ui-core \
-  fonts-noto-ui-extra \
-  fonts-noto-color-emoji \
-  libfontconfig1 \
-  libfreetype6 \
-  libjpeg-turbo8 \
-  libpng16-16
-```
+- PHP 8.3 وما يلزم التطبيق من Composer packages، ومنها `spatie/browsershot`.
+- Node.js 22 أو أحدث وPuppeteer المثبت من `package.json` و`package-lock.json`.
+- Google Chrome أو Chromium متوافق مثبت كحزمة نظام وصالح للتشغيل headless.
+- صلاحية تشغيل Node وChromium من حساب PHP worker وصلاحية قراءة ملفات الخطوط في `public/assets/fonts`.
+- مساحة مؤقتة كافية و`/dev/shm` مناسب لتشغيل Chromium headless.
 
-إذا كان السيرفر يستخدم Browsershot/Chromium لإخراج PDF، ثبّت Chromium واعتمادياته:
+## التثبيت والإعداد
+
+ثبّت Node dependencies من ملف القفل أثناء النشر:
 
 ```bash
-sudo apt-get install -y chromium-browser chromium || true
-sudo apt-get install -y \
-  libnss3 libatk-bridge2.0-0 libatk1.0-0 libcups2 libdrm2 \
-  libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 \
-  libasound2 libpangocairo-1.0-0 libpango-1.0-0 libcairo2
+npm ci --ignore-scripts
 ```
 
-## 2) تأكيد وجود الخطوط المحلية داخل المشروع
+يمنع `--ignore-scripts` تنزيل متصفح ثانٍ بواسطة Puppeteer؛ ثبّت Chromium عبر مدير حزم الخادم، وحدد مساره في إعداد التطبيق:
 
-القوالب تستخدم خطوطًا محلية موجودة في:
+```dotenv
+INVOICE_PDF_NODE_BINARY=/usr/bin/node
+INVOICE_PDF_CHROME_PATH=/usr/bin/chromium
+```
+
+عدّل المسارات بحسب التوزيعة. يجب أن يصل إليها نفس المستخدم الذي يشغل PHP-FPM أو queue worker. إذا كان Node موجوداً في `PATH` فلا حاجة إلى `INVOICE_PDF_NODE_BINARY`.
+
+تأكد من نشر هذه الملفات مع التطبيق:
 
 ```text
-public/assets/fonts/ArbFONTS-Droid-Arabic-Kufi.ttf
-public/assets/fonts/ArbFONTS-Droid.Arabic.Naskh_.Regular_DownloadSoftware.iR_.ttf
+public/css/invoice-document.css
+public/assets/fonts/Cairo-Regular.ttf
+public/assets/fonts/Cairo-Bold.ttf
+public/assets/fonts/Cairo-OFL.txt
 public/assets/fonts/OpenSans-Regular-webfont.woff
+public/assets/fonts/OpenSans-Bold-webfont.woff
 ```
 
-تأكد من وجودها بعد النشر:
+يقوم مسار PDF بتضمين CSS والخطوط من ملفات المشروع نفسها داخل HTML المرسل إلى Chromium. لذلك لا يعتمد على خطوط مثبتة في الخادم أو جهاز قارئ PDF.
+
+## التحقق من بيئة الخادم
+
+نفذ الفحوصات التالية بحساب النشر، ثم اختبر تنزيل فاتورة من مساحة المنشأة:
 
 ```bash
-test -f public/assets/fonts/ArbFONTS-Droid-Arabic-Kufi.ttf
-test -f public/assets/fonts/ArbFONTS-Droid.Arabic.Naskh_.Regular_DownloadSoftware.iR_.ttf
-test -f public/assets/fonts/OpenSans-Regular-webfont.woff
-```
-
-## 3) صلاحيات مجلدات Laravel وDompdf
-
-```bash
-sudo chown -R www-data:www-data storage bootstrap/cache
-sudo chmod -R ug+rw storage bootstrap/cache
-mkdir -p storage/fonts
-sudo chown -R www-data:www-data storage/fonts
-sudo chmod -R ug+rw storage/fonts
-```
-
-## 4) إعدادات `.env` المقترحة
-
-```dotenv
-APP_ENV=production
-APP_DEBUG=false
-FILESYSTEM_DISK=public
-```
-
-إذا كانت بيئة Chromium تحتاج مسارًا صريحًا، أضف حسب السيرفر:
-
-```dotenv
-CHROME_PATH=/usr/bin/chromium
-```
-
-> ملاحظة: التطبيق يحاول استخدام Browsershot عند توفره، ثم يرجع إلى Dompdf تلقائيًا إذا تعذر تشغيل Chromium.
-
-## 5) تنظيف الكاش بعد النشر
-
-```bash
-php artisan optimize:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-```
-
-## 6) اختبار سريع من السيرفر
-
-1. افتح صفحة قوالب الفواتير من لوحة المنشأة.
-2. اختر قالبًا عربيًا مثل `Jordan Tax Pro` أو `Premium Ledger`.
-3. اضغط **تنزيل PDF**.
-4. تأكد أن النص العربي ظاهر بدون مربعات أو أحرف مفصولة.
-
-## 7) مشاكل شائعة
-
-### النص العربي يظهر مربعات
-
-- تأكد من وجود ملفات الخطوط داخل `public/assets/fonts`.
-- نفذ:
-
-```bash
-fc-cache -f -v
+node --version
+npm ls puppeteer
+/usr/bin/chromium --version
+test -r public/assets/fonts/Cairo-Regular.ttf
+test -r public/assets/fonts/Cairo-Bold.ttf
 php artisan optimize:clear
 ```
 
-### PDF لا ينزل أو يظهر خطأ Chromium
-
-- تأكد من تثبيت Chromium واعتمادياته.
-- تأكد من السماح للمستخدم `www-data` بالكتابة داخل `storage`.
-- جرّب fallback إلى Dompdf بإزالة/تعطيل Chromium مؤقتًا أو مراجعة logs.
-
-### الصور أو الشعار لا تظهر في PDF
-
-- نفذ:
-
-```bash
-php artisan storage:link
-```
-
-- تأكد من أن `APP_URL` صحيح ويطابق دومين السيرفر.
+إذا فشل تشغيل Chromium، راجع سجل Laravel ومسارات `INVOICE_PDF_NODE_BINARY` و`INVOICE_PDF_CHROME_PATH` وصلاحيات المستخدم. لا تفعّل DomPDF كحل بديل لهذا المسار.

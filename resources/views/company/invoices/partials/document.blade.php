@@ -11,16 +11,16 @@
                     @endif
                 </div>
                 <div class="invoice-brand-copy">
-                    <h2>{{ $doc['company']['name'] ?? '—' }}</h2>
+                    <h2 dir="auto">{{ $doc['company']['name'] ?? '—' }}</h2>
                     @if(!empty($doc['company']['legal_name']) && $doc['company']['legal_name'] !== ($doc['company']['name'] ?? null))
-                        <div class="muted">{{ $doc['company']['legal_name'] }}</div>
+                        <div class="muted" dir="auto">{{ $doc['company']['legal_name'] }}</div>
                     @endif
                     <div class="muted">الرقم الضريبي: <span class="invoice-number inline-num">{{ $doc['company']['tax_number'] ?? '—' }}</span></div>
                     @if(!empty($doc['company']['national_number']))
                         <div class="muted">الرقم الوطني/التسجيل: <span class="invoice-number inline-num">{{ $doc['company']['national_number'] }}</span></div>
                     @endif
                     @if(!empty($doc['company']['address']))
-                        <div class="muted">{{ $doc['company']['address'] }}</div>
+                        <div class="muted" dir="auto">{{ $doc['company']['address'] }}</div>
                     @endif
                 </div>
             </section>
@@ -40,10 +40,10 @@
 
         <div class="invoice-heading-row">
             <div class="invoice-title">
-                <h1>{{ $doc['invoice']['type'] ?? 'فاتورة' }}</h1>
+                <h1 dir="auto">{{ $doc['invoice']['type'] ?? 'فاتورة' }}</h1>
                 <div class="invoice-statuses">
-                    <span class="invoice-badge">{{ $doc['invoice']['status'] ?? '—' }}</span>
-                    <span class="invoice-badge invoice-badge-national">JoFotara: {{ $doc['invoice']['jofotara_status'] ?? 'غير مرسلة' }}</span>
+                    <span class="invoice-badge" dir="auto">{{ $doc['invoice']['status'] ?? '—' }}</span>
+                    <span class="invoice-badge invoice-badge-national" dir="auto">JoFotara: {{ $doc['invoice']['jofotara_status'] ?? 'غير مرسلة' }}</span>
                 </div>
             </div>
             <div class="invoice-reference">
@@ -64,11 +64,11 @@
         </div>
         <div class="invoice-card">
             <h3>بيانات العميل</h3>
-            <div class="kv"><span>الاسم</span><span>{{ $doc['customer']['name'] ?? 'عميل نقدي' }}</span></div>
+            <div class="kv"><span>الاسم</span><span dir="auto">{{ $doc['customer']['name'] ?? 'عميل نقدي' }}</span></div>
             <div class="kv"><span>الرقم الضريبي</span><span>{{ $doc['customer']['tax_number'] ?? '—' }}</span></div>
             <div class="kv"><span>الرقم الوطني</span><span>{{ $doc['customer']['national_number'] ?? '—' }}</span></div>
-            <div class="kv"><span>الهاتف</span><span>{{ $doc['customer']['phone'] ?? '—' }}</span></div>
-            <div class="kv"><span>العنوان</span><span>{{ $doc['customer']['address'] ?? '—' }}</span></div>
+            <div class="kv"><span>الهاتف</span><span dir="auto">{{ $doc['customer']['phone'] ?? '—' }}</span></div>
+            <div class="kv"><span>العنوان</span><span dir="auto">{{ $doc['customer']['address'] ?? '—' }}</span></div>
         </div>
     </section>
 
@@ -78,8 +78,8 @@
         @forelse($doc['items'] ?? [] as $item)
             <tr>
                 <td>
-                    <strong>{{ $item['product'] ?: $item['description'] }}</strong>
-                    @if($item['product'] && $item['description'])<div class="muted">{{ $item['description'] }}</div>@endif
+                    <strong dir="auto">{{ $item['product'] ?: $item['description'] }}</strong>
+                    @if($item['product'] && $item['description'])<div class="muted" dir="auto">{{ $item['description'] }}</div>@endif
                 </td>
                 <td class="invoice-number">{{ $item['quantity'] }}</td>
                 <td class="invoice-number">{{ $item['unit_price'] }}</td>
@@ -113,6 +113,6 @@
     </section>
 
     @if(!empty($doc['invoice']['notes']))
-        <section class="invoice-card invoice-notes-card avoid-break"><h3>ملاحظات</h3><div class="invoice-notes">{{ $doc['invoice']['notes'] }}</div></section>
+        <section class="invoice-card invoice-notes-card avoid-break"><h3>ملاحظات</h3><div class="invoice-notes" dir="auto">{{ $doc['invoice']['notes'] }}</div></section>
     @endif
 </article>

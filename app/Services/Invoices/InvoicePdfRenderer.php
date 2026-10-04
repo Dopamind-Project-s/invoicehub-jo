@@ -6,9 +6,7 @@ namespace App\Services\Invoices;
 
 use App\Models\Invoice;
 use App\Models\InvoiceTemplate;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Spatie\Browsershot\Browsershot;
@@ -52,50 +50,34 @@ class InvoicePdfRenderer
     private function pdfBytes(string $html): string
     {
         try {
-            if (class_exists(Browsershot::class)) {
-                $browsershot = Browsershot::html($html)
-                    ->format('A4')
-                    ->margins(0, 0, 0, 0)
-                    ->showBackground()
-                    ->hideBrowserHeaderAndFooter()
-                    ->waitUntilNetworkIdle()
-                    ->waitForSelector('.invoice-document.invoice-page')
-                    ->waitForFunction('document.fonts === undefined || document.fonts.status === "loaded"')
-                    ->emulateMedia('print')
-                    ->windowSize(1240, 1754)
-                    ->deviceScaleFactor(1);
-
-                if (filled(config('services.invoice_pdf.node_binary'))) {
-                    $browsershot->setNodeBinary((string) config('services.invoice_pdf.node_binary'));
-                }
-                if (filled(config('services.invoice_pdf.chrome_path'))) {
-                    $browsershot->setChromePath((string) config('services.invoice_pdf.chrome_path'));
-                }
-
-                return $browsershot->pdf();
+            if (! class_exists(Browsershot::class)) {
+                throw new RuntimeException('The Browsershot Composer package is not installed.');
             }
+
+            $browsershot = Browsershot::html($html)
+                ->format('A4')
+                ->margins(0, 0, 0, 0)
+                ->showBackground()
+                ->hideBrowserHeaderAndFooter()
+                ->waitForSelector('.invoice-document.invoice-page')
+                ->waitForFunction('document.fonts ? document.fonts.ready.then(() => true) : true')
+                ->emulateMedia('print')
+                ->windowSize(1240, 1754)
+                ->deviceScaleFactor(1);
+
+            if (filled(config('services.invoice_pdf.node_binary'))) {
+                $browsershot->setNodeBinary((string) config('services.invoice_pdf.node_binary'));
+            }
+            if (filled(config('services.invoice_pdf.chrome_path'))) {
+                $browsershot->setChromePath((string) config('services.invoice_pdf.chrome_path'));
+            }
+
+            return $browsershot->pdf();
         } catch (Throwable $exception) {
             Log::error('Chromium invoice PDF rendering failed.', ['exception' => $exception, 'renderer' => 'browsershot']);
 
-            if (! app()->environment(['local', 'testing']) && ! config('services.invoice_pdf.allow_dompdf_fallback', false)) {
-                throw new RuntimeException('Chromium is required to render Arabic invoice PDFs.', previous: $exception);
-            }
+            throw new RuntimeException('Chromium is required to render Arabic invoice PDFs.', previous: $exception);
         }
-
-        File::ensureDirectoryExists(storage_path('fonts'));
-        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
-        $pdf->setOptions([
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true,
-            'defaultFont' => 'InvoiceArabic',
-            'fontDir' => storage_path('fonts'),
-            'fontCache' => storage_path('fonts'),
-            'chroot' => base_path(),
-            'dpi' => 144,
-            'isFontSubsettingEnabled' => true,
-        ]);
-
-        return $pdf->output();
     }
 
     private function renderHtml(Invoice $invoice, ?InvoiceTemplate $template = null, bool $embedAssets = false): string
@@ -113,18 +95,28 @@ class InvoicePdfRenderer
     /** @param array<string, string> $presentation */
     private function embeddedStylesheet(array $presentation): string
     {
-        $css = File::get(public_path('css/invoice-document.css'));
-        $templateCss = public_path($presentation['stylesheet']);
-        if (is_file($templateCss)) {
-            $css .= "\n".File::get($templateCss);
+        $stylesheet = public_path('css/invoice-document.css');
+        if (! is_file($stylesheet) || ! is_readable($stylesheet)) {
+            throw new RuntimeException('The invoice PDF stylesheet is missing or unreadable.');
         }
+        $css = (string) file_get_contents($stylesheet);
+        $templateCss = public_path($presentation['stylesheet']);
+        if (! is_file($templateCss) || ! is_readable($templateCss)) {
+            throw new RuntimeException('The invoice template stylesheet is missing or unreadable.');
+        }
+        $css .= "\n".(string) file_get_contents($templateCss);
 
         return (string) preg_replace_callback(
             '~url\([\'\"]?\.\./assets/fonts/([^\'\")]+)[\'\"]?\)~',
             static function (array $match): string {
                 $path = public_path('assets/fonts/'.basename($match[1]));
                 if (! is_file($path) || ! is_readable($path)) {
-                    return $match[0];
+                    throw new RuntimeException('An invoice PDF font is missing or unreadable: '.basename($match[1]));
+                }
+
+                $bytes = file_get_contents($path);
+                if ($bytes === false) {
+                    throw new RuntimeException('An invoice PDF font could not be read: '.basename($match[1]));
                 }
 
                 $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
@@ -134,7 +126,7 @@ class InvoicePdfRenderer
                     default => 'font/ttf',
                 };
 
-                return 'url("data:'.$mime.';base64,'.base64_encode((string) file_get_contents($path)).'")';
+                return 'url("data:'.$mime.';base64,'.base64_encode($bytes).'")';
             },
             $css,
         );

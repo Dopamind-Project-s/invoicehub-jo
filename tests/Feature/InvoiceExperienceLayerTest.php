@@ -14,6 +14,7 @@ use App\Services\Invoices\InvoiceNotificationService;
 use App\Services\Invoices\InvoicePdfRenderer;
 use App\Services\Invoices\InvoicePdfService;
 use App\Services\Invoices\InvoiceShareService;
+use App\Services\Invoices\InvoiceTemplateDataFactory;
 use App\Services\Invoices\InvoiceTemplateResolver;
 use App\Services\Jofotara\QRCodeService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -57,11 +58,13 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertDatabaseHas('company_settings', ['company_id' => $company->id, 'category' => 'invoice_branding', 'key' => 'invoice_template_id']);
     }
 
-    public function test_all_invoice_templates_use_cairo_stack_and_clear_numeric_font(): void
+    public function test_all_invoice_templates_use_bundled_fonts_and_clear_numeric_font(): void
     {
         $css = file_get_contents(public_path('css/invoice-document.css'));
 
-        $this->assertStringContainsString('--invoice-arabic-font: Cairo, InvoiceArabic', $css);
+        $this->assertStringContainsString('--invoice-arabic-font: InvoiceArabic, InvoiceNumeric, sans-serif', $css);
+        $this->assertStringNotContainsString('local("Cairo")', $css);
+        $this->assertStringNotContainsString('DejaVu Sans', $css);
         $this->assertStringContainsString('--invoice-numeric-font: InvoiceNumeric', $css);
         $this->assertStringContainsString('font-variant-numeric: tabular-nums lining-nums', $css);
         $this->assertStringContainsString('font-feature-settings: "tnum" 1, "lnum" 1', $css);
@@ -77,6 +80,29 @@ class InvoiceExperienceLayerTest extends TestCase
         $this->assertStringContainsString('رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني', $html);
         $this->assertStringContainsString('فاتورة ضريبية', $html);
         $this->assertStringNotContainsString('@vite', $html);
+    }
+
+    public function test_template_factory_normalizes_language_and_direction_once(): void
+    {
+        $invoice = $this->makeInvoice();
+        $factory = app(InvoiceTemplateDataFactory::class);
+        $english = $factory->make($invoice, new InvoiceTemplate(['language' => 'en']));
+        $bilingual = $factory->make($invoice, new InvoiceTemplate(['language' => 'ar_en']));
+
+        $this->assertSame('en', $english->language);
+        $this->assertSame('ltr', $english->direction);
+        $this->assertSame('ar', $bilingual->language);
+        $this->assertSame('rtl', $bilingual->direction);
+    }
+
+    public function test_pdf_download_fails_closed_when_chromium_cannot_start(): void
+    {
+        config(['services.invoice_pdf.node_binary' => base_path('.missing-node-for-pdf-test')]);
+
+        $response = app(InvoicePdfService::class)->download($this->makeInvoice());
+
+        $this->assertSame(503, $response->getStatusCode());
+        $this->assertStringContainsString('تعذر إنشاء ملف PDF', $response->getContent());
     }
 
     public function test_normal_and_printable_previews_share_content_without_print_layout_regression(): void
@@ -123,6 +149,8 @@ class InvoiceExperienceLayerTest extends TestCase
             $this->assertStringContainsString('class="invoice-print-page"', $html, $template->slug);
             $this->assertStringContainsString('class="invoice-page invoice-document"', $html, $template->slug);
             $this->assertStringContainsString('class="invoice-items invoice-items-table"', $html, $template->slug);
+            $this->assertStringContainsString('lang="ar" dir="rtl"', $html, $template->slug);
+            $this->assertStringContainsString('dir="auto"', $html, $template->slug);
             $this->assertStringContainsString($presentation['root_class'], $html, $template->slug);
             $this->assertStringContainsString('data-layout="'.$presentation['layout'].'"', $html, $template->slug);
             $this->assertStringContainsString(asset($presentation['stylesheet']), $html, $template->slug);
@@ -262,6 +290,8 @@ class InvoiceExperienceLayerTest extends TestCase
         $response = $this->actingAs($user)->get(route('company.invoices.printable', [$company, $invoice]));
         $response->assertOk()->assertHeader('Content-Type', 'application/pdf');
         $this->assertStringStartsWith('%PDF', $response->getContent());
+        $this->assertStringContainsString('/FontFile2', $response->getContent(), 'The PDF should embed the project font files.');
+        $this->assertStringContainsString('/ToUnicode', $response->getContent(), 'The PDF should preserve Unicode text mappings for PDF readers.');
     }
 
     public function test_legacy_qr_uuid_url_and_hash_do_not_render_without_official_jofotara_success_state(): void

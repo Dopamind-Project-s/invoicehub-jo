@@ -54,7 +54,6 @@ return [
     'invoice_pdf' => [
         'node_binary' => env('INVOICE_PDF_NODE_BINARY'),
         'chrome_path' => env('INVOICE_PDF_CHROME_PATH'),
-        'allow_dompdf_fallback' => env('INVOICE_PDF_ALLOW_DOMPDF_FALLBACK', false),
     ],
 
 ];

@@ -21,6 +21,7 @@ class InvoiceTemplateDataFactory
         $branding = $this->branding->settings($company);
         $template ??= $branding['template'] ?? InvoiceTemplate::query()->whereNull('company_id')->where('slug', 'arabic-classic')->first();
         $template ??= new InvoiceTemplate(['name' => 'Arabic Classic', 'slug' => 'arabic-classic', 'language' => 'ar', 'layout_type' => 'classic', 'view_path' => 'company.invoice-templates.render.arabic-classic']);
+        $language = $template->language === 'en' ? 'en' : 'ar';
         $branding['template'] = $template;
         $qrValue = $this->qr->officialValue($invoice);
 
@@ -40,8 +41,8 @@ class InvoiceTemplateDataFactory
             qr: ['value' => $qrValue, 'data_uri' => $this->qr->dataUri($invoice), 'placeholder' => 'رمز QR الرسمي غير متوفر لأن الفاتورة لم تُعتمد بعد من نظام الفوترة الوطني'],
             jofotara: ['status' => $invoice->jofotara_status, 'uuid' => $invoice->jofotara_uuid, 'validation' => $invoice->jofotara_validation_result],
             template: $template,
-            language: $template?->language ?: 'ar',
-            direction: in_array($template?->language, ['en'], true) ? 'ltr' : 'rtl',
+            language: $language,
+            direction: $language === 'en' ? 'ltr' : 'rtl',
             doc: $this->displayData->make($invoice),
         );
     }

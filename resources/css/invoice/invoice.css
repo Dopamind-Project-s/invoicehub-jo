@@ -1,22 +1,6 @@
 @font-face {
-    font-family: Cairo;
-    src: local("Cairo"), local("Cairo Regular");
-    font-weight: 400;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: Cairo;
-    src: local("Cairo Bold"), local("Cairo");
-    font-weight: 700;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
     font-family: InvoiceArabic;
-    src: url('../assets/fonts/ArbFONTS-Hasan-Alquds-Unicode.ttf') format('truetype');
+    src: url('../assets/fonts/Cairo-Regular.ttf') format('truetype');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -24,7 +8,7 @@
 
 @font-face {
     font-family: InvoiceArabic;
-    src: url('../assets/fonts/ArbFONTS-Hasan-Alquds-Unicode-Bold.ttf') format('truetype');
+    src: url('../assets/fonts/Cairo-Bold.ttf') format('truetype');
     font-weight: 700;
     font-style: normal;
     font-display: swap;
@@ -47,8 +31,8 @@
 }
 
 :root {
-    --invoice-arabic-font: Cairo, InvoiceArabic, "DejaVu Sans", sans-serif;
-    --invoice-numeric-font: InvoiceNumeric, "DejaVu Sans", Arial, sans-serif;
+    --invoice-arabic-font: InvoiceArabic, InvoiceNumeric, sans-serif;
+    --invoice-numeric-font: InvoiceNumeric, sans-serif;
     --invoice-primary: #0f766e;
     --invoice-primary-dark: #115e59;
     --invoice-ink: #172033;
@@ -74,10 +58,15 @@ body.invoice-document-body {
     margin: 0;
     background: var(--invoice-bg);
     color: var(--invoice-ink);
+    unicode-bidi: plaintext;
+}
+
+body.invoice-document-body,
+.invoice-document {
     font-family: var(--invoice-arabic-font);
     font-size: 12px;
     line-height: 1.65;
-    unicode-bidi: plaintext;
+    font-synthesis: none;
 }
 
 .invoice-shell {
@@ -121,6 +110,10 @@ body.invoice-document-body {
 .invoice-document[dir="ltr"] {
     direction: ltr;
     text-align: left;
+    unicode-bidi: plaintext;
+}
+
+.invoice-document [dir="auto"] {
     unicode-bidi: plaintext;
 }
 
